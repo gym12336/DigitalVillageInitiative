@@ -1,0 +1,472 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>数乡计划 | 乡村数字主页 Demo</title>
+    <meta
+      name="description"
+      content="数乡计划基础版网站 Demo，用于展示乡村数字名片、实践成果与后续共建入口。"
+    >
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <header class="site-header" aria-label="主导航">
+      <a class="brand" href="#top" aria-label="数乡计划首页">
+        <span class="brand-mark">数乡</span>
+        <span class="brand-text">数乡计划</span>
+      </a>
+      <button class="nav-toggle" type="button" aria-label="打开导航" aria-expanded="false">
+        <span></span>
+        <span></span>
+      </button>
+      <nav class="site-nav">
+        <a href="#purpose">项目简介</a>
+        <a href="#sample">样板村</a>
+        <a href="#village-home">村庄主页</a>
+        <a href="#service">我们能做什么</a>
+        <a href="#contact">联系共建</a>
+      </nav>
+    </header>
+
+    <main id="top">
+      <section class="hero" aria-labelledby="hero-title">
+        <div class="hero-image" role="img" aria-label="山水田野与村庄的实景氛围"></div>
+        <div class="hero-shade"></div>
+        <div class="hero-content">
+          <p class="eyebrow">乡村数字名片 · 实践成果展示 · 后续共建入口</p>
+          <h1 id="hero-title">数乡计划</h1>
+          <p class="hero-lead">把乡村看见，把故事留下</p>
+          <p class="hero-copy">
+            以青年实践记录乡村资源、人物故事与地方记忆，为村庄生成可展示、可传播、可延展的数字主页。
+          </p>
+          <div class="hero-actions">
+            <a class="button primary" href="#village-home">查看样板村主页</a>
+            <a class="button secondary" href="#service">了解我们能提供什么</a>
+          </div>
+        </div>
+        <aside class="hero-panel" aria-label="项目摘要">
+          <span>基础版 Demo</span>
+          <strong>一次实地实践，留下一份可继续更新的村庄数字成果。</strong>
+          <p>适用于村委沟通、实践基地共建、文旅宣传样板与村庄资料沉淀。</p>
+        </aside>
+      </section>
+
+      <section id="purpose" class="section intro-section">
+        <div class="section-kicker">项目简介</div>
+        <div class="intro-grid">
+          <h2>让分散的照片、采访和资料，成为村庄长期可用的内容资产。</h2>
+          <div class="intro-copy">
+            <p>
+              我们希望通过一次实地实践，为每个村庄留下一个结构清晰、内容真实、便于传播的数字主页。主页可以展示村庄历史、特色资源、人物故事、产业文旅、红色文化、生态环境和实践成果，也可以作为后续宣传、推介和资料沉淀的基础。
+            </p>
+            <p>
+              这个 Demo 展示的是一套可替换、可扩展的基础框架。真实共建时，页面中的示例内容将由实地走访、影像采集、访谈整理和村庄资料补充逐步替换。
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section id="sample" class="section sample-section">
+        <div class="section-head">
+          <div>
+            <div class="section-kicker">样板村主页入口</div>
+            <h2>从一个村庄开始，形成可复用的数字展示样板。</h2>
+          </div>
+          <p>
+            基础版默认以“武汉市江夏区小朱湾村”作为样板村进行展示。以下内容为 Demo 示例，待实地调研后补充和校准。
+          </p>
+        </div>
+
+        <div class="sample-layout">
+          <article class="featured-village">
+            <div class="featured-image village-image-xiaozhuwan" role="img" aria-label="近郊村庄、田野与民居氛围"></div>
+            <div class="featured-body">
+              <p class="status-line">样板试点 · 示例内容 · 待调研补充</p>
+              <h3>武汉市江夏区小朱湾村</h3>
+              <p class="area">湖北省武汉市江夏区</p>
+              <div class="tags">
+                <span>近郊乡村</span>
+                <span>文旅基础</span>
+                <span>样板试点</span>
+                <span>实践预调研</span>
+              </div>
+              <p>
+                小朱湾村可作为近郊乡村数字主页的样板入口，重点展示村庄公共空间、乡土风貌、村民生活、文旅基础与实践采集成果。页面内容将随着实地访谈和资料确认逐步完善。
+              </p>
+              <a class="button inline" href="#village-home">进入村庄主页</a>
+            </div>
+          </article>
+
+          <aside class="candidate-panel" aria-labelledby="candidate-title">
+            <h3 id="candidate-title">未来可扩展村庄</h3>
+            <div class="candidate-list">
+              <article>
+                <strong>武汉市黄陂区大余湾村</strong>
+                <span>古村风貌、历史文化、古建记录、数字导览</span>
+              </article>
+              <article>
+                <strong>咸宁市咸安区刘家桥村</strong>
+                <span>古桥古建、民俗故事、乡土记忆</span>
+              </article>
+              <article>
+                <strong>咸宁市赤壁市羊楼洞村</strong>
+                <span>茶文化、古街文旅、产业记忆</span>
+              </article>
+              <article>
+                <strong>恩施州宣恩县彭家寨村</strong>
+                <span>土家吊脚楼、民族文化、民俗服饰</span>
+              </article>
+              <article>
+                <strong>黄冈市麻城市杏花村</strong>
+                <span>地方故事、人物访谈、文旅传播</span>
+              </article>
+              <article>
+                <strong>武汉市江夏区高峰村</strong>
+                <span>数字治理、留守老人服务、数字普惠</span>
+              </article>
+              <article>
+                <strong>鄂州市梁子湖区峒山村 / 铜山村</strong>
+                <span>生态宜居、美丽乡村、基层治理 · 待最终确认</span>
+              </article>
+              <article>
+                <strong>黄冈市红安县七里坪镇相关村落</strong>
+                <span>红色故事、革命旧址、红色研学 · 待最终确认</span>
+              </article>
+              <article>
+                <strong>孝感市孝昌县小悟乡相关红色村落</strong>
+                <span>红色教育、乡村变迁、人物影像 · 待最终确认</span>
+              </article>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <section id="village-home" class="village-page" aria-labelledby="village-title">
+        <div class="village-hero">
+          <div class="village-photo" role="img" aria-label="村庄屋舍与田野的样板村主页图片"></div>
+          <div class="village-hero-text">
+            <p class="eyebrow dark">样板村数字主页</p>
+            <h2 id="village-title">武汉市江夏区小朱湾村</h2>
+            <p class="village-sentence">
+              在城市近旁保留乡土肌理，让公共空间、村民日常与地方记忆被重新整理和看见。
+            </p>
+            <div class="overview-grid">
+              <div>
+                <span>位置</span>
+                <strong>湖北省武汉市江夏区</strong>
+              </div>
+              <div>
+                <span>类型</span>
+                <strong>近郊乡村 / 文旅基础</strong>
+              </div>
+              <div>
+                <span>关键词</span>
+                <strong>村落风貌、人物故事、公共空间</strong>
+              </div>
+              <div>
+                <span>展示方向</span>
+                <strong>乡村数字名片与实践成果样板</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="village-content">
+          <section class="subsection resources">
+            <div class="subsection-title">
+              <span>01</span>
+              <h3>村庄特色资源</h3>
+            </div>
+            <div class="resource-grid">
+              <article>
+                <h4>村庄风貌</h4>
+                <p>记录村道、民居、公共空间与田园边界，形成可用于主页首屏和图文介绍的基础影像。</p>
+              </article>
+              <article>
+                <h4>乡土记忆</h4>
+                <p>围绕村史、旧物、老照片和口述回忆，整理村庄可继续讲述的时间线。</p>
+              </article>
+              <article>
+                <h4>人物故事</h4>
+                <p>从村干部、老人、返乡青年和产业带头人中选择代表对象，形成克制真实的人物短文。</p>
+              </article>
+              <article>
+                <h4>公共空间</h4>
+                <p>梳理村委会、活动场所、文化墙、广场和可停留点位，作为后续导览内容基础。</p>
+              </article>
+              <article>
+                <h4>文旅资源</h4>
+                <p>记录适合外来访客理解的风貌节点、路线和停留方式，避免过度商业化表达。</p>
+              </article>
+              <article>
+                <h4>实践素材</h4>
+                <p>沉淀照片、短视频、采访摘录、新闻稿初稿和资源清单，便于村庄后续继续使用。</p>
+              </article>
+            </div>
+          </section>
+
+          <section class="subsection split-block">
+            <div>
+              <div class="subsection-title">
+                <span>02</span>
+                <h3>村史时间线</h3>
+              </div>
+              <ol class="timeline">
+                <li>
+                  <time>村庄源流</time>
+                  <p>梳理村名来历、聚落形成、重要变迁等基础材料，待村史资料和口述访谈补充。</p>
+                </li>
+                <li>
+                  <time>建设节点</time>
+                  <p>记录道路、公共空间、文化设施、村庄环境整治等重要变化。</p>
+                </li>
+                <li>
+                  <time>当下生活</time>
+                  <p>从村民日常、公共活动、产业实践和对外交流中呈现村庄现在的状态。</p>
+                </li>
+                <li>
+                  <time>持续更新</time>
+                  <p>后续可由村庄补充年度事件、荣誉资料、活动影像和新建设成果。</p>
+                </li>
+              </ol>
+            </div>
+            <div>
+              <div class="subsection-title">
+                <span>03</span>
+                <h3>人物故事</h3>
+              </div>
+              <div class="people-list">
+                <article>
+                  <span>村干部</span>
+                  <h4>一位熟悉村庄变化的讲述者</h4>
+                  <p>从公共服务、环境整治和村庄治理角度，讲清楚村庄近年的变化。</p>
+                </article>
+                <article>
+                  <span>返乡青年</span>
+                  <h4>把新想法带回村庄的人</h4>
+                  <p>记录返乡选择、产业尝试、社群连接和对村庄未来的理解。</p>
+                </article>
+                <article>
+                  <span>村中老人</span>
+                  <h4>保存地方记忆的人</h4>
+                  <p>围绕老地名、旧路线、集体记忆和生活变迁，形成可读的口述片段。</p>
+                </article>
+              </div>
+            </div>
+          </section>
+
+          <section class="subsection media-route">
+            <div class="subsection-title">
+              <span>04</span>
+              <h3>影像记录与推荐路线</h3>
+            </div>
+            <div class="media-layout">
+              <div class="media-gallery" aria-label="照片、视频与采访片段占位">
+                <figure>
+                  <div class="image-slot slot-one"></div>
+                  <figcaption>村口与主路 · 照片占位</figcaption>
+                </figure>
+                <figure>
+                  <div class="image-slot slot-two"></div>
+                  <figcaption>公共空间 · 视频素材占位</figcaption>
+                </figure>
+                <figure>
+                  <div class="image-slot slot-three"></div>
+                  <figcaption>人物访谈 · 采访片段占位</figcaption>
+                </figure>
+              </div>
+              <div class="route-card">
+                <h4>半日走访路线</h4>
+                <ol>
+                  <li>村委会集合，确认走访点位与采访对象</li>
+                  <li>村口、主路、公共空间影像采集</li>
+                  <li>老街巷、田野边界、村民生活场景记录</li>
+                  <li>人物访谈与村史材料补充</li>
+                  <li>返回村委会复核素材方向和后续补充清单</li>
+                </ol>
+              </div>
+            </div>
+          </section>
+
+          <section class="subsection outcome-band">
+            <div>
+              <div class="subsection-title compact">
+                <span>05</span>
+                <h3>实践成果</h3>
+              </div>
+              <p>
+                实践队最终可留下村庄主页、精选照片、短视频素材、人物故事、新闻稿、资源清单和调研记录。所有成果均可作为后续宣传、资料归档和共建更新的基础。
+              </p>
+            </div>
+            <div>
+              <div class="subsection-title compact">
+                <span>06</span>
+                <h3>后续共建</h3>
+              </div>
+              <p>
+                村庄可继续补充历史材料、活动图片、产业信息和人物线索，实践队根据新增资料扩展栏目，让主页从一次展示变成长期可更新的数字档案。
+              </p>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <section class="section theme-section" aria-labelledby="theme-title">
+        <div class="section-head">
+          <div>
+            <div class="section-kicker">主题资源区</div>
+            <h2 id="theme-title">村庄资源如何被整理</h2>
+          </div>
+          <p>我们不是简单拍几张照片，而是帮助村庄建立一套能够继续扩展的内容结构。</p>
+        </div>
+        <div class="theme-grid">
+          <article>
+            <span>红色记忆</span>
+            <p>整理革命旧址、红色故事、老党员记忆与研学路线。</p>
+          </article>
+          <article>
+            <span>传统古村</span>
+            <p>记录村史、古建、街巷、民俗与口述历史。</p>
+          </article>
+          <article>
+            <span>生态文旅</span>
+            <p>展示自然景观、游览路线、民宿资源与打卡点。</p>
+          </article>
+          <article>
+            <span>特色产业</span>
+            <p>整理农产品故事、产业过程、品牌卖点与宣传文案。</p>
+          </article>
+          <article>
+            <span>数字治理</span>
+            <p>记录基层治理、公共服务、数字普惠和村民需求。</p>
+          </article>
+          <article>
+            <span>人物故事</span>
+            <p>记录村干部、返乡青年、老人、手艺人和产业带头人。</p>
+          </article>
+          <article>
+            <span>乡土影像</span>
+            <p>沉淀照片、视频、采访、空镜和活动素材。</p>
+          </article>
+        </div>
+      </section>
+
+      <section id="service" class="section service-section">
+        <div class="section-head">
+          <div>
+            <div class="section-kicker">实践队能提供什么</div>
+            <h2>一次实践，不只是一场走访，也是一份可以留下的数字成果。</h2>
+          </div>
+          <p>以下内容以基础版实践能力为边界，务实呈现可完成、可交付、可继续完善的工作。</p>
+        </div>
+        <div class="service-list">
+          <article><span>01</span><strong>建立一个村庄主页</strong></article>
+          <article><span>02</span><strong>整理一份村庄基础资料</strong></article>
+          <article><span>03</span><strong>拍摄一批可用照片和视频</strong></article>
+          <article><span>04</span><strong>记录至少一个人物故事</strong></article>
+          <article><span>05</span><strong>形成一组特色资源卡片</strong></article>
+          <article><span>06</span><strong>设计一条村庄导览路线</strong></article>
+          <article><span>07</span><strong>生成一篇新闻稿或宣传文案初稿</strong></article>
+          <article><span>08</span><strong>沉淀一批后续可继续使用的平台素材</strong></article>
+        </div>
+      </section>
+
+      <section class="section process-section" aria-labelledby="process-title">
+        <div class="section-kicker">合作流程</div>
+        <h2 id="process-title">从前期沟通到持续共建，流程清楚、边界明确。</h2>
+        <div class="process-rail">
+          <article>
+            <span>第一步</span>
+            <h3>前期沟通</h3>
+            <p>确认村庄基本情况、对接人、可走访点位和可采访对象。</p>
+          </article>
+          <article>
+            <span>第二步</span>
+            <h3>实地采集</h3>
+            <p>实践队进村拍摄、采访、走访，采集村史、资源、人物和影像素材。</p>
+          </article>
+          <article>
+            <span>第三步</span>
+            <h3>内容整理</h3>
+            <p>将素材整理为村庄主页文案、资源卡片、人物故事、照片视频和导览内容。</p>
+          </article>
+          <article>
+            <span>第四步</span>
+            <h3>页面展示</h3>
+            <p>形成可演示的村庄数字主页 Demo，供村委确认和后续完善。</p>
+          </article>
+          <article>
+            <span>第五步</span>
+            <h3>持续共建</h3>
+            <p>村庄后续可以继续补充资料，实践队可以扩展更多栏目。</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section deliver-section" aria-labelledby="deliver-title">
+        <div class="section-head">
+          <div>
+            <div class="section-kicker">成果展示区</div>
+            <h2 id="deliver-title">最终可交付成果</h2>
+          </div>
+          <p>让村庄明确看到这件事情具体、有用，并能留下一批后续继续使用的材料。</p>
+        </div>
+        <div class="deliver-grid">
+          <article>一个村庄主页</article>
+          <article>一组精选照片</article>
+          <article>一组短视频素材</article>
+          <article>一篇新闻稿</article>
+          <article>一个核心人物故事</article>
+          <article>一份村庄资源清单</article>
+          <article>一份实践日志或调研记录</article>
+          <article>一个可继续扩展的数字资源框架</article>
+        </div>
+      </section>
+
+      <section id="contact" class="contact-section">
+        <div class="contact-inner">
+          <div>
+            <div class="section-kicker light">联系与共建</div>
+            <h2>欢迎共建村庄数字主页</h2>
+            <p>
+              如果您的村庄希望整理地方故事、展示特色资源、记录乡村建设过程，我们期待与您一起共建村庄数字主页。
+            </p>
+            <div class="partner-line">
+              <span>合作对象</span>
+              <strong>村委会、驻村干部、乡镇单位、学校实践基地、乡村文旅负责人</strong>
+            </div>
+          </div>
+          <div class="contact-card" aria-label="联系方式占位">
+            <h3>实践队联系信息</h3>
+            <dl>
+              <div>
+                <dt>负责人</dt>
+                <dd>待填写</dd>
+              </div>
+              <div>
+                <dt>电话</dt>
+                <dd>待填写</dd>
+              </div>
+              <div>
+                <dt>邮箱</dt>
+                <dd>待填写</dd>
+              </div>
+            </dl>
+            <div class="qr-placeholder">
+              <span>微信二维码</span>
+              <small>待放置</small>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <span>数乡计划 · 基础版展示 Demo</span>
+      <span>村庄资料、图片与联系方式均可在实地调研后替换更新</span>
+    </footer>
+
+    <script src="script.js"></script>
+  </body>
+</html>
