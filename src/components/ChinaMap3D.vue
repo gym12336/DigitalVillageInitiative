@@ -96,19 +96,18 @@ async function renderMap() {
     geo3D: {
       map: mapName,
       roam: true,
-      // 分层立体：顶亮底暗 + 发光边框
-      itemStyle: { color: T.regionTop, borderColor: T.border, borderWidth: 1.2, opacity: 0.95 },
+      boxWidth: 100,
+      boxDepth: 80,
+      regionHeight: 2,
+      itemStyle: { color: T.regionTop, borderColor: T.border, borderWidth: 1, opacity: 0.92 },
       emphasis: { label: { show: true, color: T.scatterGlow, fontSize: 14 }, itemStyle: { color: T.regionEmphasis, borderColor: T.borderEmphasis } },
       label: { show: false, color: T.textDim },
-      regionHeight: 4,
-      shading: 'realistic',
-      realisticMaterial: { detailTexture: null, roughness: 0.45, metalness: 0.15 },
+      shading: 'lambert',
       light: {
-        main: { intensity: 1.6, shadow: true, shadowQuality: 'high', alpha: 40, beta: 30 },
-        ambient: { intensity: 0.35 },
+        main: { intensity: 1.2, alpha: 40, beta: 30 },
+        ambient: { intensity: 0.6 },
       },
-      viewControl: { alpha: 42, beta: 0, autoRotate: false, distance: 105, minDistance: 40, maxDistance: 220 },
-      postEffect: { enable: true, bloom: { enable: true, bloomIntensity: 0.25 }, SSAO: { enable: true, intensity: 1.1, radius: 3 } },
+      viewControl: { alpha: 50, beta: 0, autoRotate: false, distance: 100, minDistance: 50, maxDistance: 180 },
       groundPlane: { show: false },
     },
     series: [
@@ -151,17 +150,26 @@ function handleVillageClick(params) {
   if (id) emit('select-village', id)
 }
 
+let resizeObs = null
 onMounted(async () => {
   chart = echarts.init(chartEl.value)
   chart.on('click', (params) => {
     if (params.seriesType === 'scatter3D') handleVillageClick(params)
     else if (params.componentType === 'geo3D') handleRegionClick(params)
   })
+  // 监听容器尺寸变化，保证 canvas 不撑破栅格（jsdom 无 ResizeObserver 时跳过）
+  if (typeof ResizeObserver !== 'undefined') {
+    resizeObs = new ResizeObserver(() => chart && chart.resize())
+    resizeObs.observe(chartEl.value)
+  }
   syncCrumbs()
   await renderMap()
 })
 
-onBeforeUnmount(() => { if (chart) chart.dispose() })
+onBeforeUnmount(() => {
+  if (resizeObs) resizeObs.disconnect()
+  if (chart) chart.dispose()
+})
 watch(() => props.villages, renderMap)
 watch(() => props.selectedId, renderMap)
 
