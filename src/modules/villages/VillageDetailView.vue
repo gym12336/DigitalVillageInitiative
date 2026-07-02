@@ -1,5 +1,46 @@
 <template>
-  <section style="padding: 2rem;"><h2>村庄主页</h2></section>
+  <section v-if="village" class="detail">
+    <router-link to="/villages" class="back">← 返回列表</router-link>
+    <h1>{{ village.name }}</h1>
+    <p class="full">{{ village.fullName }}</p>
+    <div class="tags"><span class="tag">{{ village.type }}</span><span class="tag">{{ village.status }}</span></div>
+    <p class="summary">{{ village.summary }}</p>
+
+    <div v-for="sec in sections" :key="sec.key" class="section">
+      <h3>{{ sec.title }}</h3>
+      <p v-if="!village.extra || !(village.extra[sec.key] || []).length" class="empty">待实地采集补充</p>
+      <ul v-else><li v-for="(item, i) in village.extra[sec.key]" :key="i">{{ typeof item === 'string' ? item : item.title || JSON.stringify(item) }}</li></ul>
+    </div>
+  </section>
+  <section v-else class="detail">
+    <p>未找到该村庄。<router-link to="/villages">返回列表</router-link></p>
+  </section>
 </template>
 
-<script setup></script>
+<script setup>
+import { computed } from 'vue'
+import { useRoute } from 'vue-router'
+import villages from '@/data/villages.json'
+
+const route = useRoute()
+const village = computed(() => villages.find((v) => v.id === route.params.id) || null)
+const sections = [
+  { key: 'history', title: '村史时间线' },
+  { key: 'people', title: '人物故事' },
+  { key: 'resources', title: '特色资源' },
+  { key: 'media', title: '影像库' },
+  { key: 'route', title: '导览路线' },
+  { key: 'outcomes', title: '实践成果' },
+]
+</script>
+
+<style scoped>
+.detail { max-width: 820px; margin: 0 auto; padding: 1.5rem 1rem; }
+.back { display: inline-block; margin-bottom: 1rem; }
+.full { color: var(--sx-text-dim); }
+.tags { margin: .5rem 0; }
+.tag { font-size: .78rem; border: 1px solid var(--sx-border); border-radius: 4px; padding: .1rem .5rem; margin-right: .4rem; color: var(--sx-text-dim); }
+.section { margin-top: 1.6rem; border-top: 1px solid var(--sx-border); padding-top: .8rem; }
+.section h3 { color: var(--sx-gold-soft); }
+.empty { color: var(--sx-text-dim); font-style: italic; }
+</style>
