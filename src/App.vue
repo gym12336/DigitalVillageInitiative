@@ -1,7 +1,11 @@
 <template>
-  <div id="app-root">
-    <router-view />
-  </div>
+  <SiteHeader />
+  <main><router-view /></main>
+  <SiteFooter />
 </template>
 
-<script setup></script>
+<script setup>
+import SiteHeader from '@/components/SiteHeader.vue'
+import SiteFooter from '@/components/SiteFooter.vue'
+import '@/assets/theme/theme.css'
+</script>

@@ -1,0 +1,18 @@
+:root {
+  --sx-bg: #120c06;
+  --sx-bg-soft: #2a1f14;
+  --sx-gold: #e0b45f;
+  --sx-gold-soft: #ffcf6b;
+  --sx-text: #f3e6cf;
+  --sx-text-dim: #a98c5f;
+  --sx-border: #3a2c18;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--sx-bg);
+  color: var(--sx-text);
+  font-family: system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+a { color: var(--sx-gold-soft); text-decoration: none; }
+a:hover { text-decoration: underline; }
