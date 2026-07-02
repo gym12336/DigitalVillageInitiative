@@ -11,6 +11,16 @@
     </nav>
     <div v-if="loadError" class="map-error">地图数据加载失败，已停留在当前层级。</div>
     <div ref="chartEl" class="chart"></div>
+    <div v-if="subRegions.length" class="drill-bar">
+      <span class="hint">{{ canDrillNow ? '点击下钻：' : '已到区县级（末级）' }}</span>
+      <button
+        v-for="r in subRegions"
+        :key="r.adcode"
+        class="drill-btn"
+        :disabled="!canDrillNow"
+        @click="enterRegion(r)"
+      >{{ r.name }}</button>
+    </div>
   </div>
 </template>
 
@@ -29,6 +39,8 @@ const emit = defineEmits(['select-village'])
 const chartEl = ref(null)
 const crumbs = ref(['全国'])
 const loadError = ref(false)
+const subRegions = ref([])   // 当前层级的子区域列表（下钻按钮用）
+const canDrillNow = ref(true)
 let chart = null
 let drill = createDrill()
 const geo = createGeoLoader({ onError: () => { loadError.value = true } })
@@ -44,28 +56,38 @@ async function renderMap() {
   loadError.value = false
   echarts.registerMap(mapName, gj)
   nameToAdcode = {}
+  const regions = []
   for (const f of gj.features || []) {
     const p = f.properties || {}
-    if (p.name && p.adcode != null) nameToAdcode[p.name] = String(p.adcode)
+    if (p.name && p.adcode != null) {
+      const adcode = String(p.adcode)
+      nameToAdcode[p.name] = adcode
+      regions.push({ name: p.name, adcode })
+    }
   }
+  // 更新下钻按钮：若已到末级则禁用
+  canDrillNow.value = canDrill(drill)
+  subRegions.value = regions
   const pts = toScatterPoints(filterByRegion(props.villages, cur))
   chart.setOption({
     backgroundColor: T.bg,
-    geo3D: {
-      map: mapName,
-      roam: true,
-      itemStyle: { color: T.regionBottom, borderColor: T.border, borderWidth: 1 },
-      emphasis: { itemStyle: { color: T.regionTop } },
-      regionHeight: 3,
-      light: { main: { intensity: 1.2 }, ambient: { intensity: 0.3 } },
-      viewControl: { distance: 120, alpha: 55 },
-    },
+    tooltip: { show: true },
     series: [
+      {
+        type: 'map3D',
+        map: mapName,
+        roam: true,
+        itemStyle: { color: T.regionBottom, borderColor: T.border, borderWidth: 1 },
+        emphasis: { label: { show: true, color: T.text }, itemStyle: { color: T.regionTop } },
+        regionHeight: 3,
+        light: { main: { intensity: 1.2 }, ambient: { intensity: 0.3 } },
+        viewControl: { distance: 120, alpha: 55 },
+      },
       {
         type: 'scatter3D',
         coordinateSystem: 'geo3D',
         data: pts,
-        symbolSize: 10,
+        symbolSize: 12,
         itemStyle: { color: T.scatter, opacity: 1 },
         emphasis: { itemStyle: { color: T.scatterGlow } },
         label: { show: false, formatter: (p) => p.name },
@@ -101,7 +123,7 @@ onMounted(async () => {
   chart = echarts.init(chartEl.value)
   chart.on('click', (params) => {
     if (params.seriesType === 'scatter3D') handleVillageClick(params)
-    else if (params.componentType === 'geo3D') handleRegionClick(params)
+    else if (params.seriesType === 'map3D') handleRegionClick(params)
   })
   syncCrumbs()
   await renderMap()
@@ -125,4 +147,17 @@ defineExpose({ enterRegion, goToDepth, handleVillageClick })
   padding: 0.5rem 1rem; background: var(--sx-bg-soft);
   border: 1px solid var(--sx-gold); border-radius: 6px; z-index: 2;
 }
+.drill-bar {
+  display: flex; flex-wrap: wrap; gap: .5rem; align-items: center;
+  padding: .7rem 1rem;
+}
+.drill-bar .hint { color: var(--sx-text-dim); font-size: .85rem; margin-right: .3rem; }
+.drill-btn {
+  padding: .3rem .8rem; font-size: .85rem; cursor: pointer;
+  background: var(--sx-bg-soft); color: var(--sx-gold-soft);
+  border: 1px solid var(--sx-border); border-radius: 6px;
+  transition: border-color .15s, background .15s;
+}
+.drill-btn:hover:not(:disabled) { border-color: var(--sx-gold); background: #33260f; }
+.drill-btn:disabled { opacity: .4; cursor: default; color: var(--sx-text-dim); }
 </style>
