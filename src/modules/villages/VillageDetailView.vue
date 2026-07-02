@@ -35,12 +35,14 @@ const sections = [
 </script>
 
 <style scoped>
-.detail { max-width: 820px; margin: 0 auto; padding: 1.5rem 1rem; }
-.back { display: inline-block; margin-bottom: 1rem; }
-.full { color: var(--sx-text-dim); }
-.tags { margin: .5rem 0; }
-.tag { font-size: .78rem; border: 1px solid var(--sx-border); border-radius: 4px; padding: .1rem .5rem; margin-right: .4rem; color: var(--sx-text-dim); }
-.section { margin-top: 1.6rem; border-top: 1px solid var(--sx-border); padding-top: .8rem; }
-.section h3 { color: var(--sx-gold-soft); }
-.empty { color: var(--sx-text-dim); font-style: italic; }
+.detail { max-width: 820px; margin: 0 auto; padding: 2.4rem 1rem; }
+.back { display: inline-block; margin-bottom: 1rem; color: var(--sx-earth); }
+.detail h1 { font-size: clamp(32px, 5vw, 52px); color: var(--sx-green); }
+.full { color: var(--sx-muted); }
+.tags { margin: .6rem 0; }
+.tag { font-size: .78rem; border: 1px solid var(--sx-line); border-radius: 999px; padding: .12rem .6rem; margin-right: .4rem; color: var(--sx-earth); }
+.summary { font-size: 1.05rem; color: var(--sx-ink); }
+.section { margin-top: 1.8rem; border-top: 1px solid var(--sx-line); padding-top: 1rem; }
+.section h3 { font-family: var(--sx-serif); color: var(--sx-green); }
+.empty { color: var(--sx-muted); font-style: italic; }
 </style>

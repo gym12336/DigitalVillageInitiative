@@ -1,6 +1,34 @@
 [
-  { "id": "xiaozhuwan", "name": "小朱湾村", "fullName": "武汉市江夏区小朱湾村", "province": "湖北省", "city": "武汉市", "district": "江夏区", "adcode": "420115", "coord": [114.32, 30.34], "type": "文旅基础", "summary": "近郊乡村数字主页样板", "cover": "", "status": "样板试点", "extra": { "history": [], "people": [], "resources": [], "media": [], "route": [], "outcomes": [] } },
-  { "id": "dayuwan", "name": "大余湾村", "fullName": "武汉市黄陂区大余湾村", "province": "湖北省", "city": "武汉市", "district": "黄陂区", "adcode": "420116", "coord": [114.47, 31.16], "type": "古村落", "summary": "明清古建筑群传统村落", "cover": "", "status": "候选村", "extra": { "history": [], "people": [], "resources": [], "media": [], "route": [], "outcomes": [] } },
+  { "id": "xiaozhuwan", "name": "小朱湾村", "fullName": "武汉市江夏区小朱湾村", "province": "湖北省", "city": "武汉市", "district": "江夏区", "adcode": "420115", "coord": [114.32, 30.34], "type": "文旅基础", "summary": "近郊乡村数字主页样板", "cover": "", "status": "样板试点", "extra": {
+    "history": ["清代形成朱氏聚居湾落", "2015 年美丽乡村改造", "2018 年发展乡村民宿文旅"],
+    "people": [
+      { "name": "王大哥", "role": "返乡青年 · 民宿主理人", "quote": "把老屋改成民宿，是想让城里人记得住乡愁。" },
+      { "name": "朱奶奶", "role": "村史讲述人" }
+    ],
+    "resources": [
+      { "name": "荷塘月色民宿群", "type": "文旅", "desc": "改造老宅形成的精品民宿集群" },
+      { "name": "湾村荷塘", "type": "生态", "desc": "夏季观荷、亲子研学点位" },
+      { "name": "农家土灶菜", "type": "美食", "desc": "土灶柴火乡土菜" }
+    ],
+    "media": [
+      { "type": "photo", "title": "湾村晨景" },
+      { "type": "photo", "title": "荷塘全景" },
+      { "type": "photo", "title": "民宿庭院" },
+      { "type": "video", "title": "小朱湾的一天" }
+    ],
+    "route": ["村口牌坊 → 荷塘栈道 → 民宿群 → 村史馆"],
+    "outcomes": ["村庄数字主页样板", "宣传短视频 1 条"]
+  } },
+  { "id": "dayuwan", "name": "大余湾村", "fullName": "武汉市黄陂区大余湾村", "province": "湖北省", "city": "武汉市", "district": "黄陂区", "adcode": "420116", "coord": [114.47, 31.16], "type": "古村落", "summary": "明清古建筑群传统村落", "cover": "", "status": "候选村", "extra": {
+    "history": ["余氏于明初迁此建村", "现存明清古民居数十栋"],
+    "people": [{ "name": "余师傅", "role": "古建修缮匠人" }],
+    "resources": [
+      { "name": "明清石砌民居群", "type": "古建", "desc": "石墙黛瓦传统民居" },
+      { "name": "余氏宗祠", "type": "古建", "desc": "村落宗族文化核心" }
+    ],
+    "media": [{ "type": "photo", "title": "古村石巷" }],
+    "route": [], "outcomes": []
+  } },
   { "id": "liujiaqiao", "name": "刘家桥村", "fullName": "咸宁市咸安区刘家桥村", "province": "湖北省", "city": "咸宁市", "district": "咸安区", "adcode": "421202", "coord": [114.24, 29.78], "type": "古村落", "summary": "刘氏聚居古村与廊桥", "cover": "", "status": "候选村", "extra": { "history": [], "people": [], "resources": [], "media": [], "route": [], "outcomes": [] } },
   { "id": "yangloudong", "name": "羊楼洞村", "fullName": "咸宁市赤壁市羊楼洞村", "province": "湖北省", "city": "咸宁市", "district": "赤壁市", "adcode": "421281", "coord": [113.78, 29.63], "type": "茶文化", "summary": "万里茶道源头古镇", "cover": "", "status": "候选村", "extra": { "history": [], "people": [], "resources": [], "media": [], "route": [], "outcomes": [] } },
   { "id": "pengjiazhai", "name": "彭家寨", "fullName": "恩施州宣恩县彭家寨", "province": "湖北省", "city": "恩施土家族苗族自治州", "district": "宣恩县", "adcode": "422825", "coord": [109.49, 29.98], "type": "民族村寨", "summary": "土家吊脚楼建筑群", "cover": "", "status": "候选村", "extra": { "history": [], "people": [], "resources": [], "media": [], "route": [], "outcomes": [] } },

@@ -22,6 +22,18 @@ describe('geoLoader', () => {
     expect(errs).toEqual(['999999'])
   })
 
+  it('_full 失败时回退到自身边界（末级区县无下级数据）', async () => {
+    const self = { type: 'FeatureCollection', features: [{ properties: { name: '朝阳区' } }] }
+    const fetcher = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('404 no _full'))
+      .mockResolvedValueOnce(self)
+    const loader = createGeoLoader({ fetcher })
+    const r = await loader.load('110105')
+    expect(r).toBe(self)
+    expect(fetcher).toHaveBeenCalledTimes(2)
+  })
+
   it('urlFor 生成 DataV 地址', () => {
     const loader = createGeoLoader({ fetcher: vi.fn() })
     expect(loader.urlFor('420000')).toContain('420000_full.json')

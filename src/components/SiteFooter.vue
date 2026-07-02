@@ -8,8 +8,10 @@
 
 <style scoped>
 .site-footer {
-  padding: 1.4rem; text-align: center;
-  color: var(--sx-text-dim); font-size: 0.85rem;
-  border-top: 1px solid var(--sx-border);
+  margin-top: 3rem;
+  padding: 2rem 1.4rem; text-align: center;
+  color: var(--sx-white); font-size: 0.85rem;
+  background: var(--sx-green);
+  border-top: 1px solid rgba(255, 250, 240, 0.12);
 }
 </style>

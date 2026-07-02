@@ -31,9 +31,12 @@ import 'echarts-gl'
 import { createDrill, drillDown, goToDepth as _goToDepth, current, breadcrumb, canDrill } from '@/lib/mapDrill.js'
 import { createGeoLoader } from '@/lib/geoLoader.js'
 import { toScatterPoints, filterByRegion } from '@/lib/villages.js'
-import { earthGold as T } from '@/assets/theme/earth-gold.js'
+import { techBlue as T } from '@/assets/theme/tech-blue.js'
 
-const props = defineProps({ villages: { type: Array, default: () => [] } })
+const props = defineProps({
+  villages: { type: Array, default: () => [] },
+  selectedId: { type: String, default: '' },
+})
 const emit = defineEmits(['select-village'])
 
 const chartEl = ref(null)
@@ -62,35 +65,61 @@ async function renderMap() {
     if (p.name && p.adcode != null) {
       const adcode = String(p.adcode)
       nameToAdcode[p.name] = adcode
-      regions.push({ name: p.name, adcode })
+      // 排除"当前区域自身"（末级回退到自身边界时，features 只含自己）
+      if (adcode !== String(cur.adcode)) regions.push({ name: p.name, adcode })
     }
   }
-  // 更新下钻按钮：若已到末级则禁用
-  canDrillNow.value = canDrill(drill)
+  // 有真正的子区域、且未到末级，才允许下钻
+  canDrillNow.value = canDrill(drill) && regions.length > 0
   subRegions.value = regions
-  const pts = toScatterPoints(filterByRegion(props.villages, cur))
+  const pts = toScatterPoints(filterByRegion(props.villages, cur)).map((p) => {
+    const on = p.id === props.selectedId
+    return {
+      ...p,
+      symbolSize: on ? 22 : 13,
+      itemStyle: { color: on ? T.scatterGlow : T.scatter, opacity: 1, borderColor: T.scatterGlow, borderWidth: on ? 2 : 1 },
+      label: { show: on, formatter: p.name, color: T.text, fontSize: 13 },
+    }
+  })
   chart.setOption({
-    backgroundColor: T.bg,
-    tooltip: { show: true },
-    series: [
-      {
-        type: 'map3D',
-        map: mapName,
-        roam: true,
-        itemStyle: { color: T.regionBottom, borderColor: T.border, borderWidth: 1 },
-        emphasis: { label: { show: true, color: T.text }, itemStyle: { color: T.regionTop } },
-        regionHeight: 3,
-        light: { main: { intensity: 1.2 }, ambient: { intensity: 0.3 } },
-        viewControl: { distance: 120, alpha: 55 },
+    backgroundColor: {
+      type: 'radial', x: 0.5, y: 0.42, r: 0.75,
+      colorStops: [
+        { offset: 0, color: T.bgTop },
+        { offset: 1, color: T.bg },
+      ],
+    },
+    tooltip: {
+      show: true, backgroundColor: 'rgba(10,26,47,.9)', borderColor: T.border, textStyle: { color: T.text },
+      formatter: (p) => (p.seriesType === 'scatter3D' ? `📍 ${p.data.name}` : p.name),
+    },
+    geo3D: {
+      map: mapName,
+      roam: true,
+      // 分层立体：顶亮底暗 + 发光边框
+      itemStyle: { color: T.regionTop, borderColor: T.border, borderWidth: 1.2, opacity: 0.95 },
+      emphasis: { label: { show: true, color: T.scatterGlow, fontSize: 14 }, itemStyle: { color: T.regionEmphasis, borderColor: T.borderEmphasis } },
+      label: { show: false, color: T.textDim },
+      regionHeight: 4,
+      shading: 'realistic',
+      realisticMaterial: { detailTexture: null, roughness: 0.45, metalness: 0.15 },
+      light: {
+        main: { intensity: 1.6, shadow: true, shadowQuality: 'high', alpha: 40, beta: 30 },
+        ambient: { intensity: 0.35 },
       },
+      viewControl: { alpha: 42, beta: 0, autoRotate: false, distance: 105, minDistance: 40, maxDistance: 220 },
+      postEffect: { enable: true, bloom: { enable: true, bloomIntensity: 0.25 }, SSAO: { enable: true, intensity: 1.1, radius: 3 } },
+      groundPlane: { show: false },
+    },
+    series: [
       {
         type: 'scatter3D',
         coordinateSystem: 'geo3D',
         data: pts,
-        symbolSize: 12,
-        itemStyle: { color: T.scatter, opacity: 1 },
+        symbolSize: 13,
+        itemStyle: { color: T.scatter, opacity: 1, borderColor: T.scatterGlow, borderWidth: 1 },
         emphasis: { itemStyle: { color: T.scatterGlow } },
-        label: { show: false, formatter: (p) => p.name },
+        label: { show: false, color: T.text },
       },
     ],
   }, true)
@@ -98,6 +127,9 @@ async function renderMap() {
 
 async function enterRegion(target) {
   if (!canDrill(drill)) return
+  // 先确认目标层级数据能加载，成功后才推进下钻栈，避免失败时面包屑/地图错位
+  const gj = await geo.load(target.adcode)
+  if (!gj) { loadError.value = true; return }
   drill = drillDown(drill, target)
   syncCrumbs()
   await renderMap()
@@ -123,7 +155,7 @@ onMounted(async () => {
   chart = echarts.init(chartEl.value)
   chart.on('click', (params) => {
     if (params.seriesType === 'scatter3D') handleVillageClick(params)
-    else if (params.seriesType === 'map3D') handleRegionClick(params)
+    else if (params.componentType === 'geo3D') handleRegionClick(params)
   })
   syncCrumbs()
   await renderMap()
@@ -131,33 +163,49 @@ onMounted(async () => {
 
 onBeforeUnmount(() => { if (chart) chart.dispose() })
 watch(() => props.villages, renderMap)
+watch(() => props.selectedId, renderMap)
 
 defineExpose({ enterRegion, goToDepth, handleVillageClick })
 </script>
 
 <style scoped>
-.map3d { position: relative; }
-.chart { width: 100%; height: 62vh; min-height: 380px; }
-.breadcrumb { padding: 0.6rem 1rem; font-size: 0.95rem; }
-.crumb { cursor: pointer; color: var(--sx-text-dim); }
-.crumb.active { color: var(--sx-gold-soft); cursor: default; }
-.crumb em { color: var(--sx-text-dim); font-style: normal; }
+.map3d {
+  position: relative;
+  border-radius: 14px;
+  overflow: hidden;
+  background: linear-gradient(160deg, #0e2a4d, #0a1a2f 60%, #061223);
+  border: 1px solid rgba(63, 143, 214, 0.35);
+  box-shadow: 0 20px 60px rgba(6, 18, 35, 0.5), inset 0 0 60px rgba(63, 143, 214, 0.08);
+}
+.chart { width: 100%; height: 60vh; min-height: 380px; }
+.breadcrumb {
+  padding: 0.7rem 1.1rem; font-size: 0.95rem;
+  border-bottom: 1px solid rgba(63, 143, 214, 0.18);
+}
+.crumb { cursor: pointer; color: #6f9bc4; transition: color .15s; }
+.crumb:hover { color: #b8f0ff; }
+.crumb.active { color: #7fd0ff; cursor: default; }
+.crumb em { color: #46688c; font-style: normal; }
 .map-error {
-  position: absolute; top: 3rem; left: 50%; transform: translateX(-50%);
-  padding: 0.5rem 1rem; background: var(--sx-bg-soft);
-  border: 1px solid var(--sx-gold); border-radius: 6px; z-index: 2;
+  position: absolute; top: 3.4rem; left: 50%; transform: translateX(-50%);
+  padding: 0.5rem 1rem; background: rgba(10, 26, 47, 0.92);
+  border: 1px solid #3f8fd6; border-radius: 6px; z-index: 2; color: #dbeeff;
 }
 .drill-bar {
   display: flex; flex-wrap: wrap; gap: .5rem; align-items: center;
-  padding: .7rem 1rem;
+  padding: .8rem 1.1rem;
+  border-top: 1px solid rgba(63, 143, 214, 0.18);
 }
-.drill-bar .hint { color: var(--sx-text-dim); font-size: .85rem; margin-right: .3rem; }
+.drill-bar .hint { color: #6f9bc4; font-size: .85rem; margin-right: .3rem; }
 .drill-btn {
-  padding: .3rem .8rem; font-size: .85rem; cursor: pointer;
-  background: var(--sx-bg-soft); color: var(--sx-gold-soft);
-  border: 1px solid var(--sx-border); border-radius: 6px;
-  transition: border-color .15s, background .15s;
+  padding: .32rem .85rem; font-size: .85rem; cursor: pointer;
+  background: rgba(26, 74, 122, 0.35); color: #b8f0ff;
+  border: 1px solid rgba(63, 143, 214, 0.5); border-radius: 6px;
+  transition: border-color .15s, background .15s, box-shadow .15s;
 }
-.drill-btn:hover:not(:disabled) { border-color: var(--sx-gold); background: #33260f; }
-.drill-btn:disabled { opacity: .4; cursor: default; color: var(--sx-text-dim); }
+.drill-btn:hover:not(:disabled) {
+  border-color: #7fd0ff; background: rgba(47, 127, 196, 0.5);
+  box-shadow: 0 0 12px rgba(79, 214, 255, 0.4);
+}
+.drill-btn:disabled { opacity: .35; cursor: default; }
 </style>

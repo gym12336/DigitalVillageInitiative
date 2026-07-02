@@ -1,18 +1,39 @@
+/* 数乡计划全站主题：沿用 legacy-static 的中式纸感风格
+   纸底 + 墨绿 + 金，宋体标题。3D 地图区单独走科技蓝（见 map-theme）。 */
 :root {
-  --sx-bg: #120c06;
-  --sx-bg-soft: #2a1f14;
-  --sx-gold: #e0b45f;
-  --sx-gold-soft: #ffcf6b;
-  --sx-text: #f3e6cf;
-  --sx-text-dim: #a98c5f;
-  --sx-border: #3a2c18;
+  --sx-paper: #f4efe6;
+  --sx-paper-deep: #e8ddcb;
+  --sx-ink: #1d211b;
+  --sx-muted: #6d665b;
+  --sx-green: #183c2f;
+  --sx-green-soft: #2e5b45;
+  --sx-bamboo: #718565;
+  --sx-earth: #8b6243;
+  --sx-clay: #b27751;
+  --sx-gold: #c2a56b;
+  --sx-gold-bright: #f2dca4;
+  --sx-white: #fffaf0;
+  --sx-line: rgba(45, 43, 37, 0.14);
+  --sx-shadow: 0 24px 60px rgba(32, 29, 22, 0.14);
+  --sx-serif: "Source Han Serif SC", "Noto Serif CJK SC", "Songti SC", serif;
+  --sx-sans: "Source Han Sans SC", "Noto Sans CJK SC", "Microsoft YaHei", sans-serif;
 }
+
 * { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+
 body {
   margin: 0;
-  background: var(--sx-bg);
-  color: var(--sx-text);
-  font-family: system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+  background:
+    linear-gradient(90deg, rgba(29, 33, 27, 0.035) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(29, 33, 27, 0.025) 1px, transparent 1px),
+    var(--sx-paper);
+  background-size: 72px 72px, 72px 72px, auto;
+  color: var(--sx-ink);
+  font-family: var(--sx-sans);
+  line-height: 1.7;
 }
-a { color: var(--sx-gold-soft); text-decoration: none; }
-a:hover { text-decoration: underline; }
+
+h1, h2, h3, h4 { margin: 0; font-family: var(--sx-serif); font-weight: 700; }
+a { color: inherit; text-decoration: none; }
+a:hover { color: var(--sx-earth); }

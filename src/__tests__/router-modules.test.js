@@ -13,4 +13,11 @@ describe('router 模块自动收集', () => {
     expect(names).toContain('home')
     expect(names).toContain('not-found')
   })
+
+  it('包含 ranking / people / media 三个模块路由', () => {
+    const names = router.getRoutes().map((r) => r.name)
+    expect(names).toContain('ranking')
+    expect(names).toContain('people')
+    expect(names).toContain('media')
+  })
 })
