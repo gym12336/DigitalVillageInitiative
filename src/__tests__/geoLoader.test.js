@@ -34,6 +34,16 @@ describe('geoLoader', () => {
     expect(fetcher).toHaveBeenCalledTimes(2)
   })
 
+  it('全国地图优先加载本地首屏兜底资源', async () => {
+    const local = { type: 'FeatureCollection', features: [{ properties: { name: '北京', adcode: 110000 } }] }
+    const fetcher = vi.fn().mockResolvedValue(local)
+    const loader = createGeoLoader({ fetcher })
+    const r = await loader.load('100000')
+    expect(r).toBe(local)
+    expect(fetcher).toHaveBeenCalledWith('/geo/100000_full.json')
+    expect(fetcher).toHaveBeenCalledTimes(1)
+  })
+
   it('urlFor 生成 DataV 地址', () => {
     const loader = createGeoLoader({ fetcher: vi.fn() })
     expect(loader.urlFor('420000')).toContain('420000_full.json')
