@@ -39,19 +39,19 @@ function barWidth(count) { return `${Math.round((count / maxType.value) * 100)}%
 </script>
 
 <style scoped>
-.stats { height: 100%; padding: 1.1rem; color: #dbeeff; display: flex; flex-direction: column; gap: 1.2rem; }
-.stat-block { text-align: center; padding-bottom: .8rem; border-bottom: 1px solid rgba(63,143,214,.2); }
-.stat-num { font-family: var(--sx-serif); font-size: 2.6rem; font-weight: 700; color: #7fd0ff; line-height: 1; }
-.stat-label { font-size: .82rem; color: #6f9bc4; margin-top: .3rem; }
-.sec-title { font-size: .82rem; color: #9fc8ec; margin: 0 0 .6rem; }
+.stats { height: 100%; padding: 1.3rem; color: var(--color-text); display: flex; flex-direction: column; gap: 1.2rem; }
+.stat-block { text-align: center; padding-bottom: .9rem; border-bottom: 1px solid var(--color-border); }
+.stat-num { font-family: var(--sx-serif); font-size: 2.6rem; font-weight: 700; color: var(--color-primary); line-height: 1; }
+.stat-label { font-size: .82rem; color: var(--color-text-light); margin-top: .3rem; }
+.sec-title { font-size: .82rem; font-weight: 600; color: var(--color-primary-dark); margin: 0 0 .6rem; }
 .type-row { display: flex; align-items: center; gap: .5rem; margin-bottom: .45rem; font-size: .78rem; }
-.type-name { width: 4.5rem; color: #b8d4ee; flex-shrink: 0; }
-.bar-track { flex: 1; height: 8px; background: rgba(63,143,214,.15); border-radius: 4px; overflow: hidden; }
-.bar-fill { height: 100%; background: linear-gradient(90deg, #3f8fd6, #7fd0ff); border-radius: 4px; }
-.type-count { width: 1.5rem; text-align: right; color: #9fc8ec; }
+.type-name { width: 4.5rem; color: var(--color-text-secondary); flex-shrink: 0; }
+.bar-track { flex: 1; height: 8px; background: #f0ebe4; border-radius: 4px; overflow: hidden; }
+.bar-fill { height: 100%; background: linear-gradient(90deg, var(--color-primary), var(--color-secondary)); border-radius: 4px; }
+.type-count { width: 1.5rem; text-align: right; color: var(--color-text-light); }
 .top-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: .5rem; }
 .top-list li { display: flex; align-items: center; gap: .6rem; font-size: .85rem; }
-.top-rank { display: grid; place-items: center; width: 1.4rem; height: 1.4rem; border-radius: 50%; background: rgba(63,143,214,.25); color: #7fd0ff; font-size: .75rem; }
-.top-name { flex: 1; color: #dbeeff; }
-.top-count { color: #9fc8ec; font-size: .78rem; }
+.top-rank { display: grid; place-items: center; width: 1.4rem; height: 1.4rem; border-radius: 50%; background: var(--color-accent); color: var(--color-primary-dark); font-size: .75rem; font-weight: 600; }
+.top-name { flex: 1; color: var(--color-text); }
+.top-count { color: var(--color-text-light); font-size: .78rem; }
 </style>

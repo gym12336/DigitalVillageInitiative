@@ -1,22 +1,42 @@
-/* 数乡计划全站主题：沿用 legacy-static 的中式纸感风格
-   纸底 + 墨绿 + 金，宋体标题。3D 地图区单独走科技蓝（见 map-theme）。 */
+/* 数乡计划全站主题：年轻、温暖、干净、有呼吸感（对齐《设计风格与配色》文档）。
+   米白纸底 + 橄榄绿 + 麦色/浅金 + 珊瑚橘强调。全站去科技蓝。
+   兼容：旧组件仍在用 --sx-* 变量名，这里映射到新暖绿色值，逐步迁移到 --color-*。 */
 :root {
-  --sx-paper: #f4efe6;
-  --sx-paper-deep: #e8ddcb;
-  --sx-ink: #1d211b;
-  --sx-muted: #6d665b;
-  --sx-green: #183c2f;
-  --sx-green-soft: #2e5b45;
-  --sx-bamboo: #718565;
-  --sx-earth: #8b6243;
+  /* —— 文档标准配色（新代码优先用这套） —— */
+  --color-bg: #faf8f5;
+  --color-primary: #6b8c5c;
+  --color-primary-dark: #4d6b3e;
+  --color-secondary: #d4a373;
+  --color-accent: #e8c99b;
+  --color-highlight: #e07a5f;
+  --color-card: #ffffff;
+  --color-text: #1e1e1e;
+  --color-text-secondary: #5a5a5a;
+  --color-text-light: #8a8a8a;
+  --color-border: #ede8e0;
+  --radius: 16px;
+  --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.04);
+  --shadow-card-hover: 0 8px 40px rgba(107, 140, 92, 0.12);
+  --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* —— 兼容旧组件的 --sx-* 别名，指向新暖绿色值 —— */
+  --sx-paper: var(--color-bg);
+  --sx-paper-deep: #f0ebe4;
+  --sx-ink: var(--color-text);
+  --sx-muted: var(--color-text-secondary);
+  --sx-green: var(--color-primary-dark);
+  --sx-green-soft: var(--color-primary);
+  --sx-bamboo: #8b9d6b;
+  --sx-earth: var(--color-secondary);
   --sx-clay: #b27751;
-  --sx-gold: #c2a56b;
+  --sx-gold: var(--color-accent);
   --sx-gold-bright: #f2dca4;
-  --sx-white: #fffaf0;
-  --sx-line: rgba(45, 43, 37, 0.14);
-  --sx-shadow: 0 24px 60px rgba(32, 29, 22, 0.14);
-  --sx-serif: "Source Han Serif SC", "Noto Serif CJK SC", "Songti SC", serif;
-  --sx-sans: "Source Han Sans SC", "Noto Sans CJK SC", "Microsoft YaHei", sans-serif;
+  --sx-white: var(--color-card);
+  --sx-line: var(--color-border);
+  --sx-shadow: var(--shadow-card);
+  /* 全站主字体：霞鹜文楷（温润文艺），回退到系统中文字体与 Inter */
+  --sx-serif: "LXGW WenKai", "Noto Serif SC", "PingFang SC", "Microsoft YaHei", serif;
+  --sx-sans: "LXGW WenKai", "Inter", system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
 }
 
 * { box-sizing: border-box; }
@@ -24,16 +44,12 @@ html { scroll-behavior: smooth; }
 
 body {
   margin: 0;
-  background:
-    linear-gradient(90deg, rgba(29, 33, 27, 0.035) 1px, transparent 1px),
-    linear-gradient(0deg, rgba(29, 33, 27, 0.025) 1px, transparent 1px),
-    var(--sx-paper);
-  background-size: 72px 72px, 72px 72px, auto;
-  color: var(--sx-ink);
+  background: var(--color-bg);
+  color: var(--color-text);
   font-family: var(--sx-sans);
   line-height: 1.7;
 }
 
 h1, h2, h3, h4 { margin: 0; font-family: var(--sx-serif); font-weight: 700; }
 a { color: inherit; text-decoration: none; }
-a:hover { color: var(--sx-earth); }
+a:hover { color: var(--color-primary); }

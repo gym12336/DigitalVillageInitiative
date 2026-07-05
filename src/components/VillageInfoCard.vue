@@ -1,8 +1,23 @@
 <template>
   <aside class="info-card">
     <div v-if="!village" class="empty">
-      <div class="empty-icon">🗺️</div>
-      <p>点击地图上的村庄<br />查看资源信息</p>
+      <div class="empty-head">
+        <div class="empty-icon">🗺️</div>
+        <p class="empty-tip">点击地图上的<b>珊瑚橘圆点</b>查看村庄，<br />或从下方推荐开始探索</p>
+      </div>
+      <div v-if="recommended.length" class="recommend">
+        <p class="rec-title">✨ 推荐村庄</p>
+        <button
+          v-for="v in recommended"
+          :key="v.id"
+          class="rec-item"
+          @click="emit('select-village', v.id)"
+        >
+          <span class="rec-name">{{ v.name }}</span>
+          <span class="rec-loc">{{ v.province }}{{ v.city }}</span>
+          <span class="rec-arrow">→</span>
+        </button>
+      </div>
     </div>
 
     <div v-else class="content">
@@ -44,41 +59,62 @@
 
 <script setup>
 import { computed } from 'vue'
-import { summarize } from '@/lib/villageResources.js'
+import { summarize, recommendVillages } from '@/lib/villageResources.js'
 
-const props = defineProps({ village: { type: Object, default: null } })
+const props = defineProps({
+  village: { type: Object, default: null },
+  villages: { type: Array, default: () => [] },
+})
+const emit = defineEmits(['select-village'])
 const s = computed(() => summarize(props.village || {}))
+// 空状态推荐：按资源丰富度取前 4 个，引导用户开始探索
+const recommended = computed(() => recommendVillages(props.villages, 4))
 </script>
 
 <style scoped>
 .info-card {
-  height: 100%; min-height: 320px; padding: 1.1rem;
-  color: #dbeeff;
+  height: 100%; min-height: 320px; padding: 1.3rem;
+  color: var(--color-text);
 }
-.empty { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #6f9bc4; text-align: center; }
+.empty { height: 100%; display: flex; flex-direction: column; gap: 1.2rem; }
+.empty-head { text-align: center; color: var(--color-text-light); padding-top: 1.5rem; }
 .empty-icon { font-size: 2.4rem; margin-bottom: .6rem; opacity: .7; }
-.head { border-bottom: 1px solid rgba(63,143,214,.2); padding-bottom: .9rem; }
-.v-name { font-family: var(--sx-serif); font-size: 1.4rem; font-weight: 700; color: #7fd0ff; }
-.v-full { font-size: .8rem; color: #6f9bc4; margin-top: .2rem; }
+.empty-tip { font-size: .85rem; line-height: 1.6; }
+.empty-tip b { color: var(--color-highlight); }
+.recommend { display: flex; flex-direction: column; gap: .5rem; }
+.rec-title { font-size: .82rem; font-weight: 600; color: var(--color-primary-dark); margin: 0 0 .2rem; }
+.rec-item {
+  display: flex; align-items: center; gap: .5rem; width: 100%; text-align: left; cursor: pointer;
+  padding: .6rem .7rem; border-radius: 10px;
+  background: var(--color-bg); border: 1px solid var(--color-border);
+  color: var(--color-text); transition: all .15s; font-family: inherit;
+}
+.rec-item:hover { background: #f0ebe4; border-color: var(--color-primary); transform: translateX(2px); }
+.rec-name { font-size: .9rem; font-weight: 600; }
+.rec-loc { flex: 1; font-size: .75rem; color: var(--color-text-light); }
+.rec-arrow { color: var(--color-primary); }
+.head { border-bottom: 1px solid var(--color-border); padding-bottom: .9rem; }
+.v-name { font-family: var(--sx-serif); font-size: 1.4rem; font-weight: 700; color: var(--color-primary); }
+.v-full { font-size: .8rem; color: var(--color-text-light); margin-top: .2rem; }
 .v-tags { margin: .5rem 0; }
-.tag { font-size: .72rem; border: 1px solid rgba(63,143,214,.4); border-radius: 999px; padding: .1rem .55rem; margin-right: .35rem; color: #9fc8ec; }
-.v-summary { font-size: .85rem; color: #b8d4ee; margin: .4rem 0 0; }
+.tag { font-size: .72rem; border: 1px solid var(--color-border); border-radius: 999px; padding: .1rem .55rem; margin-right: .35rem; color: var(--color-secondary); }
+.v-summary { font-size: .85rem; color: var(--color-text-secondary); margin: .4rem 0 0; }
 .res-list { list-style: none; padding: 0; margin: 1rem 0; display: flex; flex-direction: column; gap: .5rem; }
 .res-row {
   display: flex; align-items: center; gap: .6rem;
-  padding: .6rem .7rem; border-radius: 8px;
-  background: rgba(26,74,122,.3); border: 1px solid rgba(63,143,214,.3);
-  color: #dbeeff; transition: all .15s;
+  padding: .6rem .7rem; border-radius: 10px;
+  background: var(--color-bg); border: 1px solid var(--color-border);
+  color: var(--color-text); transition: all .15s;
 }
-.res-row:hover { background: rgba(47,127,196,.45); border-color: #7fd0ff; box-shadow: 0 0 10px rgba(79,214,255,.3); }
+.res-row:hover { background: #f0ebe4; border-color: var(--color-primary); }
 .res-ico { font-size: 1.1rem; }
 .res-label { flex: 1; font-size: .9rem; }
-.res-count { font-size: .8rem; color: #9fc8ec; }
-.res-arrow { color: #7fd0ff; }
+.res-count { font-size: .8rem; color: var(--color-text-light); }
+.res-arrow { color: var(--color-primary); }
 .enter-btn {
-  display: block; text-align: center; padding: .55rem;
-  border: 1px solid #3f8fd6; border-radius: 8px; color: #b8f0ff;
-  background: rgba(63,143,214,.15); transition: all .15s;
+  display: block; text-align: center; padding: .6rem;
+  border-radius: 50px; color: #fff;
+  background: var(--color-highlight); transition: all .15s; font-weight: 500;
 }
-.enter-btn:hover { background: rgba(63,143,214,.35); box-shadow: 0 0 12px rgba(79,214,255,.35); }
+.enter-btn:hover { filter: brightness(.94); }
 </style>

@@ -12,7 +12,7 @@ const village = {
 describe('VillageInfoCard', () => {
   it('无选中村时显示提示', () => {
     const w = mount(VillageInfoCard, { props: { village: null }, global: { stubs } })
-    expect(w.text()).toContain('点击地图上的村庄')
+    expect(w.text()).toContain('点击地图上的')
   })
 
   it('有村时显示村名与三类资源计数', () => {

@@ -29,3 +29,12 @@ export function topByResources(villages, n = 3) {
     .sort((a, b) => b.count - a.count)
     .slice(0, n)
 }
+
+// 资源最多的前 N 个村庄，保留完整字段（信息卡空状态推荐用，需要 province/city）
+export function recommendVillages(villages, n = 4) {
+  return [...villages]
+    .map((v) => ({ v, count: summarize(v).resources }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, n)
+    .map((x) => x.v)
+}

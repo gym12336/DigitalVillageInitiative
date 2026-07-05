@@ -5,10 +5,16 @@
     :class="{ 'is-building': !module.enabled }"
     :to="module.enabled ? module.path : undefined"
   >
-    <div class="icon">{{ module.icon }}</div>
-    <div class="name">{{ module.name }}</div>
-    <div class="desc">{{ module.desc }}</div>
-    <span v-if="!module.enabled" class="badge">建设中</span>
+    <div class="card-top">
+      <span class="icon">{{ module.icon }}</span>
+      <span class="name">{{ module.name }}</span>
+      <span v-if="!module.enabled" class="badge">建设中</span>
+    </div>
+    <p class="hook">{{ module.hook || module.desc }}</p>
+    <div class="card-foot">
+      <span v-if="module.metric" class="metric">{{ module.metric }}</span>
+      <span class="go" aria-hidden="true">→</span>
+    </div>
   </component>
 </template>
 
@@ -18,25 +24,45 @@ defineProps({ module: { type: Object, required: true } })
 
 <style scoped>
 .mod-card {
-  position: relative; display: block; min-height: 128px; padding: 1.3rem;
-  border: 1px solid var(--sx-line); border-radius: 14px;
-  background: var(--sx-white); color: var(--sx-ink);
-  box-shadow: 0 8px 24px rgba(32, 29, 22, 0.06);
-  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+  position: relative; display: flex; flex-direction: column;
+  min-height: 172px; padding: 1.5rem;
+  border: 1px solid var(--color-border); border-radius: var(--radius);
+  background: var(--color-card); color: var(--color-text);
+  box-shadow: var(--shadow-card);
+  transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
   text-decoration: none;
 }
 .mod-card:not(.is-building):hover {
-  transform: translateY(-4px);
-  border-color: var(--sx-gold);
-  box-shadow: var(--sx-shadow);
+  transform: translateY(-5px);
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-card-hover);
 }
-.icon { font-size: 1.9rem; }
-.name { margin-top: .6rem; font-family: var(--sx-serif); font-weight: 700; font-size: 1.15rem; color: var(--sx-green); }
-.desc { margin-top: .35rem; font-size: .85rem; color: var(--sx-muted); }
-.is-building { opacity: .55; cursor: default; background: var(--sx-paper-deep); }
+.card-top { display: flex; align-items: center; gap: .7rem; }
+.icon {
+  display: grid; place-items: center; width: 46px; height: 46px; flex: none;
+  font-size: 1.5rem; border-radius: 12px; background: var(--color-bg);
+}
+.name { font-family: var(--sx-serif); font-weight: 700; font-size: 1.2rem; color: var(--color-primary-dark); }
+.hook {
+  flex: 1; margin: 1rem 0 .8rem; font-size: .9rem; line-height: 1.6;
+  color: var(--color-text-secondary);
+}
+.card-foot { display: flex; align-items: center; justify-content: space-between; }
+.metric {
+  font-size: .8rem; font-weight: 600; color: var(--color-highlight);
+  background: rgba(224, 122, 95, .1); padding: .25rem .7rem; border-radius: 50px;
+}
+.go {
+  font-size: 1.1rem; color: var(--color-primary);
+  transition: transform .2s ease;
+}
+.mod-card:not(.is-building):hover .go { transform: translateX(4px); }
+
+/* 建设中占位 */
+.is-building { opacity: .6; cursor: default; background: #f0ebe4; }
 .badge {
-  position: absolute; top: 1rem; right: 1rem;
-  font-size: .72rem; padding: .1rem .5rem; border-radius: 999px;
-  color: var(--sx-white); background: var(--sx-bamboo);
+  margin-left: auto;
+  font-size: .72rem; padding: .12rem .55rem; border-radius: 999px;
+  color: #fff; background: var(--color-secondary);
 }
 </style>
