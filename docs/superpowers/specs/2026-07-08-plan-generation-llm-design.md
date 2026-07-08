@@ -24,7 +24,7 @@
 2. **接真实 LLM（DeepSeek），规则版兜底**：后端代理调用 DeepSeek（OpenAI 兼容接口），密钥只在服务端；失败/无 key/坏输出时**静默回落**增强版规则引擎，前端提示一句「本次用了离线模板」。
 3. **同步调用**：用户在「实践前」点「生成方案初稿」时同步请求，按钮进 loading 态等几秒。
 4. **任务勾选只在实践中**：实践前生成/编辑任务但不勾；「实践中」页面只读渲染 `stage:'track'` 那组任务并打钩、显示进度，叠加在现有指标/材料收集之上。
-5. **向后兼容**：`plan` 旧五字段全保留，`StageResult` / `gapAnalysis` 不受影响；旧档案（无新字段）由 `normalizeDossier` 补空数组，打开不崩。
+5. **向后兼容（尽力而为）**：`plan` 旧五字段全保留，`StageResult` / `gapAnalysis` 不受影响；旧档案（无新字段）由 `normalizeDossier` 补空数组以尽量不崩，但**不作为硬约束**——若历史档案确实打不开，直接删除该旧档案即可（实训期数据无保留压力）。
 
 ### 本期范围
 
@@ -49,7 +49,7 @@
 
 - 配了 `DEEPSEEK_API_KEY` 时，点「生成方案初稿」几秒内拿到**因地制宜的分阶段任务** AI 方案；实践中能勾选 track 任务、看进度条。
 - 没 key / 断网 / LLM 坏输出时，自动拿到规则版方案，界面提示「本次用了离线模板」，流程不中断。
-- 旧档案（无 phases）打开不崩。
+- 旧档案（无 phases）尽量兼容打开；确实打不开的可直接删除，不作硬要求。
 - 密钥与 DeepSeek 原始错误绝不透给前端。
 - 全量 `vitest run` 不回归 + `vite build` 通过。
 
@@ -139,7 +139,7 @@ body:  { idea, refs?, village?, topic?, startDate?, endDate? }
 
 - **`api.js`（改）**：加 `apiGeneratePlan(idea, refs, opts) → plan`，POST `/api/plan/generate`，body 带 `{ idea, refs, village, topic, startDate, endDate }`。
 - **`planGen.js`（改）**：`generatePlan` 从同步纯函数改为 **async**，内部调 `apiGeneratePlan`。**保留前端轻量兜底** `localTemplatePlan(idea, refs)`：接口失败（网络断/后端挂）时本地跑精简规则版，返回 `source:'template'`，保证永远有结果。现有 TOPICS/pickTopic/pickTargetVillage 逻辑复用为本地兜底。
-- **`dossier.js`（改）**：`normalizeDossier` 给缺失的 `phases`(空数组)、`methods`(空数组)、`risks`(空数组)、`background`(空串)、`source`(空串) 补默认，兼容历史/迁移档案。
+- **`dossier.js`（改）**：`normalizeDossier` 给缺失的 `phases`(空数组)、`methods`(空数组)、`risks`(空数组)、`background`(空串)、`source`(空串) 补默认，尽量兼容历史/迁移档案（尽力而为，非硬约束——打不开的旧档案可直接删）。
 
 ### 视图
 
