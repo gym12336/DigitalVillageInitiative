@@ -8,6 +8,8 @@
       <p class="stat">共 48 件好物</p>
     </header>
 
+    <!-- 筛选面板 -->
+    <div class="filter-panel">
     <!-- 搜索栏 -->
     <div class="search-bar">
       <span class="search-icon" aria-hidden="true">🔍</span>
@@ -72,6 +74,7 @@
       <button v-if="hasActiveFilter" class="clear-btn" type="button" @click="clearFilters">
         清除筛选
       </button>
+    </div>
     </div>
 
     <!-- 好物列表 -->
@@ -413,6 +416,13 @@ onBeforeUnmount(() => {
   transform: translateY(-6px);
   box-shadow: var(--shadow-card-hover);
 }
+.goods-card:hover .thumb-ph {
+  transform: scale(1.1);
+  transition: transform var(--transition-slow);
+}
+.thumb-ph {
+  transition: transform var(--transition-slow);
+}
 .goods-card:focus-visible { border-color: var(--color-primary); }
 
 /* 产品图 1:1 */
@@ -457,9 +467,29 @@ onBeforeUnmount(() => {
   font-weight: 600;
   padding: 0.2rem 0.6rem;
   border-radius: 50px;
+  transition: background var(--transition-fast), transform var(--transition-fast);
+}
+.goods-card:hover .story-tag {
+  background: var(--color-highlight);
+  color: #fff;
+  transform: translateY(-1px);
 }
 
 .empty { color: var(--color-text-light); text-align: center; padding: 3rem 0; }
+
+/* ---- 筛选面板 ---- */
+.filter-panel {
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 1rem 1.4rem 0.6rem;
+  margin-bottom: 1rem;
+  box-shadow: var(--shadow-sm);
+}
+.filter-panel .search-bar { margin-bottom: 0.8rem; }
+.filter-panel .sort-pills { margin-bottom: 0.8rem; }
+.filter-panel .filter-row { margin-bottom: 0.5rem; }
+.filter-panel .filter-summary { margin-bottom: 0; }
 
 /* —— 详情模态框 —— */
 .modal-mask {

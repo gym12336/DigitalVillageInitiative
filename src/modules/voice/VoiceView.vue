@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <section class="voice-page">
     <div class="container">
       <!-- 页面头部 -->
@@ -17,6 +17,7 @@
       </header>
 
       <!-- 搜索栏 -->
+      <div class="filter-panel">
       <div class="search-bar">
         <span class="search-ic">🔍</span>
         <input
@@ -80,6 +81,7 @@
         </span>
         <button v-if="hasActiveFilter" class="btn-clear" @click="clearFilters">清除筛选</button>
       </div>
+      </div>
 
       <!-- 需求列表 -->
       <p class="result-count">筛选到 {{ filteredDemands.length }} 条需求</p>
@@ -87,7 +89,7 @@
         <article
           v-for="d in filteredDemands"
           :key="d.id"
-          class="demand-card"
+          class="demand-card" :class="statusClass(d.status)"
           tabindex="0"
           role="button"
           @click="openDetail(d)"
@@ -407,6 +409,39 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
 .st-done { background: #f0f0f0; color: #888; }
 
 .empty { padding: 2.5rem; text-align: center; color: var(--color-text-light); background: var(--color-card); border: 1px dashed var(--color-border); border-radius: var(--radius); }
+/* —— 筛选面板 —— */
+.filter-panel {
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 1.2rem 1.4rem 0.8rem;
+  margin-bottom: 1rem;
+  box-shadow: var(--shadow-sm);
+}
+.filter-panel .search-bar { margin-bottom: 0.8rem; }
+.filter-panel .chips { margin-bottom: 0.9rem; }
+.filter-panel .filters { margin-bottom: 0.2rem; }
+.filter-panel .filter-path { margin-bottom: 0; }
+
+/* —— 需求卡片左侧状态色条 —— */
+.demand-card {
+  position: relative;
+  overflow: hidden;
+}
+.demand-card::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 5px;
+  border-radius: 0 3px 3px 0;
+  transition: background var(--transition);
+}
+.demand-card.st-pending::before { background: var(--color-highlight); }
+.demand-card.st-doing::before { background: #4a8fbf; }
+.demand-card.st-done::before { background: #aaa; }
+.demand-card.st-pending { padding-left: 1.8rem; }
+.demand-card.st-doing { padding-left: 1.8rem; }
+.demand-card.st-done { padding-left: 1.8rem; }
 
 /* —— 问答互动区 —— */
 .qa-section { margin-top: 3rem; }
@@ -489,3 +524,4 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
 .modal-fade-enter-active, .modal-fade-leave-active { transition: opacity var(--transition); }
 .modal-fade-enter-from, .modal-fade-leave-to { opacity: 0; }
 </style>
+

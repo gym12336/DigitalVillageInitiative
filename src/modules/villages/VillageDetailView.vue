@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <section v-if="village" class="vd">
     <div class="container">
       <router-link to="/villages" class="back">← 返回乡村列表</router-link>
@@ -27,7 +27,7 @@
       </header>
 
       <!-- 模块3：认证与负责人 -->
-      <section class="block cert-block">
+      <section class="block cert-block section-alt">
         <span class="cert" :class="certClass">✓ {{ village.certLabel }}</span>
         <div v-if="village.manager" class="manager">
           <div class="m-avatar">{{ village.manager.name.charAt(0) }}</div>
@@ -48,7 +48,7 @@
       </section>
 
       <!-- 模块5：详细介绍 -->
-      <section class="block">
+      <section class="block section-alt">
         <h3 class="b-title">村庄详述</h3>
         <p class="intro">{{ village.intro }}</p>
       </section>
@@ -65,7 +65,7 @@
       </section>
 
       <!-- 该村实践成果 -->
-      <section v-if="relatedResults.length" class="block">
+      <section v-if="relatedResults.length" class="block section-alt">
         <h3 class="b-title">该村实践成果</h3>
         <div class="res-grid">
           <article v-for="r in relatedResults" :key="r.id" class="res-card" @click="goPractice">
@@ -76,7 +76,7 @@
       </section>
 
       <!-- 模块6：操作按钮区 -->
-      <section class="block actions">
+      <section class="block actions section-alt">
         <button class="act-btn primary" @click="goPractice">📚 查看该村实践成果</button>
         <button class="act-btn" @click="soon">🗺️ 生成导览地图</button>
         <button class="act-btn" @click="soon">📤 分享本页</button>
@@ -250,5 +250,29 @@ onBeforeUnmount(stopAuto)
 .fa-btn span { font-size: .62rem; }
 .fa-btn:hover { transform: scale(1.08); }
 .fa-btn.on { border-color: var(--color-highlight); }
+/* —— 详情页 section-alt —— */
+.vd .section-alt {
+  background: var(--gradient-section-odd);
+  border-radius: var(--radius);
+  padding: 1.6rem 1.4rem;
+  margin: 0 -0.6rem;
+  border-top: none;
+}
+@media (max-width: 760px) {
+  .vd .section-alt { padding: 1.3rem 1rem; margin: 0 -0.3rem; }
+}
+
+/* —— 区块标题左侧色条 —— */
+.b-title {
+  display: flex; align-items: center; gap: 0.6rem;
+}
+.b-title::before {
+  content: '';
+  width: 4px; height: 1.15em;
+  background: var(--color-primary);
+  border-radius: 2px;
+  flex-shrink: 0;
+}
 </style>
+
 

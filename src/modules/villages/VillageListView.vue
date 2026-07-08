@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <section class="enc-page">
     <div class="container">
       <!-- 头条推荐轮播 -->
@@ -36,7 +36,8 @@
         </div>
       </header>
 
-      <!-- 搜索栏 -->
+      <!-- 筛选面板 -->
+      <div class="filter-panel">
       <div class="search-bar">
         <span class="search-ic">🔍</span>
         <input v-model="keyword" type="text" placeholder="搜索乡村名称、关键词、标签..." aria-label="搜索乡村" />
@@ -69,6 +70,7 @@
         <button v-for="h in honorList" :key="h.honor" class="honor-chip" :class="{ active: honor === h.honor }" @click="honor = h.honor">
           {{ h.honor }} · {{ h.count }}
         </button>
+      </div>
       </div>
 
       <!-- 当前筛选路径 + 清除 -->
@@ -243,6 +245,20 @@ onBeforeUnmount(stopAuto)
 .result-count { font-size: .82rem; color: var(--color-text-light); margin: 0 0 1rem; }
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1.4rem; }
 .empty { padding: 2.5rem; text-align: center; color: var(--color-text-light); background: var(--color-card); border: 1px dashed var(--color-border); border-radius: var(--radius); }
+/* —— 筛选面板 —— */
+.filter-panel {
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 1.2rem 1.4rem 0.8rem;
+  margin-bottom: 1rem;
+  box-shadow: var(--shadow-sm);
+}
+.filter-panel .search-bar { margin-bottom: 0.8rem; }
+.filter-panel .chips { margin-bottom: 0.9rem; }
+.filter-panel .region-row { margin-bottom: 0.9rem; }
+.filter-panel .honor-wall { margin-bottom: 0; padding-bottom: 0; }
+.filter-panel .filter-path { margin-bottom: 0; }
 
 @media (max-width: 760px) {
   .hero-card { grid-template-columns: 1fr; }
@@ -250,4 +266,5 @@ onBeforeUnmount(stopAuto)
   .region-select { min-width: 0; flex: 1; }
 }
 </style>
+
 

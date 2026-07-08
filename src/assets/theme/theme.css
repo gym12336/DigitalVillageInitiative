@@ -1,27 +1,76 @@
-/* 数乡计划全站主题：年轻、温暖、干净、有呼吸感（对齐《设计风格与配色》文档）。
-   米白纸底 + 橄榄绿 + 麦色/浅金 + 珊瑚橘强调。全站去科技蓝。
-   兼容：旧组件仍在用 --sx-* 变量名，这里映射到新暖绿色值，逐步迁移到 --color-*。 */
+/* 数乡计划全站主题 v2：年轻、温暖、干净、有呼吸感
+   米白纸底 + 橄榄绿 + 麦色/浅金 + 珊瑚橘强调。
+   增强：渐变体系、阴影层级、玻璃态、圆角体系、排版节奏。 */
+
+/* ============ CSS 变量 ============ */
 :root {
-  /* —— 文档标准配色（新代码优先用这套） —— */
+  /* —— 基础配色 —— */
   --color-bg: #faf8f5;
+  --color-bg-deep: #f2ede4;
   --color-primary: #6b8c5c;
+  --color-primary-soft: #8aaa7a;
   --color-primary-dark: #4d6b3e;
+  --color-primary-deep: #3a4d2f;
   --color-secondary: #d4a373;
+  --color-secondary-soft: #e6c8a8;
   --color-accent: #e8c99b;
+  --color-accent-soft: #f3e2c8;
   --color-highlight: #e07a5f;
+  --color-highlight-soft: #f0a590;
   --color-card: #ffffff;
   --color-text: #1e1e1e;
   --color-text-secondary: #5a5a5a;
   --color-text-light: #8a8a8a;
   --color-border: #ede8e0;
-  --radius: 16px;
-  --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.04);
-  --shadow-card-hover: 0 8px 40px rgba(107, 140, 92, 0.12);
-  --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --color-border-light: #f2efe8;
 
-  /* —— 兼容旧组件的 --sx-* 别名，指向新暖绿色值 —— */
+  /* —— 渐变 —— */
+  --gradient-hero: linear-gradient(135deg, #4d6b3e 0%, #6b8c5c 40%, #8aaa7a 100%);
+  --gradient-cta: linear-gradient(135deg, var(--color-primary-dark), var(--color-primary));
+  --gradient-card-warm: linear-gradient(180deg, var(--color-card) 0%, rgba(250, 248, 245, 0.6) 100%);
+  --gradient-section-odd: linear-gradient(180deg, var(--color-bg) 0%, rgba(232, 201, 155, 0.08) 100%);
+
+  /* —— 圆角体系 —— */
+  --radius-sm: 8px;
+  --radius: 16px;
+  --radius-lg: 20px;
+  --radius-xl: 24px;
+  --radius-full: 9999px;
+
+  /* —— 阴影层级 —— */
+  --shadow-xs: 0 1px 3px rgba(0, 0, 0, 0.03);
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
+  --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.05);
+  --shadow-card-hover: 0 8px 40px rgba(107, 140, 92, 0.12);
+  --shadow-lg: 0 12px 48px rgba(77, 107, 62, 0.14);
+  --shadow-xl: 0 20px 60px rgba(77, 107, 62, 0.2);
+
+  /* —— 玻璃态 —— */
+  --glass-bg: rgba(255, 255, 255, 0.75);
+  --glass-bg-strong: rgba(255, 255, 255, 0.92);
+  --glass-border: rgba(237, 232, 224, 0.6);
+  --glass-blur: 12px;
+  --glass-blur-strong: 20px;
+
+  /* —— 过渡 —— */
+  --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-fast: 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* —— 排版 —— */
+  --font-scale-h1: clamp(30px, 5vw, 48px);
+  --font-scale-h2: clamp(22px, 3.5vw, 34px);
+  --font-scale-h3: clamp(18px, 2.5vw, 24px);
+  --leading-loose: 1.85;
+  --leading-relaxed: 1.7;
+  --leading-normal: 1.55;
+  --spacing-section: 3rem;
+  --spacing-block: 1.8rem;
+  --spacing-item: 1rem;
+
+  /* —— 兼容旧组件 --sx-* 别名 —— */
   --sx-paper: var(--color-bg);
-  --sx-paper-deep: #f0ebe4;
+  --sx-paper-deep: var(--color-bg-deep);
   --sx-ink: var(--color-text);
   --sx-muted: var(--color-text-secondary);
   --sx-green: var(--color-primary-dark);
@@ -34,11 +83,11 @@
   --sx-white: var(--color-card);
   --sx-line: var(--color-border);
   --sx-shadow: var(--shadow-card);
-  /* 全站主字体：霞鹜文楷（温润文艺），回退到系统中文字体与 Inter */
   --sx-serif: "LXGW WenKai", "Noto Serif SC", "PingFang SC", "Microsoft YaHei", serif;
   --sx-sans: "LXGW WenKai", "Inter", system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
 }
 
+/* ============ 全局重置与排版 ============ */
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
 
@@ -47,9 +96,84 @@ body {
   background: var(--color-bg);
   color: var(--color-text);
   font-family: var(--sx-sans);
-  line-height: 1.7;
+  line-height: var(--leading-relaxed);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-h1, h2, h3, h4 { margin: 0; font-family: var(--sx-serif); font-weight: 700; }
+h1, h2, h3, h4 {
+  margin: 0;
+  font-family: var(--sx-serif);
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+}
+h1 { font-size: var(--font-scale-h1); }
+h2 { font-size: var(--font-scale-h2); }
+h3 { font-size: var(--font-scale-h3); }
+
 a { color: inherit; text-decoration: none; }
 a:hover { color: var(--color-primary); }
+
+p { margin: 0; }
+
+img { max-width: 100%; height: auto; }
+
+/* ============ 通用工具类 ============ */
+.container {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 clamp(1rem, 4vw, 2rem);
+}
+
+.section-spacer { padding: var(--spacing-section) 0; }
+
+/* 区块交替背景：odd 用米白底 + 暖色微渐变 */
+.section-alt {
+  background: var(--gradient-section-odd);
+  border-top: 1px solid var(--color-border-light);
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+/* 区域分隔装饰线：一条极细暖色渐变线 */
+.section-divider {
+  max-width: 200px;
+  height: 3px;
+  margin: 1.8rem auto;
+  border: none;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--color-accent), var(--color-primary), var(--color-accent));
+}
+
+/* 通用页面头 kicker + title + desc */
+.page-kicker {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-highlight);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin: 0 0 0.6rem;
+}
+.page-title {
+  font-family: var(--sx-serif);
+  font-weight: 700;
+  color: var(--color-primary-dark);
+}
+.page-desc {
+  max-width: 720px;
+  margin: 0.8rem 0 0;
+  color: var(--color-text-secondary);
+  font-size: 1rem;
+  line-height: var(--leading-relaxed);
+}
+.page-stat {
+  margin: 0.7rem 0 0;
+  font-size: 14px;
+  color: var(--color-text-light);
+}
+
+/* ============ 选择文本 ============ */
+::selection {
+  background: rgba(107, 140, 92, 0.2);
+  color: var(--color-primary-dark);
+}

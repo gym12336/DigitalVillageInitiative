@@ -24,6 +24,7 @@
           <button
             class="avatar"
             type="button"
+            :style="{ background: avatarColor(member.name) }"
             :aria-label="`查看 ${member.name} 的简介`"
             @click="openMember(member)"
           >
@@ -56,7 +57,7 @@
         >
           <button class="modal-close" type="button" aria-label="关闭" @click="closeMember">×</button>
           <div class="modal-head">
-            <div class="modal-avatar">{{ active.name.charAt(0) }}</div>
+            <div class="modal-avatar" :style="{ background: avatarColor(active.name) }">{{ active.name.charAt(0) }}</div>
             <div>
               <h3 class="modal-name">{{ active.name }}</h3>
               <p class="modal-role">{{ active.role }}</p>
@@ -76,6 +77,12 @@
 // 数据统一放在 about-data.json，便于队员维护。
 import { ref, onMounted, onUnmounted } from 'vue'
 import data from './about-data.json'
+
+// 头像暖色映射
+const avatarColors = {"张明": "hsl(15, 60%, 55%)", "李婷": "hsl(35, 60%, 55%)", "王浩": "hsl(55, 60%, 55%)", "陈雪": "hsl(80, 60%, 55%)", "刘洋": "hsl(105, 60%, 55%)", "林芳": "hsl(130, 60%, 55%)"}
+function avatarColor(name) {
+  return avatarColors[name] || 'var(--color-secondary)'
+}
 
 // 当前打开简介的成员（null 表示弹窗关闭）
 const active = ref(null)
@@ -140,7 +147,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
 .member { width: 120px; text-align: center; }
 .avatar {
   width: 80px; height: 80px; border-radius: 50%;
-  background: var(--color-secondary); color: #fff;
+  color: #fff;
   font-size: 32px; font-weight: 700; font-family: var(--sx-serif);
   border: none; cursor: pointer; display: flex; align-items: center; justify-content: center;
   margin: 0 auto; box-shadow: var(--shadow-card);
@@ -182,7 +189,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
 .modal-head { display: flex; gap: 1rem; align-items: center; margin-bottom: 1.2rem; }
 .modal-avatar {
   flex: none; width: 64px; height: 64px; border-radius: 50%;
-  background: var(--color-secondary); color: #fff;
+  color: #fff;
   font-size: 26px; font-weight: 700; font-family: var(--sx-serif);
   display: flex; align-items: center; justify-content: center;
 }
