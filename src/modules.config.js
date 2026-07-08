@@ -9,10 +9,9 @@ export const modules = [
     hook: '从历史沿革到特色资源，为每个村庄建一张会生长的数字名片。',
     metric: '156 个村庄档案',
     children: [
-      { name: '村庄名录', path: '/villages', desc: '按地区检索每一个村' },
-      { name: '乡村人物', path: '/people', desc: '记录乡土里的人' },
-      { name: '影像记录', path: '/media', desc: '照片与视频档案' },
-      { name: '乡村榜单', path: '/ranking', desc: '多维度村庄排行' },
+      { name: '荣誉榜单', path: '/villages/honors', desc: '多维度名村排行' },
+      { name: '影像长廊', path: '/villages/gallery', desc: '各村实景图墙' },
+      { name: '分类浏览', path: '/villages/tags', desc: '按六大类标签逛村' },
     ],
   },
   {

@@ -17,44 +17,45 @@
         </div>
       </div>
 
-      <!-- 模块2：基本信息 -->
+      <!-- 感受 ▍模块2：基本信息 + 认证信息条 -->
       <header class="head">
         <h1>{{ village.name }}</h1>
         <p class="loc">{{ village.province }} · {{ village.city }} · {{ village.district }}<template v-if="village.town"> · {{ village.town }}</template></p>
         <div class="honors">
           <span v-for="h in village.honors" :key="h" class="honor-badge">{{ h }}</span>
         </div>
+        <!-- 认证 / 负责人 / 社媒压缩为一行小信息条 -->
+        <div class="info-bar">
+          <span class="cert" :class="certClass">✓ {{ village.certLabel }}</span>
+          <span v-if="village.manager" class="manager">
+            <span class="m-avatar">{{ village.manager.name.charAt(0) }}</span>
+            <span class="m-text">{{ village.manager.name }} · {{ village.manager.role }}</span>
+          </span>
+          <span class="socials">
+            <span v-for="s in socialList" :key="s.key" class="social" :class="{ off: !s.on }" :title="s.on ? s.label : `${s.label}（未关联）`">{{ s.icon }}</span>
+          </span>
+        </div>
       </header>
 
-      <!-- 模块3：认证与负责人 -->
-      <section class="block cert-block section-alt">
-        <span class="cert" :class="certClass">✓ {{ village.certLabel }}</span>
-        <div v-if="village.manager" class="manager">
-          <div class="m-avatar">{{ village.manager.name.charAt(0) }}</div>
-          <div><p class="m-name">{{ village.manager.name }}</p><p class="m-role">{{ village.manager.role }}</p></div>
-        </div>
-        <div class="socials">
-          <span v-for="s in socialList" :key="s.key" class="social" :class="{ off: !s.on }" :title="s.on ? s.label : `${s.label}（未关联）`">{{ s.icon }}</span>
-        </div>
-      </section>
-
-      <!-- 模块4：六大类标签 -->
-      <section class="block">
-        <h3 class="b-title">特色标签</h3>
-        <div v-for="(items, cat) in village.tags" :key="cat" class="tag-cat">
-          <span class="cat-name">{{ cat }}</span>
-          <div class="cat-tags"><span v-for="t in items" :key="t" class="mini-tag">{{ t }}</span></div>
-        </div>
-      </section>
-
-      <!-- 模块5：详细介绍 -->
+      <!-- 了解 ▍模块3：村庄详述 -->
       <section class="block section-alt">
         <h3 class="b-title">村庄详述</h3>
         <p class="intro">{{ village.intro }}</p>
       </section>
 
-      <!-- 模块7：导览点位 -->
+      <!-- 了解 ▍模块4：六大类标签（点击跳分类浏览） -->
       <section class="block">
+        <h3 class="b-title">特色标签</h3>
+        <div v-for="(items, cat) in village.tags" :key="cat" class="tag-cat">
+          <span class="cat-name">{{ cat }}</span>
+          <div class="cat-tags">
+            <router-link v-for="t in items" :key="t" class="mini-tag" :to="{ path: '/villages/tags', query: { tag: t } }">{{ t }}</router-link>
+          </div>
+        </div>
+      </section>
+
+      <!-- 了解 ▍模块5：导览点位 -->
+      <section class="block section-alt">
         <h3 class="b-title">导览点位</h3>
         <ol class="guide">
           <li v-for="(g, i) in village.guide" :key="i">
@@ -64,7 +65,25 @@
         </ol>
       </section>
 
-      <!-- 该村实践成果 -->
+      <!-- 了解 ▍模块6：乡村人物（有数据则列出，无则显示引导录入占位） -->
+      <section class="block">
+        <h3 class="b-title">乡村人物</h3>
+        <div v-if="people.length" class="people-grid">
+          <article v-for="(p, i) in people" :key="i" class="person-card">
+            <div class="p-avatar">{{ (p.name || '人').slice(0, 1) }}</div>
+            <div class="p-body">
+              <p class="p-name">{{ p.name || '待采集' }}</p>
+              <p class="p-role">{{ p.role || '乡村人物' }}</p>
+            </div>
+          </article>
+        </div>
+        <div v-else class="people-empty">
+          <p class="pe-title">人物故事待实地采集录入</p>
+          <p class="pe-note">队员完成走访后，可为本村录入驻村干部、返乡青年、手艺人等核心人物。</p>
+        </div>
+      </section>
+
+      <!-- 关联 ▍该村实践成果 -->
       <section v-if="relatedResults.length" class="block section-alt">
         <h3 class="b-title">该村实践成果</h3>
         <div class="res-grid">
@@ -75,9 +94,8 @@
         </div>
       </section>
 
-      <!-- 模块6：操作按钮区 -->
-      <section class="block actions section-alt">
-        <button class="act-btn primary" @click="goPractice">📚 查看该村实践成果</button>
+      <!-- 行动 ▍工具条（去掉与上方重复的“查看实践成果”按钮） -->
+      <section class="block actions">
         <button class="act-btn" @click="soon">🗺️ 生成导览地图</button>
         <button class="act-btn" @click="soon">📤 分享本页</button>
         <button class="act-btn" @click="soon">🎨 生成海报</button>
@@ -145,6 +163,9 @@ const SOCIAL_META = [
 ]
 const socialList = computed(() => SOCIAL_META.map((s) => ({ ...s, on: !!(village.value?.socials && village.value.socials[s.key]) })))
 
+// —— 乡村人物（读村庄 people 字段；12 村暂无数据时模板显示引导录入占位） ——
+const people = computed(() => village.value?.people || [])
+
 // —— 该村实践成果（从 practice-data 按村名匹配） ——
 const relatedResults = computed(() => {
   if (!village.value) return []
@@ -198,19 +219,28 @@ onBeforeUnmount(stopAuto)
 .block { margin-top: 1.8rem; padding-top: 1.6rem; border-top: 1px solid var(--color-border); }
 .b-title { font-size: 1.2rem; color: var(--color-primary-dark); font-family: var(--sx-serif); margin: 0 0 1rem; }
 
-/* —— 模块3 认证负责人 —— */
-.cert-block { display: flex; align-items: center; gap: 1.4rem; flex-wrap: wrap; }
-.cert { padding: .4rem 1rem; border-radius: 50px; font-size: .85rem; font-weight: 700; background: #e8f5e9; }
+/* —— 认证信息条（压缩：认证 + 负责人 + 社媒一行） —— */
+.info-bar { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; margin-top: 1rem; }
+.cert { padding: .35rem .9rem; border-radius: 50px; font-size: .82rem; font-weight: 700; background: #e8f5e9; }
 .cert-township { color: var(--color-primary); }
 .cert-county { color: #4a8fbf; background: #e3f2fd; }
 .cert-province { color: #b8860b; background: #fdf3d8; }
-.manager { display: flex; align-items: center; gap: .7rem; }
-.m-avatar { width: 48px; height: 48px; border-radius: 50%; background: var(--color-secondary); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.2rem; }
-.m-name { font-weight: 600; color: var(--color-text); }
-.m-role { font-size: .82rem; color: var(--color-text-light); }
-.socials { display: flex; gap: .6rem; margin-left: auto; }
-.social { width: 36px; height: 36px; border-radius: 50%; background: var(--color-accent); display: flex; align-items: center; justify-content: center; font-size: 1.1rem; cursor: pointer; }
+.manager { display: inline-flex; align-items: center; gap: .5rem; }
+.m-avatar { width: 30px; height: 30px; border-radius: 50%; background: var(--color-secondary); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: .85rem; }
+.m-text { font-size: .84rem; color: var(--color-text-secondary); }
+.socials { display: inline-flex; gap: .45rem; margin-left: auto; }
+.social { width: 30px; height: 30px; border-radius: 50%; background: var(--color-accent); display: inline-flex; align-items: center; justify-content: center; font-size: .95rem; cursor: pointer; }
 .social.off { opacity: .4; cursor: not-allowed; filter: grayscale(1); }
+
+/* —— 乡村人物 —— */
+.people-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; }
+.person-card { display: flex; align-items: center; gap: .8rem; padding: .9rem 1rem; background: var(--color-card); border: 1px solid var(--color-border); border-radius: var(--radius); }
+.p-avatar { flex-shrink: 0; width: 44px; height: 44px; border-radius: 50%; background: var(--color-primary); color: #fff; display: flex; align-items: center; justify-content: center; font-family: var(--sx-serif); font-size: 1.2rem; }
+.p-name { font-weight: 600; color: var(--color-text); }
+.p-role { font-size: .8rem; color: var(--color-text-light); margin-top: .15rem; }
+.people-empty { padding: 1.6rem; text-align: center; background: var(--color-card); border: 1px dashed var(--color-border); border-radius: var(--radius); }
+.pe-title { font-weight: 600; color: var(--color-text-secondary); }
+.pe-note { font-size: .84rem; color: var(--color-text-light); margin-top: .4rem; }
 
 /* —— 模块4 标签 —— */
 .tag-cat { display: flex; align-items: baseline; gap: .8rem; margin-bottom: .7rem; flex-wrap: wrap; }
