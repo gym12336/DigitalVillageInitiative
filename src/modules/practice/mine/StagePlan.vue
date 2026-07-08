@@ -25,7 +25,11 @@
           <h3 class="ret-title">{{ c.title }}</h3>
           <p class="ret-sub">{{ c.sub }}</p>
           <div class="ret-actions">
-            <a class="ret-link" :href="'#' + c.path" @click.prevent="goTo(c.path)">查看 ↗</a>
+            <a
+              class="ret-link"
+              :href="c.source === 'web' ? '#' : '#' + c.path"
+              @click.prevent="onViewWebCard(c)"
+            >查看 ↗</a>
             <button
               class="btn tiny"
               :class="{ adopted: isAdopted(c) }"
@@ -156,14 +160,22 @@
       </div>
     </section>
   </div>
+
+  <WebSearchModal
+    v-if="selectedWebCard"
+    :card="selectedWebCard"
+    @close="selectedWebCard = null"
+    @adopt="onAdoptWebCard"
+  />
 </template>
 
 <script setup>
 import { ref, reactive, computed, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { retrieve } from './retrieval.js'
+import { retrieve, searchWeb } from './retrieval.js'
 import { generatePlan } from './planGen.js'
 import { retrievalSources } from './sources.js'
+import WebSearchModal from './WebSearchModal.vue'
 
 const props = defineProps({
   dossier: { type: Object, required: true },
@@ -177,6 +189,10 @@ const cards = ref([])
 const generating = ref(false)
 const methodDraft = ref('')
 const riskDraft = ref('')
+
+// 网络搜索状态
+const webCards = ref([])
+const selectedWebCard = ref(null)
 
 // plan 本地态：保证新字段都有默认，避免 v-model 打空。
 const plan = reactive(makePlanState(props.dossier.plan))
@@ -228,7 +244,7 @@ function clonePhase(ph) {
   }
 }
 
-function onSearch() {
+async function onSearch() {
   const idea = ideaInput.value.trim()
   cards.value = retrieve(idea, retrievalSources, {
     topic: props.dossier.plan?.topic,
@@ -236,12 +252,49 @@ function onSearch() {
   })
   searched.value = true
   emit('update', { idea })
+
+  // 联网搜索增强：平台结果 < 10 且有目标村 → 自动补搜
+  await maybeSearchWeb()
 }
 
 function maybeAutoSearch() {
   const hasRefs = (props.dossier.refs || []).length > 0
   const hasSeed = !!(ideaInput.value.trim() || props.dossier.plan?.topic)
   if (!hasRefs && hasSeed) onSearch()
+}
+
+const WEB_SEARCH_THRESHOLD = 10
+
+async function maybeSearchWeb() {
+  // 仅当平台结果少于阈值且有目标村名时才触发
+  if (cards.value.length >= WEB_SEARCH_THRESHOLD) return
+
+  const village = getTargetVillage()
+  if (!village) return
+
+  webCards.value = await searchWeb(village, ideaInput.value.trim())
+  // 合并到 cards（按 URL 去重：不与已有平台卡片重叠）
+  const existingUrls = new Set(cards.value.map((c) => c.path || ''))
+  for (const wc of webCards.value) {
+    if (!existingUrls.has(wc.path)) {
+      cards.value.push(wc)
+    }
+  }
+}
+
+/** 取目标村名：优先 dossier.village → idea 正则提取 */
+function getTargetVillage() {
+  const v = (props.dossier.village || '').trim()
+  if (v) return v
+  const text = ideaInput.value.trim()
+  const re = /(?:去|到|在|帮|为|给|助)?([一-龥]{2,4}村)/g
+  let m
+  while ((m = re.exec(text))) {
+    const name = m[1]
+    if (/(乡村|农村|山村)$/.test(name)) continue
+    return name
+  }
+  return ''
 }
 
 function isAdopted(c) {
@@ -322,7 +375,23 @@ function onSavePlan() {
 }
 
 function goTo(path) { router.push(path) }
-const SOURCE_LABELS = { village: '乡村百科', result: '实践成果', demand: '乡村之声', guide: '实践攻略' }
+
+function onViewWebCard(card) {
+  if (card.source === 'web') {
+    selectedWebCard.value = card
+    return
+  }
+  // 平台卡片走原有路由跳转
+  goTo(card.path)
+}
+
+function onAdoptWebCard() {
+  if (!selectedWebCard.value) return
+  toggleAdopt(selectedWebCard.value)
+  selectedWebCard.value = null
+}
+
+const SOURCE_LABELS = { village: '乡村百科', result: '实践成果', demand: '乡村之声', guide: '实践攻略', web: '🌐 网络' }
 function sourceLabel(s) { return SOURCE_LABELS[s] || s }
 </script>
 
@@ -363,6 +432,7 @@ function sourceLabel(s) { return SOURCE_LABELS[s] || s }
 .src-result { background: #4a8fbf; }
 .src-demand { background: #e07a5f; }
 .src-guide { background: #c9a86a; }
+.src-web { background: #e65100; }
 .ret-title { margin: .2rem 0 0; font-size: .98rem; color: var(--color-text); }
 .ret-sub { margin: 0; font-size: .82rem; color: var(--color-text-light); flex: 1; }
 .ret-actions { display: flex; align-items: center; justify-content: space-between; margin-top: .3rem; }
