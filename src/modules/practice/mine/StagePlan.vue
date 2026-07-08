@@ -272,13 +272,18 @@ async function maybeSearchWeb() {
   const village = getTargetVillage()
   if (!village) return
 
-  webCards.value = await searchWeb(village, ideaInput.value.trim())
-  // 合并到 cards（按 URL 去重：不与已有平台卡片重叠）
-  const existingUrls = new Set(cards.value.map((c) => c.path || ''))
-  for (const wc of webCards.value) {
-    if (!existingUrls.has(wc.path)) {
-      cards.value.push(wc)
+  try {
+    webCards.value = await searchWeb(village, ideaInput.value.trim())
+    // 合并到 cards（按 URL 去重：不与已有平台卡片重叠）
+    const existingUrls = new Set(cards.value.map((c) => c.path || ''))
+    for (const wc of webCards.value) {
+      if (!existingUrls.has(wc.path)) {
+        cards.value.push(wc)
+      }
     }
+  } catch {
+    // 联网搜索失败静默跳过，不影响主流程
+    webCards.value = []
   }
 }
 
