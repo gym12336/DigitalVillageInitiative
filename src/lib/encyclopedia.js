@@ -15,21 +15,46 @@ export function buildRegionTree(list) {
   return tree
 }
 
-/** 多条件筛选：keyword（name/fullName/tags/honors，大小写不敏感）、province/city/district、honor。'全部'/空表示不限。 */
-export function filterVillages(list, { keyword = '', province = '全部', city = '全部', district = '全部', honor = '全部' } = {}) {
+/** 展开一个村的全部标签为扁平数组（跨六大类）。 */
+export function villageTagList(v) {
+  return v.tags ? Object.values(v.tags).flat() : []
+}
+
+/** 多条件筛选：keyword、province/city/district、honor、tags(AND：需同时命中全部选中标签)。'全部'/空/[] 表示不限。 */
+export function filterVillages(list, { keyword = '', province = '全部', city = '全部', district = '全部', honor = '全部', tags = [] } = {}) {
   const kw = String(keyword).trim().toLowerCase()
+  const wantTags = Array.isArray(tags) ? tags : []
   return list.filter((v) => {
     if (province !== '全部' && v.province !== province) return false
     if (city !== '全部' && v.city !== city) return false
     if (district !== '全部' && v.district !== district) return false
     if (honor !== '全部' && !(v.honors || []).includes(honor)) return false
+    if (wantTags.length) {
+      const own = villageTagList(v)
+      if (!wantTags.every((t) => own.includes(t))) return false
+    }
     if (kw) {
-      const tagWords = v.tags ? Object.values(v.tags).flat() : []
-      const hay = [v.name, v.fullName, v.summary, ...(v.honors || []), ...tagWords].join(' ').toLowerCase()
+      const hay = [v.name, v.fullName, v.summary, ...(v.honors || []), ...villageTagList(v)].join(' ').toLowerCase()
       if (!hay.includes(kw)) return false
     }
     return true
   })
+}
+
+/** 汇总去重标签，按六大类分组：[{ cat, tags: [{ name, count }] }]。供分类标签筛选。 */
+export function allTagsByCategory(list) {
+  const cats = {}
+  for (const v of list) {
+    if (!v.tags) continue
+    for (const [cat, items] of Object.entries(v.tags)) {
+      cats[cat] = cats[cat] || {}
+      for (const t of items) cats[cat][t] = (cats[cat][t] || 0) + 1
+    }
+  }
+  return Object.entries(cats).map(([cat, m]) => ({
+    cat,
+    tags: Object.entries(m).map(([name, count]) => ({ name, count })),
+  }))
 }
 
 /** 排序，返回新数组：latest(保持原序) / views / favorites / practices（后三者按 stats 降序）。 */
