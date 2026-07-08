@@ -72,6 +72,7 @@
                 class="res-item"
               >
                 <div class="res-info">
+                  <span class="res-icon" aria-hidden="true">{{ itemIcon(item.name) }}</span>
                   <p class="res-name">{{ item.name }}</p>
                   <p class="res-desc">{{ item.desc }}</p>
                 </div>
@@ -150,6 +151,21 @@ function bodyMaxHeight(cat) {
 
 // Toast 引用
 const toastRef = ref(null)
+
+// 资源项文件类型图标
+function itemIcon(name) {
+  const n = name.toLowerCase()
+  if (n.endsWith('.pdf') || n.includes('pdf') || n.includes('文档')) return '📄'
+  if (n.endsWith('.doc') || n.endsWith('.docx') || n.includes('word')) return '📝'
+  if (n.endsWith('.xls') || n.endsWith('.xlsx') || n.includes('excel') || n.includes('表格')) return '📊'
+  if (n.endsWith('.ppt') || n.endsWith('.pptx') || n.includes('ppt') || n.includes('演示')) return '📽️'
+  if (n.endsWith('.zip') || n.endsWith('.rar') || n.includes('压缩')) return '📦'
+  if (n.includes('视频') || n.includes('video') || n.endsWith('.mp4')) return '🎬'
+  if (n.includes('图片') || n.includes('image') || n.includes('海报')) return '🖼️'
+  if (n.includes('模板')) return '📋'
+  if (n.includes('清单') || n.includes('checklist')) return '✅'
+  return '📎'
+}
 
 // 点击下载：提示功能开发中
 function onDownload() {
@@ -301,6 +317,11 @@ function onDownload() {
 .panel-arrow {
   font-size: 12px;
   color: var(--color-primary);
+  display: inline-block;
+  transition: transform var(--transition);
+}
+.panel-head[aria-expanded="true"] .panel-arrow {
+  transform: rotate(180deg);
 }
 
 /* max-height 过渡实现展开/收起动画 */
@@ -316,10 +337,15 @@ function onDownload() {
 .res-item {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   gap: 1rem;
   padding: 10px 0;
   border-bottom: 1px solid #f0ebe4;
+}
+.res-icon {
+  font-size: 1.15rem;
+  flex-shrink: 0;
+  margin-right: 0.15rem;
 }
 .res-item:last-child { border-bottom: none; }
 .res-info { min-width: 0; }

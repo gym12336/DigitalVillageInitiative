@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <section class="practice-page">
     <div class="container">
       <!-- 头条轮播 -->
@@ -56,8 +56,7 @@
         </div>
       </header>
 
-      <!-- 模块一：实践概况 -->
-      <section class="overview">
+      <!-- 模块一：实践概况 --><section class="overview section-alt">
         <div class="ov-grid">
           <div class="ov-card"><span class="ov-num"><CountUp :value="overview.days" /></span><span class="ov-label">总实践天数</span></div>
           <div class="ov-card"><span class="ov-num"><CountUp :value="overview.teams" /></span><span class="ov-label">参与团队</span></div>
@@ -104,8 +103,7 @@
         <p v-if="!filteredPeople.length" class="empty">该标签下暂无人物。</p>
       </section>
 
-      <!-- 模块三：乡土视频 -->
-      <section class="videos">
+      <!-- 模块三：乡土视频 --><section class="videos section-alt">
         <h2 class="sec-title">🎬 乡土视频 · 镜头下的乡村</h2>
         <p class="sec-desc">用影像记录乡村的点点滴滴。</p>
         <div class="video-grid">
@@ -132,6 +130,7 @@
       <!-- 模块四：成果列表 -->
       <section ref="resultsSection" class="results">
         <h2 class="sec-title">📁 实践成果</h2>
+      <div class="filter-panel">
         <div class="search-bar">
           <span class="search-ic">🔍</span>
           <input v-model="keyword" type="text" placeholder="搜索成果标题、团队名称、关键词..." aria-label="搜索成果" />
@@ -163,6 +162,7 @@
           <span>当前筛选：{{ typeFilter }} · {{ formFilter }} · {{ yearFilter }} · {{ sortLabel }}<template v-if="keyword">· 关键词“{{ keyword }}”</template></span>
           <button v-if="hasActiveFilter" class="btn-clear" @click="clearFilters">清除筛选</button>
         </div>
+      </div>
         <p class="result-count">筛选到 {{ visibleResults.length }} 份成果</p>
         <div v-if="visibleResults.length" class="result-grid">
           <article v-for="r in visibleResults" :key="r.id" class="result-card" role="button" tabindex="0" @click="openResult(r)" @keydown.enter="openResult(r)">
@@ -464,6 +464,50 @@ onBeforeUnmount(() => {
   background: var(--color-accent); color: var(--color-primary-dark); font-size: .74rem;
 }
 .empty { padding: 2.5rem; text-align: center; color: var(--color-text-light); background: var(--color-card); border: 1px dashed var(--color-border); border-radius: var(--radius); }
+/* —— 筛选面板容器 —— */
+.filter-panel {
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 1.2rem 1.4rem 0.8rem;
+  margin-bottom: 1rem;
+  box-shadow: var(--shadow-sm);
+}
+.filter-panel .search-bar { margin-bottom: 0.8rem; }
+.filter-panel .chips { margin-bottom: 0.9rem; }
+.filter-panel .filters { margin-bottom: 0.2rem; }
+.filter-panel .filter-path { margin-bottom: 0; }
+
+/* —— 分区交替背景 —— */
+.section-alt {
+  background: var(--gradient-section-odd);
+  border-radius: var(--radius);
+  padding: 2rem 1.6rem;
+  margin: 2.6rem -1rem;
+}
+@media (max-width: 760px) {
+  .section-alt { padding: 1.5rem 1rem; margin: 2rem -0.5rem; }
+}
+
+/* —— 区块标题左侧色条 —— */
+.sec-title {
+  display: flex; align-items: center; gap: 0.6rem;
+}
+.sec-title::before {
+  content: '';
+  width: 4px; height: 1.2em;
+  background: var(--color-primary);
+  border-radius: 2px;
+}
+
+/* —— 人物卡片增强 —— */
+.person-card { border-radius: var(--radius-lg); }
+.person-card .avatar { box-shadow: var(--shadow-sm); }
+
+/* —— 视频卡片增强 —— */
+.video-card { border-radius: var(--radius-lg); }
+.video-card .video-cover img { transition: transform var(--transition-slow); }
+.video-card:hover .video-cover img { transform: scale(1.05); }
 
 /* —— 模块二：乡村人物 —— */
 .people { margin: 2.6rem 0; }
@@ -587,4 +631,7 @@ onBeforeUnmount(() => {
   .hero-cover { min-height: 180px; }
 }
 </style>
+
+
+
 

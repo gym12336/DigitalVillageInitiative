@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildRegionTree, filterVillages, sortVillages, allHonors } from '@/lib/encyclopedia.js'
+import { buildRegionTree, filterVillages, sortVillages, allHonors, villageTagList, allTagsByCategory } from '@/lib/encyclopedia.js'
 
 const sample = [
   { id: 'a', name: '陈家铺村', fullName: '浙江省丽水市松阳县四都乡陈家铺村', province: '浙江省', city: '丽水市', district: '松阳县', summary: '竹编之乡', honors: ['中国传统村落'], tags: { 文化类: ['非遗文化'] }, stats: { views: 100, favorites: 10, practices: 6 } },
@@ -44,5 +44,35 @@ describe('allHonors', () => {
       { honor: '世界文化遗产', count: 2 },
       { honor: '中国传统村落', count: 1 },
     ])
+  })
+})
+
+describe('villageTagList', () => {
+  it('跨类别展开为扁平标签数组', () => {
+    const v = { tags: { 文化类: ['非遗文化', '古建筑群'], 自然类: ['山水画卷'] } }
+    expect(villageTagList(v)).toEqual(['非遗文化', '古建筑群', '山水画卷'])
+  })
+  it('无 tags 返回空数组', () => expect(villageTagList({})).toEqual([]))
+})
+
+describe('filterVillages tags（AND）', () => {
+  const s = [
+    { id: 'x', name: 'X', tags: { 文化类: ['非遗文化', '古建筑群'] } },
+    { id: 'y', name: 'Y', tags: { 文化类: ['非遗文化'], 自然类: ['山水画卷'] } },
+  ]
+  it('单标签命中', () => expect(filterVillages(s, { tags: ['非遗文化'] }).map((v) => v.id)).toEqual(['x', 'y']))
+  it('多标签需同时命中（AND）', () => expect(filterVillages(s, { tags: ['非遗文化', '古建筑群'] }).map((v) => v.id)).toEqual(['x']))
+  it('空标签数组不过滤', () => expect(filterVillages(s, { tags: [] })).toHaveLength(2))
+})
+
+describe('allTagsByCategory', () => {
+  it('按六大类分组并计数', () => {
+    const result = allTagsByCategory(sample)
+    const wenhua = result.find((r) => r.cat === '文化类')
+    expect(wenhua.tags).toEqual(expect.arrayContaining([
+      { name: '非遗文化', count: 1 },
+      { name: '古建筑群', count: 1 },
+    ]))
+    expect(result.find((r) => r.cat === '自然类').tags).toEqual([{ name: '山水画卷', count: 1 }])
   })
 })
