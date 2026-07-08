@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>陈家铺村 · 轮廓发散概览 预览</title>
+<style>
+  :root {
+    --ink:      #2b2b26;
+    --ink-soft: #6b6a5f;
+    --line:     #e6e2d6;
+    --paper:    #f7f5ee;
+    --card:     #ffffff;
+    --g-900: #33482f;
+    --g-700: #4e6b41;
+    --g-500: #6d8a56;
+    --g-300: #a7bf8e;
+    --g-100: #eef2e6;
+    --clay:  #c47b46;
+    --up:    #3f7d4e;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+    background:
+      radial-gradient(900px 520px at 50% 42%, #fffdf7 0, transparent 70%),
+      var(--paper);
+    color: var(--ink);
+    padding: 26px 18px 56px;
+  }
+  .stage { max-width: 1040px; margin: 0 auto; }
+  .doc-tag {
+    text-align: center; font-size: 12px; letter-spacing: 2px;
+    color: var(--ink-soft); margin-bottom: 6px;
+  }
+  .doc-tag b { color: var(--g-700); }
+  .headline { text-align: center; margin: 0 0 20px; }
+  .headline h1 { margin: 0; font-size: 24px; letter-spacing: 1px; color: var(--g-900); }
+  .headline p { margin: 4px 0 0; font-size: 13px; color: var(--ink-soft); }
+
+  /* ==== 发散舞台：正方形比例，内部绝对定位 ==== */
+  .radial {
+    position: relative;
+    width: 100%;
+    max-width: 960px;
+    margin: 0 auto;
+    aspect-ratio: 1000 / 720;
+  }
+  .radial svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+  /* ==== 中心：村庄名 + 罗盘（叠在轮廓中央）==== */
+  .hub-label {
+    position: absolute; left: 50%; top: 47%;
+    transform: translate(-50%, -50%);
+    text-align: center; pointer-events: none;
+  }
+  .hub-label .vname { font-size: 22px; font-weight: 800; color: var(--g-900); letter-spacing: 2px; }
+  .hub-label .vtype { font-size: 12px; color: var(--g-700); margin-top: 3px; }
+  .hub-label .compass {
+    margin-top: 6px; font-size: 11px; color: var(--g-500);
+    border: 1px solid var(--g-300); border-radius: 20px; padding: 1px 10px; display: inline-block;
+  }
+
+  /* ==== 卫星概况卡 ==== */
+  .facet {
+    position: absolute;
+    width: 168px;
+    transform: translate(-50%, -50%) scale(1);
+    transform-origin: center center;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 13px;
+    padding: 11px 13px;
+    box-shadow: 0 12px 26px -20px rgba(51,72,47,.55);
+    cursor: pointer;
+    transition: transform .22s cubic-bezier(.22,.61,.36,1),
+                box-shadow .22s ease, border-color .22s ease;
+    will-change: transform;
+  }
+  /* 悬停：卡片放大上浮 + 加深阴影，其它卡片略微淡出让焦点更清晰 */
+  .facet:hover {
+    transform: translate(-50%, -50%) scale(1.14);
+    z-index: 20;
+    border-color: var(--g-500);
+    box-shadow: 0 22px 40px -18px rgba(51,72,47,.6);
+  }
+  .radial.has-hover .facet:not(:hover) { opacity: .55; }
+  .facet { opacity: 1; transition: transform .22s cubic-bezier(.22,.61,.36,1),
+                box-shadow .22s ease, border-color .22s ease, opacity .22s ease; }
+  /* 连线与锚点的点亮态 */
+  .link { transition: stroke .2s ease, stroke-width .2s ease, opacity .2s ease; }
+  .link.active { stroke: var(--clay); stroke-width: 2.4; opacity: 1; stroke-dasharray: none; }
+  .anchor-dot { transition: r .2s ease, fill .2s ease; }
+  .anchor-dot.active { r: 7; fill: var(--clay); }
+  @keyframes pulse-ring {
+    0%   { r: 6;  opacity: .6; }
+    70%  { r: 20; opacity: 0; }
+    100% { r: 20; opacity: 0; }
+  }
+  .pulse { animation: pulse-ring 1.1s ease-out infinite; fill: none; stroke: var(--clay); stroke-width: 1.6; }
+  .facet .f-head { display: flex; align-items: center; gap: 7px; margin-bottom: 6px; }
+  .facet .f-ico {
+    width: 24px; height: 24px; border-radius: 7px;
+    display: grid; place-items: center; font-size: 13px;
+    background: var(--g-100); color: var(--g-700); flex: none;
+  }
+  .facet .f-label { font-size: 12px; color: var(--ink-soft); }
+  .facet .f-value { font-size: 19px; font-weight: 700; color: var(--ink); line-height: 1.1; }
+  .facet .f-value .u { font-size: 12px; font-weight: 500; color: var(--ink-soft); margin-left: 2px; }
+  .facet .f-desc { font-size: 11.5px; color: var(--ink-soft); margin-top: 4px; line-height: 1.5; }
+  .facet .f-delta {
+    display: inline-block; margin-top: 6px; font-size: 11px; font-weight: 700;
+    color: var(--up); background: #e7f2e8; border-radius: 20px; padding: 1px 8px;
+  }
+  .facet.emphasis {
+    border-color: #e6bd97;
+    box-shadow: 0 12px 26px -18px rgba(196,123,70,.6), 0 0 0 1px #eecfae inset;
+  }
+  .facet.emphasis .f-ico { background: #f6e6d6; color: var(--clay); }
+
+  .caption { margin-top: 30px; text-align: center; font-size: 12px; color: var(--ink-soft); }
+  .caption code { background: #efece2; padding: 2px 6px; border-radius: 5px; color: var(--g-900); }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="doc-tag">数乡计划 · 成果可视化 <b>layout: radial-hub</b> 预览 · 轮廓居中 · 概况发散</div>
+  <div class="headline">
+    <h1>陈家铺村 · 情况概览</h1>
+    <p>浙江省 · 丽水市 · 松阳县 &nbsp;|&nbsp; 浙江大学三下乡实践团</p>
+  </div>
+
+  <div class="radial" id="radial">
+    <svg viewBox="0 0 1000 720" preserveAspectRatio="none" id="svg"></svg>
+    <div class="hub-label">
+      <div class="vname">陈家铺村</div>
+      <div class="vtype">海拔 850m · 崖居古村</div>
+      <div class="compass">N ↑ 松阴溪流域</div>
+    </div>
+    <!-- 卫星卡由 JS 按 spec 生成 -->
+  </div>
+
+  <div class="caption">
+    中心 <code>mark: map-outline</code>（村界轮廓）+ 四周 <code>mark: facet-callout</code> 卫星块，
+    每个卫星带 <code>anchor</code> 角度，renderer 画连线锚回边界。改 Spec 即改概况项与布局。
+  </div>
+</div>
+
+<script>
+  // ===== structured（extract 产出）=====
+  const structured = {
+    profile: { village: "陈家铺村", type: "崖居古村 · 非遗竹编之乡" },
+    facets: [
+      { key: "location", label: "区位",   icon: "📍", value: "松阳",   unit: "县",  desc: "松阴溪畔 · 海拔850m崖壁古村" },
+      { key: "pop",      label: "常住人口", icon: "👥", value: 326,     unit: "人",  desc: "512 户 · 空心化后回流中" },
+      { key: "industry", label: "主导产业", icon: "🎋", value: "竹编",  unit: "",   desc: "18 位非遗艺人 · 月销翻倍", delta: "产业兴旺 45→78", emphasis: true },
+      { key: "eco",      label: "生态本底", icon: "🌲", value: 76,      unit: "%",   desc: "森林覆盖率 · 崖居梯田景观" },
+      { key: "coop",     label: "合作社",   icon: "🤝", value: 6,       unit: "户",  desc: "抱团进社 · 人均年收入 2.4万" },
+      { key: "practice", label: "实践驻村", icon: "🎓", value: 3,       unit: "年",  desc: "浙大团队 · 口述史+文创+电商" }
+    ]
+  };
+
+  // ===== viz_spec（compile 产出 / renderer 输入）=====
+  // 每个卫星块的 anchor：boundary 边界上的锚点(bx,by) + 卡片落点(cx,cy)，坐标系 1000x720
+  const spec = {
+    layout: { type: "radial-hub", center: { mark: "map-outline" } },
+    blocks: [
+      { slot: "sat-1", mark: "facet-callout", from: "location", anchor: { bx: 372, by: 300, cx: 150, cy: 210 } },
+      { slot: "sat-2", mark: "facet-callout", from: "pop",      anchor: { bx: 640, by: 285, cx: 850, cy: 195 } },
+      { slot: "sat-3", mark: "facet-callout", from: "industry", anchor: { bx: 415, by: 235, cx: 300, cy: 90  } },
+      { slot: "sat-4", mark: "facet-callout", from: "eco",      anchor: { bx: 352, by: 420, cx: 135, cy: 520 } },
+      { slot: "sat-5", mark: "facet-callout", from: "coop",     anchor: { bx: 640, by: 415, cx: 865, cy: 500 } },
+      { slot: "sat-6", mark: "facet-callout", from: "practice", anchor: { bx: 560, by: 500, cx: 700, cy: 640 } }
+    ]
+  };
+
+  // ===== 村庄边界轮廓（map-outline）：此处用手绘 SVG path 模拟，真实场景取村界 GeoJSON =====
+  const BOUNDARY = "M 470,205 L 560,190 L 630,230 L 662,305 L 636,385 L 655,455 " +
+                   "L 565,505 L 470,490 L 402,512 L 358,435 L 380,350 L 345,290 L 400,232 Z";
+
+  const svg = document.getElementById("svg");
+  const NS = "http://www.w3.org/2000/svg";
+  const facetMap = Object.fromEntries(structured.facets.map(f => [f.key, f]));
+
+  // --- 1) 连线 + 边界锚点（先画，压在轮廓与卡片下方）。存引用以便悬停联动 ---
+  const linkEls = {};   // key -> { line, dot, pulse }
+  spec.blocks.forEach(b => {
+    const { bx, by, cx, cy } = b.anchor;
+    const line = document.createElementNS(NS, "line");
+    line.setAttribute("x1", cx); line.setAttribute("y1", cy);
+    line.setAttribute("x2", bx); line.setAttribute("y2", by);
+    line.setAttribute("stroke", "#b9c9a6");
+    line.setAttribute("stroke-width", "1.4");
+    line.setAttribute("stroke-dasharray", "5 5");
+    line.setAttribute("class", "link");
+    svg.appendChild(line);
+    // 边界锚点
+    const dot = document.createElementNS(NS, "circle");
+    dot.setAttribute("cx", bx); dot.setAttribute("cy", by); dot.setAttribute("r", "4.5");
+    dot.setAttribute("fill", "#6d8a56"); dot.setAttribute("stroke", "#fff"); dot.setAttribute("stroke-width", "1.5");
+    dot.setAttribute("class", "anchor-dot");
+    svg.appendChild(dot);
+    // 悬停时在锚点处冒出的脉冲环（默认隐藏）
+    const pulse = document.createElementNS(NS, "circle");
+    pulse.setAttribute("cx", bx); pulse.setAttribute("cy", by); pulse.setAttribute("r", "6");
+    pulse.setAttribute("class", "pulse");
+    pulse.style.display = "none";
+    svg.appendChild(pulse);
+
+    linkEls[b.from] = { line, dot, pulse };
+  });
+
+  // --- 2) 村庄轮廓（双线：外发光 + 主描边 + 极浅填充）---
+  const glow = document.createElementNS(NS, "path");
+  glow.setAttribute("d", BOUNDARY);
+  glow.setAttribute("fill", "none");
+  glow.setAttribute("stroke", "#cdddb8");
+  glow.setAttribute("stroke-width", "9");
+  glow.setAttribute("opacity", ".55");
+  svg.appendChild(glow);
+
+  const outline = document.createElementNS(NS, "path");
+  outline.setAttribute("d", BOUNDARY);
+  outline.setAttribute("fill", "rgba(109,138,86,.10)");
+  outline.setAttribute("stroke", "#4e6b41");
+  outline.setAttribute("stroke-width", "2");
+  outline.setAttribute("stroke-linejoin", "round");
+  svg.appendChild(outline);
+
+  // --- 3) 卫星概况卡（renderer: mark "facet-callout"）---
+  const stage = document.getElementById("radial");
+  spec.blocks.forEach(b => {
+    const f = facetMap[b.from];
+    const el = document.createElement("div");
+    el.className = "facet" + (f.emphasis ? " emphasis" : "");
+    el.style.left = (b.anchor.cx / 1000 * 100) + "%";
+    el.style.top  = (b.anchor.cy / 720 * 100) + "%";
+    el.innerHTML = `
+      <div class="f-head">
+        <div class="f-ico">${f.icon}</div>
+        <div class="f-label">${f.label}</div>
+      </div>
+      <div class="f-value">${f.value}<span class="u">${f.unit}</span></div>
+      <div class="f-desc">${f.desc}</div>
+      ${f.delta ? `<span class="f-delta">▲ ${f.delta}</span>` : ""}
+    `;
+
+    // ==== 悬停联动：卡片放大 + 连线/锚点点亮 + 脉冲环 ====
+    const link = linkEls[b.from];
+    el.addEventListener("mouseenter", () => {
+      stage.classList.add("has-hover");
+      link.line.classList.add("active");
+      link.dot.classList.add("active");
+      link.pulse.style.display = "";
+    });
+    el.addEventListener("mouseleave", () => {
+      stage.classList.remove("has-hover");
+      link.line.classList.remove("active");
+      link.dot.classList.remove("active");
+      link.pulse.style.display = "none";
+    });
+
+    stage.appendChild(el);
+  });
+</script>
+</body>
+</html>

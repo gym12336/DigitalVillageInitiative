@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>陈家铺村 · 情况概览图 预览</title>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
+<style>
+  :root {
+    --ink:        #2b2b26;
+    --ink-soft:   #6b6a5f;
+    --line:       #e6e2d6;
+    --paper:      #faf8f2;
+    --card:       #ffffff;
+    /* earth-green 调色板 */
+    --g-900: #33482f;
+    --g-700: #4e6b41;
+    --g-500: #6d8a56;
+    --g-300: #a7bf8e;
+    --g-100: #eef2e6;
+    --clay:  #c47b46;
+    --up:    #3f7d4e;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+    background:
+      radial-gradient(1200px 400px at 80% -80px, #f0ede1 0, transparent 60%),
+      var(--paper);
+    color: var(--ink);
+    padding: 32px 20px 60px;
+  }
+  .stage {
+    max-width: 1080px;
+    margin: 0 auto;
+  }
+  .doc-tag {
+    text-align: center;
+    font-size: 12px;
+    letter-spacing: 2px;
+    color: var(--ink-soft);
+    margin-bottom: 18px;
+  }
+  .doc-tag b { color: var(--g-700); }
+
+  /* ============ hero-banner ============ */
+  .banner {
+    position: relative;
+    border-radius: 18px;
+    overflow: hidden;
+    background: linear-gradient(120deg, var(--g-900), var(--g-700) 70%);
+    color: #fff;
+    box-shadow: 0 18px 40px -22px rgba(51,72,47,.55);
+  }
+  .banner-cover {
+    position: absolute; inset: 0;
+    background-image: url("https://images.unsplash.com/photo-1528181304800-259b08848526?w=1200&q=60");
+    background-size: cover; background-position: center;
+    opacity: .22; mix-blend-mode: luminosity;
+  }
+  .banner-inner { position: relative; padding: 28px 30px 24px; }
+  .banner h1 { margin: 0; font-size: 28px; letter-spacing: 1px; }
+  .banner h1 .loc { font-size: 15px; font-weight: 400; opacity: .82; margin-left: 12px; }
+  .banner .type { margin: 6px 0 22px; font-size: 14px; opacity: .8; }
+
+  /* ============ stat-row ============ */
+  .stat-row {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
+  }
+  .stat {
+    background: rgba(255,255,255,.10);
+    border: 1px solid rgba(255,255,255,.16);
+    border-radius: 12px;
+    padding: 14px 12px;
+    backdrop-filter: blur(3px);
+  }
+  .stat .label { font-size: 12px; opacity: .8; margin-bottom: 6px; }
+  .stat .value { font-size: 24px; font-weight: 700; line-height: 1; }
+  .stat .value .unit { font-size: 13px; font-weight: 500; opacity: .8; margin-left: 3px; }
+  .stat .delta {
+    display: inline-flex; align-items: center; gap: 2px;
+    margin-top: 8px; font-size: 12px; font-weight: 700;
+    padding: 2px 7px; border-radius: 20px;
+  }
+  .stat .delta.up   { color: #d7f0d9; background: rgba(63,125,78,.55); }
+  .stat.emphasis {
+    background: rgba(196,123,70,.22);
+    border-color: rgba(240,190,150,.5);
+    box-shadow: 0 0 0 1px rgba(240,190,150,.35) inset;
+  }
+  .stat .note { font-size: 11px; opacity: .78; margin-top: 6px; }
+
+  /* ============ body: radar + footnote ============ */
+  .body {
+    display: grid;
+    grid-template-columns: 1.35fr 1fr;
+    gap: 18px;
+    margin-top: 18px;
+  }
+  .panel {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 18px 20px;
+    box-shadow: 0 10px 30px -26px rgba(0,0,0,.4);
+  }
+  .panel h2 {
+    margin: 0 0 4px; font-size: 16px; color: var(--g-900);
+  }
+  .panel .sub { font-size: 12px; color: var(--ink-soft); margin-bottom: 8px; }
+  #radar { width: 100%; height: 330px; }
+
+  .footnote h2 { margin: 0 0 10px; font-size: 16px; color: var(--g-900); }
+  .legend-line { display: flex; align-items: center; gap: 8px; font-size: 13px; margin-bottom: 8px; color: var(--ink); }
+  .swatch { width: 22px; height: 0; border-top: 3px solid var(--g-500); }
+  .swatch.dash { border-top-style: dashed; border-color: var(--g-300); }
+  .narrative {
+    margin-top: 14px; padding: 14px 16px;
+    background: var(--g-100); border-left: 3px solid var(--g-500);
+    border-radius: 0 10px 10px 0;
+    font-size: 14px; line-height: 1.75; color: #3c4a34;
+  }
+  .narrative .badge {
+    display: inline-block; font-size: 11px; color: var(--g-700);
+    border: 1px dashed var(--g-300); border-radius: 20px;
+    padding: 1px 8px; margin-bottom: 8px;
+  }
+  .caption {
+    margin-top: 26px; text-align: center; font-size: 12px; color: var(--ink-soft);
+  }
+  .caption code {
+    background: #efece2; padding: 2px 6px; border-radius: 5px; color: var(--g-900);
+  }
+  @media (max-width: 760px) {
+    .stat-row { grid-template-columns: repeat(2, 1fr); }
+    .body { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="doc-tag">数乡计划 · 成果可视化 <b>hero 概览区</b> 预览 · 由 viz_spec 驱动渲染</div>
+
+  <!-- ===== hero-banner ===== -->
+  <div class="banner">
+    <div class="banner-cover"></div>
+    <div class="banner-inner">
+      <h1>陈家铺村 <span class="loc">浙江省 · 丽水市 · 松阳县</span></h1>
+      <div class="type">海拔 850m 崖居古村 · 非遗竹编之乡 · 浙江大学三下乡实践团</div>
+      <div class="stat-row" id="statRow"></div>
+    </div>
+  </div>
+
+  <!-- ===== body ===== -->
+  <div class="body">
+    <div class="panel">
+      <h2>乡村振兴五维现状雷达</h2>
+      <div class="sub">以「二十字方针」为轴 · 现状 vs 帮扶前基线</div>
+      <div id="radar"></div>
+    </div>
+    <div class="panel footnote">
+      <h2>村庄画像</h2>
+      <div class="legend-line"><span class="swatch"></span> 现状（2026 · 实线填充）</div>
+      <div class="legend-line"><span class="swatch dash"></span> 帮扶前（2023 · 虚线基线）</div>
+      <div class="narrative">
+        <span class="badge">AIGC narrate</span><br />
+        陈家铺村坐落松阳崖壁之上，以百年竹编为魂。浙大实践团三年驻村，将「不挣钱的老手艺」编入产业链——竹编月销翻倍、六户农户抱团进社，产业兴旺一维从 45 拉升至 78。这支队带来的改变，正被看见、留得下。
+      </div>
+    </div>
+  </div>
+
+  <div class="caption">
+    数据来自 <code>structured</code>（profile / metrics / dimensions），样式由 <code>viz_spec</code> 的 <code>mark: stat-row</code> + <code>mark: radar</code> 组合而成。改 Spec 即改样式。
+  </div>
+</div>
+
+<script>
+  // ===== structured（extract 产出，与设计文档第 5 节一致）=====
+  const structured = {
+    metrics: [
+      { name: "常住人口",   value: 326, unit: "人" },
+      { name: "竹编艺人",   value: 18,  unit: "人" },
+      { name: "竹编月销量", value: 2,   unit: "倍", delta: 1.0,  delta_dir: "up", note: "较帮扶前翻倍" },
+      { name: "人均年收入", value: 2.4, unit: "万元", delta: 0.45, delta_dir: "up" },
+      { name: "合作社农户", value: 6,   unit: "户" }
+    ],
+    dimensions: [
+      { axis: "产业兴旺", score: 78, baseline: 45, max: 100 },
+      { axis: "生态宜居", score: 88, baseline: 80, max: 100 },
+      { axis: "乡风文明", score: 85, baseline: 58, max: 100 },
+      { axis: "治理有效", score: 80, baseline: 62, max: 100 },
+      { axis: "生活富裕", score: 72, baseline: 48, max: 100 }
+    ]
+  };
+
+  // ===== viz_spec（compile 产出 / renderer 输入）=====
+  const spec = {
+    blocks: [
+      {
+        slot: "hero-banner", mark: "stat-row",
+        encoding: { items: { from: "metrics" } },
+        annotations: [{ at: "竹编月销量", emphasis: true }]
+      },
+      {
+        slot: "hero-radar", mark: "radar",
+        encoding: {
+          axis: { field: "axis", from: "dimensions" },
+          value: { field: "score", label: "现状 2026" },
+          baseline: { field: "baseline", label: "帮扶前 2023" },
+          max: { field: "max" }
+        },
+        options: { areaStyle: true, baselineStyle: "dashed" }
+      }
+    ]
+  };
+
+  // ===== renderer: mark "stat-row" =====
+  function renderStatRow(block, data) {
+    const items = data[block.encoding.items.from];
+    const emph = new Set((block.annotations || []).filter(a => a.emphasis).map(a => a.at));
+    const html = items.map(m => {
+      const isE = emph.has(m.name);
+      const delta = m.delta != null
+        ? `<span class="delta ${m.delta_dir}">▲ +${Math.round(m.delta * 100)}%</span>` : "";
+      const note = m.note ? `<div class="note">${m.note}</div>` : "";
+      return `<div class="stat ${isE ? "emphasis" : ""}">
+        <div class="label">${m.name}</div>
+        <div class="value">${m.value}<span class="unit">${m.unit}</span></div>
+        ${delta}${note}
+      </div>`;
+    }).join("");
+    document.getElementById("statRow").innerHTML = html;
+  }
+
+  // ===== renderer: mark "radar" → ECharts option =====
+  function renderRadar(block, data) {
+    const dims = data[block.encoding.axis.from];
+    const indicator = dims.map(d => ({ name: d.axis, max: d.max }));
+    const series = [{
+      type: "radar",
+      data: [
+        {
+          value: dims.map(d => d.score),
+          name: block.encoding.value.label,
+          areaStyle: block.options.areaStyle ? { color: "rgba(109,138,86,.35)" } : undefined,
+          lineStyle: { color: "#4e6b41", width: 2 },
+          itemStyle: { color: "#4e6b41" }
+        },
+        {
+          value: dims.map(d => d.baseline),
+          name: block.encoding.baseline.label,
+          lineStyle: { color: "#a7bf8e", width: 1.5, type: block.options.baselineStyle },
+          itemStyle: { color: "#a7bf8e" },
+          areaStyle: { color: "rgba(167,191,142,.10)" }
+        }
+      ]
+    }];
+    const chart = echarts.init(document.getElementById("radar"));
+    chart.setOption({
+      color: ["#4e6b41", "#a7bf8e"],
+      tooltip: {},
+      radar: {
+        indicator,
+        radius: "66%",
+        splitNumber: 4,
+        axisName: { color: "#33482f", fontSize: 13, fontWeight: 600 },
+        splitLine: { lineStyle: { color: "#e0e5d5" } },
+        splitArea: { areaStyle: { color: ["#fbfcf8", "#f2f5ec"] } },
+        axisLine: { lineStyle: { color: "#dfe4d4" } }
+      },
+      series
+    });
+    window.addEventListener("resize", () => chart.resize());
+  }
+
+  // ===== 遍历 spec.blocks 分发到对应 mark 分支（renderer 主循环）=====
+  spec.blocks.forEach(b => {
+    if (b.mark === "stat-row") renderStatRow(b, structured);
+    if (b.mark === "radar")    renderRadar(b, structured);
+  });
+</script>
+</body>
+</html>
