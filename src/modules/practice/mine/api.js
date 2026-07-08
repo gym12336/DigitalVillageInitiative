@@ -173,3 +173,20 @@ export async function apiGeneratePlan({ idea, refs, village, topic, startDate, e
   })
   return data && data.plan
 }
+
+// —— 搜索域 ——
+
+/**
+ * 联网搜索目标村信息。失败返回空数组。
+ */
+export async function apiSearchWeb({ village, idea } = {}) {
+  try {
+    const data = await request('/api/search/web', {
+      method: 'POST',
+      body: { village, idea },
+    })
+    return (data && data.results) || []
+  } catch {
+    return []
+  }
+}
