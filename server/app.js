@@ -4,6 +4,7 @@ import { makeAuthRouter } from './routes/auth.js'
 import { makeTeamsRouter } from './routes/teams.js'
 import { makeDossiersRouter } from './routes/dossiers.js'
 import { makePlanRouter } from './routes/plan.js'
+import { makeSearchRouter } from './routes/search.js'
 import { errorHandler, notFound } from './middleware/errorHandler.js'
 
 /**
@@ -19,6 +20,7 @@ export function createApp({ db, secret }) {
   app.use('/api/teams', makeTeamsRouter(db, secret))
   app.use('/api/dossiers', makeDossiersRouter(db, secret))
   app.use('/api/plan', makePlanRouter(db, secret))
+  app.use('/api/search', makeSearchRouter(db, secret))
 
   app.use('/api', notFound) // 未匹配的 /api 走 404
   app.use(errorHandler) // 统一错误出口，必须最后挂

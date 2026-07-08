@@ -172,3 +172,34 @@ describe('server routes (HTTP 冒烟)', () => {
     expect(res.status).toBe(409)
   })
 })
+
+describe('/api/search/web', () => {
+  it('未登录 → 401', async () => {
+    const res = await request(app)
+      .post('/api/search/web')
+      .send({ village: '陈家铺村' })
+    expect(res.status).toBe(401)
+  })
+
+  it('缺 village → 400', async () => {
+    const token = await register('searchuser')
+    const res = await request(app)
+      .post('/api/search/web')
+      .set(auth(token))
+      .send({ idea: '帮村民' })
+    expect(res.status).toBe(400)
+  })
+
+  it('正常请求（BING key 未配）→ 200 且 results 为空数组', async () => {
+    const token = await register('searchuser2')
+    const res = await request(app)
+      .post('/api/search/web')
+      .set(auth(token))
+      .send({ village: '陈家铺村', idea: '帮村民卖竹编' })
+    expect(res.status).toBe(200)
+    expect(res.body).toHaveProperty('results')
+    expect(Array.isArray(res.body.results)).toBe(true)
+    // 测试环境未配 BING key → results 为空
+    expect(res.body.results).toEqual([])
+  })
+})
