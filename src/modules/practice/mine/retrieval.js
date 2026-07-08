@@ -1,3 +1,5 @@
+import { apiSearchWeb } from './api.js'
+
 // 懂平台检索：输入 idea + 四类站内数据源，输出统一可跳转卡片数组。
 // 规则版实现，为将来接真实 LLM 预留同样的输入输出契约（换实现不换调用方）。
 // 纯函数：不依赖 Vue、不碰 DOM、不读 localStorage。
@@ -183,4 +185,28 @@ export function retrieve(idea, sources = {}, { perSource = 4, topic = '', villag
     merged.push(...bySource[key].slice(0, perSource))
   }
   return merged.sort((a, b) => b.score - a.score)
+}
+
+/**
+ * 联网搜索目标村信息，结果格式化为统一检索卡片。
+ * 失败吞错返回空数组——联网搜索是锦上添花，不阻塞主流程。
+ * @param {string} village - 目标村名
+ * @param {string} idea - 实践 idea
+ * @returns {Promise<Array<{ source: 'web', id: string, title: string, sub: string, path: string, dimension: string, relevance: string }>>}
+ */
+export async function searchWeb(village, idea) {
+  try {
+    const results = await apiSearchWeb({ village, idea })
+    return results.map((r) => ({
+      source: 'web',
+      id: r.url || '',
+      title: r.title || '',
+      sub: r.snippet || '',
+      path: r.url || '',
+      dimension: r.dimension || '',
+      relevance: r.relevance || 'low',
+    }))
+  } catch {
+    return []
+  }
 }
