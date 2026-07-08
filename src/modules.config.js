@@ -18,6 +18,10 @@ export const modules = [
     id: 'practice', name: '乡村实践', icon: '🎓', path: '/practice', enabled: true, desc: '用脚步丈量，用实践记录',
     hook: '汇聚全国三下乡团队的实践成果，用数据、人物与影像记录乡村的改变。',
     metric: '423 份成果',
+    children: [
+      { name: '实践成果', path: '/practice', desc: '全国团队的成果长廊' },
+      { name: '我的实践', path: '/practice/mine', desc: '三阶段实践智能体工作台' },
+    ],
   },
   {
     id: 'voice', name: '乡村之声', icon: '📢', path: '/voice', enabled: true, desc: '乡村出题，青年回应',

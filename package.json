@@ -5,22 +5,28 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "server": "node server/index.js",
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest"
   },
   "dependencies": {
-    "vue": "^3.5.13",
-    "vue-router": "^4.5.0",
+    "bcryptjs": "^3.0.3",
+    "better-sqlite3": "^12.11.1",
     "echarts": "^5.5.1",
-    "echarts-gl": "^2.0.9"
+    "echarts-gl": "^2.0.9",
+    "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
+    "vue": "^3.5.13",
+    "vue-router": "^4.5.0"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.2.1",
-    "vite": "^6.0.7",
-    "vitest": "^2.1.8",
     "@vue/test-utils": "^2.4.6",
-    "jsdom": "^25.0.1"
+    "jsdom": "^25.0.1",
+    "supertest": "^7.2.2",
+    "vite": "^6.0.7",
+    "vitest": "^2.1.8"
   }
 }
