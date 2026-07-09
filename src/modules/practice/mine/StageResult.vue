@@ -17,27 +17,23 @@
 
     <section class="block diy-note">
       <p>
-        想要更自由的图表编排、主题与导出？「成果搭建台」提供意图 → Spec → 渲染的深度可视化能力，
-        作为独立项目单独推进，本期为占位入口。
+        想要更自由的图表编排、主题与导出？「成果搭建台」支持拖拽组件、自由组合图表、一键导出静态展示页。
       </p>
     </section>
-
-    <AppToast ref="toastRef" />
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { useRouter } from 'vue-router'
 import ResultCards from './ResultCards.vue'
-import AppToast from '@/components/AppToast.vue'
 
 defineProps({
   dossier: { type: Object, required: true },
 })
 
-const toastRef = ref(null)
+const router = useRouter()
 function onDiy() {
-  toastRef.value?.show('成果搭建台为独立项目，敬请期待 🚧')
+  router.push('/builder')
 }
 </script>
 

@@ -47,7 +47,7 @@
             background: state.pageBackground,
             transform: 'scale(' + state.zoom + ')',
           }"
-          :innerHTML="stageHtml"
+          v-html="stageHtml"
         ></div>
       </div>
 
@@ -76,7 +76,7 @@
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import {
-  state, addComponentAt, selectComponent, moveComponent, resizeComponent,
+  state, addComponentAt, selectComponent,
   selectByRect, deleteComponent, bringToFront, cloneComponent,
   copySelected, pasteClipboard, undo, redo, setZoom, pushHistory, save, getSelected,
 } from './stageEditor.js'
@@ -256,7 +256,20 @@ function onStageMouseMove(e) {
   if (resizeState) {
     const dx = (e.clientX - resizeState.startX) / state.zoom
     const dy = (e.clientY - resizeState.startY) / state.zoom
-    resizeComponent(resizeState.id, resizeState.handle, dx, dy)
+    const c = state.components.find(c => c.id === resizeState.id)
+    if (!c) return
+    const MIN_SIZE = 20
+    const { origX, origY, origW, origH, handle } = resizeState
+    switch (handle) {
+      case 'se': c.width  = Math.max(MIN_SIZE, origW + dx);  c.height = Math.max(MIN_SIZE, origH + dy);  break
+      case 'sw': c.x = origX + dx; c.width  = Math.max(MIN_SIZE, origW - dx);  c.height = Math.max(MIN_SIZE, origH + dy);  break
+      case 'ne': c.width  = Math.max(MIN_SIZE, origW + dx);  c.y = origY + dy; c.height = Math.max(MIN_SIZE, origH - dy);  break
+      case 'nw': c.x = origX + dx; c.width  = Math.max(MIN_SIZE, origW - dx);  c.y = origY + dy; c.height = Math.max(MIN_SIZE, origH - dy);  break
+      case 'e':  c.width  = Math.max(MIN_SIZE, origW + dx);  break
+      case 'w':  c.x = origX + dx; c.width  = Math.max(MIN_SIZE, origW - dx);  break
+      case 's':  c.height = Math.max(MIN_SIZE, origH + dy);  break
+      case 'n':  c.y = origY + dy; c.height = Math.max(MIN_SIZE, origH - dy);  break
+    }
   }
 
   if (boxSelect.value.active) {

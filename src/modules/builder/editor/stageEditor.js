@@ -78,22 +78,6 @@ export function moveComponent(id, dx, dy) {
   c.y = Math.max(0, c.y + dy)
 }
 
-export function resizeComponent(id, handle, dx, dy) {
-  const c = state.components.find(c => c.id === id)
-  if (!c) return
-  const MIN_SIZE = 20
-  switch (handle) {
-    case 'se': c.width = Math.max(MIN_SIZE, c.width + dx); c.height = Math.max(MIN_SIZE, c.height + dy); break
-    case 'sw': c.x += dx; c.width = Math.max(MIN_SIZE, c.width - dx); c.height = Math.max(MIN_SIZE, c.height + dy); break
-    case 'ne': c.width = Math.max(MIN_SIZE, c.width + dx); c.y += dy; c.height = Math.max(MIN_SIZE, c.height - dy); break
-    case 'nw': c.x += dx; c.width = Math.max(MIN_SIZE, c.width - dx); c.y += dy; c.height = Math.max(MIN_SIZE, c.height - dy); break
-    case 'e':  c.width = Math.max(MIN_SIZE, c.width + dx); break
-    case 'w':  c.x += dx; c.width = Math.max(MIN_SIZE, c.width - dx); break
-    case 's':  c.height = Math.max(MIN_SIZE, c.height + dy); break
-    case 'n':  c.y += dy; c.height = Math.max(MIN_SIZE, c.height - dy); break
-  }
-}
-
 export function bringToFront(id) {
   const idx = state.components.findIndex(c => c.id === id)
   if (idx === -1) return
