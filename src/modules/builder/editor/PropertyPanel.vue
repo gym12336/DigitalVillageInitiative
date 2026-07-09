@@ -197,64 +197,112 @@ function removeSensor(comp, index) {
 <style scoped>
 .pp-root { padding: 1rem; display: flex; flex-direction: column; gap: 1rem; }
 .pp-section {
-  padding-bottom: 1rem; border-bottom: 1px solid var(--color-border-light);
+  padding: 1rem;
+  border-radius: 18px;
+  background: rgba(44,125,160,0.02);
+  border: 1px solid var(--color-border-light);
 }
-.pp-section:last-child { border-bottom: none; }
 .pp-title {
-  margin: 0 0 .8rem; font-size: .95rem; color: var(--color-primary-dark);
+  margin: 0 0 0.8rem;
+  font-size: 0.95rem; font-weight: 700;
+  color: var(--color-primary-dark);
   display: flex; align-items: center; justify-content: space-between;
 }
 .pp-subtitle {
-  margin: .8rem 0 .5rem; font-size: .82rem; color: var(--color-text-light);
-  font-weight: 600; display: flex; align-items: center; justify-content: space-between;
+  margin: 0.8rem 0 0.5rem;
+  font-size: 0.8rem; font-weight: 600;
+  color: var(--color-text-light);
+  display: flex; align-items: center; justify-content: space-between;
 }
-.pp-field { display: flex; flex-direction: column; gap: .25rem; margin-bottom: .6rem; }
-.pp-field label { font-size: .76rem; color: var(--color-text-light); font-weight: 500; }
+.pp-field { display: flex; flex-direction: column; gap: 0.25rem; margin-bottom: 0.6rem; }
+.pp-field label {
+  font-size: 0.76rem; color: var(--color-text-light); font-weight: 500;
+}
 .pp-field input[type="text"],
 .pp-field input[type="number"],
 .pp-field textarea,
 .pp-field select {
-  padding: .4rem .55rem; border: 1px solid var(--color-border); border-radius: 6px;
-  font-size: .82rem; outline: none; background: var(--color-bg); color: var(--color-text);
-  transition: border-color var(--transition-fast);
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  font-size: 0.82rem; outline: none;
+  background: var(--color-bg);
+  color: var(--color-text);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
-.pp-field input:focus, .pp-field textarea:focus, .pp-field select:focus { border-color: var(--color-primary); }
+.pp-field input:focus,
+.pp-field textarea:focus,
+.pp-field select:focus {
+  border-color: #2c7da0;
+  box-shadow: 0 0 0 3px var(--editor-input-focus-glow);
+}
 .pp-field textarea { resize: vertical; min-height: 60px; }
-.pp-field input[type="color"] { width: 40px; height: 30px; padding: 2px; cursor: pointer; }
-.pp-field-row { display: flex; gap: .5rem; }
+.pp-field input[type="color"] {
+  width: 40px; height: 32px; padding: 2px; cursor: pointer;
+  border-radius: 8px; border: 1px solid var(--color-border);
+}
+.pp-field-row { display: flex; gap: 0.5rem; }
 .pp-field-row .pp-field { flex: 1; }
-.pp-check { display: flex; flex-direction: row; align-items: center; gap: .4rem; cursor: pointer; }
-.pp-check input[type="checkbox"] { width: auto; }
+.pp-check {
+  display: flex; flex-direction: row; align-items: center; gap: 0.4rem;
+  cursor: pointer; font-size: 0.82rem; color: var(--color-text-secondary);
+}
+.pp-check input[type="checkbox"] { width: auto; accent-color: #2c7da0; }
 
-.pp-stat { font-size: .82rem; color: var(--color-text-secondary); margin: 0; }
-.pp-hint { font-size: .76rem; color: var(--color-text-light); margin: .4rem 0 0; line-height: 1.5; }
+.pp-stat { font-size: 0.82rem; color: var(--color-text-secondary); margin: 0; }
+.pp-hint {
+  font-size: 13px; color: #687b8b; line-height: 1.7;
+  margin: 0.4rem 0 0;
+}
 
 .pp-del {
-  border: none; background: transparent; cursor: pointer; font-size: 1rem;
-  opacity: .5; transition: opacity var(--transition-fast);
+  border: none; background: transparent; cursor: pointer;
+  font-size: 1rem; color: var(--color-text-light);
+  padding: 0.25rem 0.4rem; border-radius: 8px;
+  transition: all var(--transition-fast);
 }
-.pp-del:hover { opacity: 1; }
+.pp-del:hover {
+  color: #c0392b;
+  background: rgba(192,57,43,0.06);
+}
 
 .pp-add {
-  border: 1px solid var(--color-primary); border-radius: 4px; padding: .1rem .45rem;
-  background: transparent; color: var(--color-primary); font-size: .72rem; cursor: pointer;
-  font-weight: 600;
+  border: 1px solid #2c7da0; border-radius: 999px;
+  padding: 0.15rem 0.6rem;
+  background: transparent; color: #2c7da0;
+  font-size: 0.72rem; cursor: pointer; font-weight: 600;
+  transition: all var(--transition-fast);
 }
-.pp-add:hover { background: var(--color-primary); color: #fff; }
+.pp-add:hover {
+  background: #2c7da0; color: #fff;
+}
 
-.pp-sensor-row { display: flex; gap: .3rem; margin-bottom: .4rem; align-items: center; }
+.pp-sensor-row { display: flex; gap: 0.3rem; margin-bottom: 0.4rem; align-items: center; }
 .pp-sr-name { flex: 2; }
 .pp-sr-val { flex: 1; }
 .pp-sr-unit { flex: 1; }
 .pp-sr-status { flex: 1.2; }
-.pp-sensor-row input, .pp-sensor-row select {
-  padding: .3rem .4rem; border: 1px solid var(--color-border); border-radius: 4px;
-  font-size: .76rem; outline: none; background: var(--color-bg); color: var(--color-text);
+.pp-sensor-row input,
+.pp-sensor-row select {
+  padding: 0.35rem 0.45rem;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  font-size: 0.76rem; outline: none;
+  background: var(--color-bg);
+  color: var(--color-text);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
-.pp-sensor-row input:focus, .pp-sensor-row select:focus { border-color: var(--color-primary); }
+.pp-sensor-row input:focus,
+.pp-sensor-row select:focus {
+  border-color: #2c7da0;
+  box-shadow: 0 0 0 2px var(--editor-input-focus-glow);
+}
 .pp-sr-del {
-  border: none; background: transparent; cursor: pointer; color: var(--color-text-light);
-  font-size: 1rem; padding: 0 .2rem;
+  border: none; background: transparent; cursor: pointer;
+  color: var(--color-text-light);
+  font-size: 1rem; padding: 0 0.2rem;
+  border-radius: 4px;
+  transition: all var(--transition-fast);
 }
-.pp-sr-del:hover { color: var(--color-highlight); }
+.pp-sr-del:hover { color: #c0392b; }
 </style>
