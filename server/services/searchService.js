@@ -1,8 +1,9 @@
 // server/services/searchService.js
-// 多维度联网搜索编排：四个维度并发搜 Bing → 去重 → 排序 → 截断。
-// 某维度失败不影响其他维度；无结果返回空数组。
+// 多维度联网搜索编排：四个 Web Search 维度 + 一个 AI Search 维度并发。
+// 某维度失败不影响其他维度；无结果返回空数组/overview=null。
 
-import { searchBing as defaultSearchBing } from '../lib/webSearch.js'
+import { searchBocha as defaultSearchBocha } from '../lib/webSearch.js'
+import { searchBochaAI as defaultSearchBochaAI } from '../lib/webSearch.js'
 
 const IDEA_PREVIEW_LEN = 20
 
@@ -38,30 +39,33 @@ const DIMENSIONS = [
  * @param {object} opts
  * @param {string} opts.village - 目标村名（必填）
  * @param {string} [opts.idea] - 实践 idea
- * @param {string} [opts.apiKey] - Bing API key
- * @param {Function} [opts.searchBingImpl] - searchBing 实现（注入便于测试）
- * @returns {Promise<{ results: Array<{ title, url, snippet, dimension, relevance }> }>}
+ * @param {string} [opts.apiKey] - 博查AI API key
+ * @param {Function} [opts.searchBochaImpl] - searchBocha 实现（注入便于测试）
+ * @param {Function} [opts.searchBochaAIImpl] - searchBochaAI 实现（注入便于测试）
+ * @returns {Promise<{ results: Array, overview: { answer: string, references: Array } | null }>}
  */
 export async function searchVillage({
   village,
   idea = '',
   apiKey,
-  searchBingImpl,
+  searchBochaImpl,
+  searchBochaAIImpl,
 } = {}) {
-  const searchBingFn = searchBingImpl || defaultSearchBing
+  const searchBochaFn = searchBochaImpl || defaultSearchBocha
+  const searchBochaAIFn = searchBochaAIImpl || defaultSearchBochaAI
   const ideaPreview = String(idea || '').trim().slice(0, IDEA_PREVIEW_LEN)
+  const hasVillage = !!(village && village.trim())
 
-  // 四个维度并发搜索
+  // 四个 Web Search 维度并发
   const dimensionResults = await Promise.all(
     DIMENSIONS.map(async (dim) => {
       const query = dim.buildQuery(village, ideaPreview)
       let raw
       try {
-        raw = await searchBingFn(query, apiKey)
+        raw = await searchBochaFn(query, apiKey)
       } catch {
         raw = []
       }
-      // 截断 top N
       const sliced = (Array.isArray(raw) ? raw : []).slice(0, dim.topN)
       return sliced.map((r) => ({
         ...r,
@@ -69,6 +73,23 @@ export async function searchVillage({
       }))
     }),
   )
+
+  // AI Search 维度（并发跑，不影响 Web Search）
+  let overview = null
+  if (hasVillage) {
+    try {
+      const aiQuery = `${village.trim()} 基本概况 地理位置 人口 产业 文化特色`
+      const aiResult = await searchBochaAIFn(aiQuery, apiKey)
+      if (aiResult && aiResult.answer) {
+        overview = {
+          answer: aiResult.answer,
+          references: aiResult.references || [],
+        }
+      }
+    } catch {
+      overview = null
+    }
+  }
 
   // 合并 + 按 URL 去重（保留先出现的维度）
   const seen = new Set()
@@ -105,5 +126,5 @@ export async function searchVillage({
     return (dimOrder[a.dimension] ?? 99) - (dimOrder[b.dimension] ?? 99)
   })
 
-  return { results: merged }
+  return { results: merged, overview }
 }
