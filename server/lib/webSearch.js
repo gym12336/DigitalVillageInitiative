@@ -11,12 +11,18 @@ const cache = new Map()
 // 并发去重：同一搜索词的 in-flight Promise
 const inflight = new Map()
 
+// AI Search 独立缓存（同一 query 24h 内复用，避免重复计费）
+const aiCache = new Map()
+const aiInflight = new Map()
+
 /**
  * 清空缓存（测试用）。
  */
 export function clearSearchCache() {
   cache.clear()
   inflight.clear()
+  aiCache.clear()
+  aiInflight.clear()
 }
 
 /**
@@ -128,7 +134,18 @@ export async function searchBochaAI(query, apiKey, fetchImpl) {
   // 无 key → 静默跳过
   if (!key) return { answer: '', references: [] }
 
-  try {
+  // 检查缓存
+  const cached = aiCache.get(query)
+  if (cached && (Date.now() - cached.ts) < CACHE_TTL_MS) {
+    return cached.data
+  }
+
+  // 检查是否已有相同 query 的 in-flight 请求
+  const existing = aiInflight.get(query)
+  if (existing) return existing
+
+  const promise = (async () => {
+    try {
     const controller = new AbortController()
     const timer = setTimeout(() => controller.abort(), AI_TIMEOUT_MS)
 
@@ -183,12 +200,28 @@ export async function searchBochaAI(query, apiKey, fetchImpl) {
     }
 
     return { answer, references }
-  } catch (e) {
-    if (e?.name === 'AbortError') {
-      console.warn('[webSearch] 博查AI AI Search 超时')
-    } else {
-      console.warn('[webSearch] AI Search 调用失败：', e?.message || e)
+    } catch (e) {
+      if (e?.name === 'AbortError') {
+        console.warn('[webSearch] 博查AI AI Search 超时')
+      } else {
+        console.warn('[webSearch] AI Search 调用失败：', e?.message || e)
+      }
+      return { answer: '', references: [] }
+    } finally {
+      aiInflight.delete(query)
     }
+  })()
+
+  // 写缓存 + in-flight
+  aiInflight.set(query, promise)
+  try {
+    const result = await promise
+    // 只有成功拿到非空 answer 才缓存
+    if (result.answer) {
+      aiCache.set(query, { data: result, ts: Date.now() })
+    }
+    return result
+  } catch {
     return { answer: '', references: [] }
   }
 }

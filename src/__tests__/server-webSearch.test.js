@@ -250,4 +250,34 @@ describe('server/lib/webSearch.searchBochaAI', () => {
     expect(answer).toBe('')
     expect(references).toHaveLength(1) // references 仍能解析
   })
+
+  it('相同 query 24h 内命中缓存，不重复调用 fetch', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => aiSearchResponse('AI 总结……', [
+        { name: 'X', url: 'https://x.com', snippet: '...' },
+      ]),
+    })
+    await searchBochaAI('陈家铺村概况', AI_API_KEY, mockFetch)
+    expect(mockFetch).toHaveBeenCalledTimes(1)
+    // 第二次：命中缓存
+    await searchBochaAI('陈家铺村概况', AI_API_KEY, mockFetch)
+    expect(mockFetch).toHaveBeenCalledTimes(1)
+  })
+
+  it('同一 query 的并发 AI Search 共享 in-flight Promise', async () => {
+    let resolve
+    const mockFetch = vi.fn().mockReturnValue(new Promise((r) => { resolve = r }))
+    const p1 = searchBochaAI('并发村概况', AI_API_KEY, mockFetch)
+    const p2 = searchBochaAI('并发村概况', AI_API_KEY, mockFetch)
+    expect(mockFetch).toHaveBeenCalledTimes(1)
+    resolve({
+      ok: true,
+      json: async () => aiSearchResponse('并发村总结', [
+        { name: 'X', url: 'https://x.com', snippet: '...' },
+      ]),
+    })
+    await Promise.all([p1, p2])
+    expect(mockFetch).toHaveBeenCalledTimes(1)
+  })
 })
