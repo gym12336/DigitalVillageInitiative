@@ -17,7 +17,7 @@ function renderComponentHtml(c) {
       if (p.src) {
         inner = `<img src="${esc(p.src)}" alt="${esc(p.alt)}" style="width:100%;height:100%;object-fit:${p.objectFit};border-radius:${p.borderRadius}px;"/>`
       } else {
-        inner = `<div style="width:100%;height:100%;display:grid;place-items:center;background:#f2ede4;color:#8a8a8a;font-size:13px;border-radius:${p.borderRadius}px;">图片占位</div>`
+        inner = `<div style="width:100%;height:100%;display:grid;place-items:center;background:#f2f6f8;color:#687b8b;font-size:13px;border-radius:${p.borderRadius}px;">图片占位</div>`
       }
       break
     case 'chart':
@@ -43,11 +43,11 @@ export function buildPreviewHtml(state) {
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body {
   font-family: "LXGW WenKai", "Noto Serif SC", "PingFang SC", "Microsoft YaHei", sans-serif;
-  background: #e8e4dc; display: flex; justify-content: center; padding: 40px;
+  background: #edf3f7; display: flex; justify-content: center; padding: 40px;
 }
 .stage {
   position: relative; width: ${state.pageWidth}px; height: ${state.pageHeight}px;
-  background: ${state.pageBackground}; box-shadow: 0 12px 48px rgba(77,107,62,0.14);
+  background: ${state.pageBackground}; box-shadow: 0 12px 48px rgba(36,90,115,0.18);
   overflow: hidden;
 }
 </style>
