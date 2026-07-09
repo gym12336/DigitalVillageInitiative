@@ -19,6 +19,20 @@
     <section v-if="searched" class="block">
       <h2 class="block-title">② 平台为你找到的资源</h2>
       <p class="block-desc">相似村庄档案、往届类似成果、乡村真实需求、可用调研模板——点卡片可跳转，点「采纳」加入档案。</p>
+      <!-- AI 村落概况卡片 -->
+      <article v-if="overviewData" class="overview-card">
+        <span class="ret-source src-ai">🤖 AI 村落概况</span>
+        <div class="overview-body">{{ overviewData.answer }}</div>
+        <details v-if="overviewData.references && overviewData.references.length" class="overview-refs">
+          <summary>参考来源（{{ overviewData.references.length }}）</summary>
+          <ul class="overview-ref-list">
+            <li v-for="(r, i) in overviewData.references" :key="i">
+              <a :href="r.url" target="_blank" rel="noopener">{{ r.title || r.url }}</a>
+            </li>
+          </ul>
+        </details>
+      </article>
+
       <div v-if="cards.length" class="ret-grid">
         <article v-for="c in cards" :key="c.source + c.id" class="ret-card">
           <span class="ret-source" :class="'src-' + c.source">{{ sourceLabel(c.source) }}</span>
@@ -193,6 +207,7 @@ const riskDraft = ref('')
 // 网络搜索状态
 const webCards = ref([])
 const selectedWebCard = ref(null)
+const overviewData = ref(null)
 
 // plan 本地态：保证新字段都有默认，避免 v-model 打空。
 const plan = reactive(makePlanState(props.dossier.plan))
@@ -273,8 +288,10 @@ async function maybeSearchWeb() {
   if (!village) return
 
   try {
-    webCards.value = await searchWeb(village, ideaInput.value.trim())
-    // 合并到 cards（按 URL 去重：不与已有平台卡片重叠）
+    const { cards: webCardsList, overview } = await searchWeb(village, ideaInput.value.trim())
+    webCards.value = webCardsList
+    overviewData.value = overview
+    // 合并到 cards（按 URL 去重）
     const existingUrls = new Set(cards.value.map((c) => c.path || ''))
     for (const wc of webCards.value) {
       if (!existingUrls.has(wc.path)) {
@@ -282,8 +299,8 @@ async function maybeSearchWeb() {
       }
     }
   } catch {
-    // 联网搜索失败静默跳过，不影响主流程
     webCards.value = []
+    overviewData.value = null
   }
 }
 
@@ -438,11 +455,26 @@ function sourceLabel(s) { return SOURCE_LABELS[s] || s }
 .src-demand { background: #e07a5f; }
 .src-guide { background: #c9a86a; }
 .src-web { background: #e65100; }
+.src-ai { background: #00897b; }
 .ret-title { margin: .2rem 0 0; font-size: .98rem; color: var(--color-text); }
 .ret-sub { margin: 0; font-size: .82rem; color: var(--color-text-light); flex: 1; }
 .ret-actions { display: flex; align-items: center; justify-content: space-between; margin-top: .3rem; }
 .ret-link { font-size: .82rem; color: var(--color-primary); text-decoration: none; }
 .ret-link:hover { text-decoration: underline; }
+
+/* 概况卡片 */
+.overview-card {
+  padding: 1.1rem 1.2rem; background: var(--color-card);
+  border: 1px solid var(--color-border); border-radius: var(--radius); box-shadow: var(--shadow-card);
+  margin-bottom: 1rem;
+}
+.overview-body { margin: .6rem 0 0; font-size: .9rem; color: var(--color-text); line-height: 1.6; }
+.overview-refs { margin-top: .6rem; font-size: .82rem; color: var(--color-text-light); }
+.overview-refs summary { cursor: pointer; color: var(--color-primary); }
+.overview-ref-list { margin: .4rem 0 0 1.2rem; padding: 0; }
+.overview-ref-list li { margin-bottom: .2rem; }
+.overview-ref-list a { color: var(--color-primary); text-decoration: none; }
+.overview-ref-list a:hover { text-decoration: underline; }
 
 .ref-chips { display: flex; flex-wrap: wrap; gap: .5rem; }
 .ref-chip {

@@ -36,9 +36,12 @@ describe('StagePlan 联网搜索集成', () => {
     retrieval.retrieve.mockReturnValue([
       { source: 'village', id: 'v1', title: 'X村', sub: '...', path: '/villages/v1', score: 5 },
     ]) // 仅 1 条 < 10
-    retrieval.searchWeb.mockResolvedValue([
-      { source: 'web', id: 'https://a.com', title: '搜索结果', sub: '摘要', path: 'https://a.com', dimension: 'overview', relevance: 'high' },
-    ])
+    retrieval.searchWeb.mockResolvedValue({
+      cards: [
+        { source: 'web', id: 'https://a.com', title: '搜索结果', sub: '摘要', path: 'https://a.com', dimension: 'overview', relevance: 'high' },
+      ],
+      overview: null,
+    })
 
     const dossier = fullDossier({ village: '陈家铺村', idea: '帮村民卖竹编' })
     mount(StagePlan, { props: { dossier }, global: globalOpts })
@@ -70,9 +73,12 @@ describe('StagePlan 联网搜索集成', () => {
 
   it('网络卡片显示 🌐 网络 source 标签', async () => {
     retrieval.retrieve.mockReturnValue([])
-    retrieval.searchWeb.mockResolvedValue([
-      { source: 'web', id: 'https://a.com', title: '搜索结果', sub: '...', path: 'https://a.com', dimension: 'overview', relevance: 'high' },
-    ])
+    retrieval.searchWeb.mockResolvedValue({
+      cards: [
+        { source: 'web', id: 'https://a.com', title: '搜索结果', sub: '...', path: 'https://a.com', dimension: 'overview', relevance: 'high' },
+      ],
+      overview: null,
+    })
 
     const dossier = fullDossier({ village: '陈家铺村', idea: 'test' })
     const w = mount(StagePlan, { props: { dossier }, global: globalOpts })
@@ -86,9 +92,12 @@ describe('StagePlan 联网搜索集成', () => {
 
   it('点击网络卡片「查看」→ 打开 WebSearchModal', async () => {
     retrieval.retrieve.mockReturnValue([])
-    retrieval.searchWeb.mockResolvedValue([
-      { source: 'web', id: 'https://a.com', title: '搜索结果', sub: '...', path: 'https://a.com', dimension: 'overview', relevance: 'high' },
-    ])
+    retrieval.searchWeb.mockResolvedValue({
+      cards: [
+        { source: 'web', id: 'https://a.com', title: '搜索结果', sub: '...', path: 'https://a.com', dimension: 'overview', relevance: 'high' },
+      ],
+      overview: null,
+    })
 
     const dossier = fullDossier({ village: '陈家铺村', idea: 'test' })
     const w = mount(StagePlan, { props: { dossier }, global: globalOpts })
@@ -110,7 +119,7 @@ describe('StagePlan 联网搜索集成', () => {
     const webCard = {
       source: 'web', id: 'https://a.com', title: '搜索结果', sub: '...', path: 'https://a.com', dimension: 'overview', relevance: 'high',
     }
-    retrieval.searchWeb.mockResolvedValue([webCard])
+    retrieval.searchWeb.mockResolvedValue({ cards: [webCard], overview: null })
 
     const dossier = fullDossier({ village: '陈家铺村', idea: 'test' })
     const w = mount(StagePlan, { props: { dossier }, global: globalOpts })
@@ -125,5 +134,49 @@ describe('StagePlan 联网搜索集成', () => {
     const lastUpdate = updates[updates.length - 1][0]
     expect(lastUpdate.refs).toBeDefined()
     expect(lastUpdate.refs.some((r) => r.source === 'web' && r.id === 'https://a.com')).toBe(true)
+  })
+
+  it('searchWeb 返回 overview → 渲染 AI 村落概况卡片', async () => {
+    retrieval.retrieve.mockReturnValue([
+      { source: 'village', id: 'v1', title: 'X村', sub: '...', path: '/villages/v1', score: 5 },
+    ])
+    retrieval.searchWeb.mockResolvedValue({
+      cards: [
+        { source: 'web', id: 'https://a.com', title: '搜索结果', sub: '摘要', path: 'https://a.com', dimension: 'overview', relevance: 'high' },
+      ],
+      overview: {
+        answer: '陈家铺村位于浙江省松阳县……',
+        references: [{ title: '源1', url: 'https://r.com', snippet: '...' }],
+      },
+    })
+
+    const dossier = fullDossier({ village: '陈家铺村', idea: '帮村民卖竹编' })
+    const wrapper = mount(StagePlan, { props: { dossier }, global: globalOpts })
+    await flushPromises()
+
+    // 概况卡片渲染
+    expect(wrapper.find('.overview-card').exists()).toBe(true)
+    expect(wrapper.find('.overview-card').text()).toContain('AI 村落概况')
+    expect(wrapper.find('.overview-card').text()).toContain('陈家铺村位于浙江省松阳县')
+    // 参考来源可折叠
+    expect(wrapper.find('.overview-refs').exists()).toBe(true)
+  })
+
+  it('overview 为 null → 不渲染概况卡片', async () => {
+    retrieval.retrieve.mockReturnValue([
+      { source: 'village', id: 'v1', title: 'X村', sub: '...', path: '/villages/v1', score: 5 },
+    ])
+    retrieval.searchWeb.mockResolvedValue({
+      cards: [
+        { source: 'web', id: 'https://a.com', title: '搜索结果', sub: '摘要', path: 'https://a.com', dimension: 'overview', relevance: 'high' },
+      ],
+      overview: null,
+    })
+
+    const dossier = fullDossier({ village: '陈家铺村', idea: '帮村民卖竹编' })
+    const wrapper = mount(StagePlan, { props: { dossier }, global: globalOpts })
+    await flushPromises()
+
+    expect(wrapper.find('.overview-card').exists()).toBe(false)
   })
 })
