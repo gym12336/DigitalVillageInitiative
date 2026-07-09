@@ -20,11 +20,11 @@ export function makeSearchRouter(db, secret, searchServiceImpl) {
       if (!village || typeof village !== 'string' || !village.trim()) {
         throw httpError(400, '缺少目标村名称')
       }
-      const { results } = await search({
+      const { results, overview } = await search({
         village: village.trim(),
         idea: typeof idea === 'string' ? idea : '',
       })
-      res.json({ results })
+      res.json({ results, overview: overview || null })
     } catch (e) {
       next(e)
     }
