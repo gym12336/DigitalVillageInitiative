@@ -43,4 +43,10 @@ export const modules = [
     hook: '数字技术架起青年与乡村的桥梁，认识数乡计划背后的团队与愿景。',
     metric: '了解我们',
   },
+  {
+    id: 'builder', name: '成果搭建台', icon: '🛠️', path: '/builder', enabled: true,
+    desc: '可视化组件DIY搭建，自由组合导出成果',
+    hook: '拖拽组件、组合大组件、一键导出展示页。',
+    metric: '成果可视化',
+  },
 ]
