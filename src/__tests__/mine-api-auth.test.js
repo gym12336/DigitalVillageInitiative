@@ -136,18 +136,20 @@ describe('apiSearchWeb', () => {
     expect(body.idea).toBe('帮村民卖竹编')
   })
 
-  it('接口返回 results → 透传', async () => {
+  it('接口返回 results → 透传 { results, overview }', async () => {
     fetch.mockResolvedValueOnce(okJson({
       results: [{ title: 'X', url: 'https://x.com', snippet: '...', dimension: 'overview', relevance: 'high' }],
     }))
-    const results = await apiSearchWeb({ village: '陈家铺村' })
-    expect(results).toHaveLength(1)
-    expect(results[0].title).toBe('X')
+    const data = await apiSearchWeb({ village: '陈家铺村' })
+    expect(data.results).toHaveLength(1)
+    expect(data.results[0].title).toBe('X')
+    expect(data.overview).toBeUndefined()
   })
 
-  it('接口失败 → 返回空数组', async () => {
+  it('接口失败 → 返回 { results: [], overview: null }', async () => {
     fetch.mockRejectedValueOnce(new Error('网络错误'))
-    const results = await apiSearchWeb({ village: '陈家铺村' })
-    expect(results).toEqual([])
+    const data = await apiSearchWeb({ village: '陈家铺村' })
+    expect(data.results).toEqual([])
+    expect(data.overview).toBeNull()
   })
 })
