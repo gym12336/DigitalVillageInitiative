@@ -1,8 +1,9 @@
 // src/modules/builder/editor/chartRenderer.js
 
 const COLORS = [
-  '#6b8c5c', '#d4a373', '#4a8fbf', '#e07a5f', '#8a9a5b',
-  '#b07d62', '#5b8a9a', '#c9a86a', '#9a5b8a', '#6b9a5b',
+  '#2f80ed', '#56ccf2', '#6fcf97', '#f2c94c',
+  '#9b51e0', '#eb5757', '#f2994a', '#2c7da0',
+  '#6fcf97', '#5d9cec',
 ]
 
 export function parseCSV(csvText) {
@@ -35,8 +36,8 @@ export function renderBarChart(data, w, h, { title = '' } = {}) {
     const bx = pad.left + barGap + i * (barW + barGap)
     const by = pad.top + chartH - bh
     bars += `<rect x="${bx}" y="${by}" width="${barW}" height="${bh}" fill="${COLORS[i % COLORS.length]}" rx="2"/>`
-    bars += `<text x="${bx + barW / 2}" y="${by - 6}" text-anchor="middle" font-size="11" fill="#666">${d.value}</text>`
-    bars += `<text x="${bx + barW / 2}" y="${pad.top + chartH + 18}" text-anchor="middle" font-size="10" fill="#888">${d.label}</text>`
+    bars += `<text x="${bx + barW / 2}" y="${by - 6}" text-anchor="middle" font-size="11" fill="#627586">${d.value}</text>`
+    bars += `<text x="${bx + barW / 2}" y="${pad.top + chartH + 18}" text-anchor="middle" font-size="10" fill="#687b8b">${d.label}</text>`
   })
 
   // Y axis
@@ -45,13 +46,13 @@ export function renderBarChart(data, w, h, { title = '' } = {}) {
   for (let i = 0; i <= yTicks; i++) {
     const val = Math.round((maxVal / yTicks) * i)
     const yy = pad.top + chartH - (i / yTicks) * chartH
-    yAxis += `<text x="${pad.left - 8}" y="${yy + 4}" text-anchor="end" font-size="10" fill="#999">${val}</text>`
-    yAxis += `<line x1="${pad.left}" y1="${yy}" x2="${w - pad.right}" y2="${yy}" stroke="#eee" stroke-dasharray="3,3"/>`
+    yAxis += `<text x="${pad.left - 8}" y="${yy + 4}" text-anchor="end" font-size="10" fill="#687b8b">${val}</text>`
+    yAxis += `<line x1="${pad.left}" y1="${yy}" x2="${w - pad.right}" y2="${yy}" stroke="rgba(101,126,152,0.12)" stroke-dasharray="3,3"/>`
   }
 
   let titleSvg = ''
   if (title) {
-    titleSvg = `<text x="${w / 2}" y="22" text-anchor="middle" font-size="14" font-weight="600" fill="#333">${title}</text>`
+    titleSvg = `<text x="${w / 2}" y="22" text-anchor="middle" font-size="14" font-weight="600" fill="#1c2834">${title}</text>`
   }
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
@@ -96,16 +97,16 @@ export function renderPieChart(data, w, h, { title = '' } = {}) {
     const lx = 12
     const ly = 16 + i * 18
     legend += `<rect x="${lx}" y="${ly - 8}" width="10" height="10" rx="2" fill="${COLORS[i % COLORS.length]}"/>`
-    legend += `<text x="${lx + 15}" y="${ly}" font-size="10" fill="#666">${d.label} (${d.value})</text>`
+    legend += `<text x="${lx + 15}" y="${ly}" font-size="10" fill="#627586">${d.label} (${d.value})</text>`
   })
 
   let titleSvg = ''
   if (title) {
-    titleSvg = `<text x="${w / 2}" y="20" text-anchor="middle" font-size="14" font-weight="600" fill="#333">${title}</text>`
+    titleSvg = `<text x="${w / 2}" y="20" text-anchor="middle" font-size="14" font-weight="600" fill="#1c2834">${title}</text>`
   }
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
-    <rect width="${w}" height="${h}" fill="#fff"/>
+    <rect width="${w}" height="${h}" fill="#fafdfe"/>
     ${titleSvg}
     ${paths}
     ${legend}
@@ -129,14 +130,14 @@ export function renderLineChart(data, w, h, { title = '' } = {}) {
     const px = pad.left + (i / Math.max(data.length - 1, 1)) * chartW
     const py = pad.top + chartH - (d.value / maxVal) * chartH
     dots += `<circle cx="${px}" cy="${py}" r="4" fill="${COLORS[0]}"/>`
-    dots += `<text x="${px}" y="${py - 10}" text-anchor="middle" font-size="10" fill="#666">${d.value}</text>`
+    dots += `<text x="${px}" y="${py - 10}" text-anchor="middle" font-size="10" fill="#627586">${d.value}</text>`
   })
 
   // X labels
   let xLabels = ''
   data.forEach((d, i) => {
     const px = pad.left + (i / Math.max(data.length - 1, 1)) * chartW
-    xLabels += `<text x="${px}" y="${pad.top + chartH + 18}" text-anchor="middle" font-size="10" fill="#888">${d.label}</text>`
+    xLabels += `<text x="${px}" y="${pad.top + chartH + 18}" text-anchor="middle" font-size="10" fill="#687b8b">${d.label}</text>`
   })
 
   // Grid
@@ -144,16 +145,16 @@ export function renderLineChart(data, w, h, { title = '' } = {}) {
   let grid = ''
   for (let i = 0; i <= yTicks; i++) {
     const yy = pad.top + chartH - (i / yTicks) * chartH
-    grid += `<line x1="${pad.left}" y1="${yy}" x2="${w - pad.right}" y2="${yy}" stroke="#eee" stroke-dasharray="3,3"/>`
+    grid += `<line x1="${pad.left}" y1="${yy}" x2="${w - pad.right}" y2="${yy}" stroke="rgba(101,126,152,0.12)" stroke-dasharray="3,3"/>`
   }
 
   let titleSvg = ''
   if (title) {
-    titleSvg = `<text x="${w / 2}" y="22" text-anchor="middle" font-size="14" font-weight="600" fill="#333">${title}</text>`
+    titleSvg = `<text x="${w / 2}" y="22" text-anchor="middle" font-size="14" font-weight="600" fill="#1c2834">${title}</text>`
   }
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
-    <rect width="${w}" height="${h}" fill="#fff"/>
+    <rect width="${w}" height="${h}" fill="#fafdfe"/>
     ${titleSvg}
     ${grid}
     <polyline points="${points}" fill="none" stroke="${COLORS[0]}" stroke-width="2.5" stroke-linejoin="round"/>
@@ -167,8 +168,8 @@ export function renderChartSvg(component) {
   const data = parseCSV(props.csvText)
   if (!data.length) {
     return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
-      <rect width="${width}" height="${height}" fill="#faf8f5"/>
-      <text x="${width / 2}" y="${height / 2}" text-anchor="middle" font-size="14" fill="#999">无数据</text>
+      <rect width="${width}" height="${height}" fill="#f8fbfd"/>
+      <text x="${width / 2}" y="${height / 2}" text-anchor="middle" font-size="14" fill="#687b8b">无数据</text>
     </svg>`
   }
   switch (props.chartType) {
