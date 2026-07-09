@@ -278,7 +278,7 @@ function maybeAutoSearch() {
   if (!hasRefs && hasSeed) onSearch()
 }
 
-const WEB_SEARCH_THRESHOLD = 10
+const WEB_SEARCH_THRESHOLD = 15
 
 async function maybeSearchWeb() {
   // 仅当平台结果少于阈值且有目标村名时才触发

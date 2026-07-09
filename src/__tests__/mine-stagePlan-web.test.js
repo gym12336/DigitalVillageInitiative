@@ -32,10 +32,10 @@ beforeEach(() => {
 })
 
 describe('StagePlan 联网搜索集成', () => {
-  it('平台检索结果 < 10 且有目标村 → 自动触发 searchWeb', async () => {
+  it('平台检索结果 < 15 且有目标村 → 自动触发 searchWeb', async () => {
     retrieval.retrieve.mockReturnValue([
       { source: 'village', id: 'v1', title: 'X村', sub: '...', path: '/villages/v1', score: 5 },
-    ]) // 仅 1 条 < 10
+    ]) // 仅 1 条 < 15
     retrieval.searchWeb.mockResolvedValue({
       cards: [
         { source: 'web', id: 'https://a.com', title: '搜索结果', sub: '摘要', path: 'https://a.com', dimension: 'overview', relevance: 'high' },
@@ -50,11 +50,11 @@ describe('StagePlan 联网搜索集成', () => {
     expect(retrieval.searchWeb).toHaveBeenCalledWith('陈家铺村', '帮村民卖竹编')
   })
 
-  it('平台检索结果 ≥ 10 → 不触发 searchWeb', async () => {
-    const tenCards = Array.from({ length: 10 }, (_, i) => ({
+  it('平台检索结果 ≥ 15 → 不触发 searchWeb', async () => {
+    const fifteenCards = Array.from({ length: 15 }, (_, i) => ({
       source: 'village', id: `v${i}`, title: `村${i}`, sub: '', path: `/v/${i}`, score: i,
     }))
-    retrieval.retrieve.mockReturnValue(tenCards)
+    retrieval.retrieve.mockReturnValue(fifteenCards)
 
     const dossier = fullDossier({ village: '陈家铺村', idea: 'test' })
     mount(StagePlan, { props: { dossier }, global: globalOpts })
