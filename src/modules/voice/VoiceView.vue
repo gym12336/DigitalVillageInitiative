@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <section class="voice-page">
     <div class="container">
       <!-- 页面头部 -->
@@ -16,100 +16,122 @@
         </div>
       </header>
 
-      <!-- 搜索栏 -->
-      <div class="filter-panel">
-      <div class="search-bar">
-        <span class="search-ic">🔍</span>
-        <input
-          v-model="keyword"
-          type="text"
-          placeholder="搜索需求标题、关键词..."
-          aria-label="搜索需求"
-        />
-      </div>
+      <!-- 窄屏筛选按钮 -->
+      <button class="filter-toggle" aria-label="打开筛选" @click="filterOpen = true">
+        🔍 筛选 / 搜索<template v-if="hasActiveFilter"> · 已启用</template>
+      </button>
 
-      <!-- 排序胶囊 -->
-      <div class="chips" role="tablist" aria-label="排序方式">
-        <button
-          v-for="opt in sortOptions"
-          :key="opt.value"
-          class="chip"
-          :class="{ active: sortBy === opt.value }"
-          @click="sortBy = opt.value"
-        >
-          {{ opt.label }}
-        </button>
-      </div>
-
-      <!-- 筛选器：需求类型 + 状态 -->
-      <div class="filters">
-        <div class="filter-group">
-          <span class="filter-label">需求类型</span>
-          <div class="tags">
-            <button
-              v-for="t in typeOptions"
-              :key="t"
-              class="tag"
-              :class="{ active: typeFilter === t }"
-              @click="typeFilter = t"
-            >
-              {{ t }}
-            </button>
+      <!-- 左栏筛选 + 右结果 两栏布局 -->
+      <div class="voice-body">
+        <!-- 左侧筛选侧栏（窄屏为抽屉） -->
+        <aside class="filter-sidebar" :class="{ open: filterOpen }" aria-label="筛选">
+          <div class="sidebar-head">
+            <span class="sidebar-title">筛选</span>
+            <button class="sidebar-close" aria-label="关闭筛选" @click="filterOpen = false">✕</button>
           </div>
-        </div>
-        <div class="filter-group">
-          <span class="filter-label">状态</span>
-          <div class="tags">
-            <button
-              v-for="s in statusOptions"
-              :key="s"
-              class="tag"
-              :class="{ active: statusFilter === s }"
-              @click="statusFilter = s"
-            >
-              {{ s }}
-            </button>
+
+          <!-- 搜索 -->
+          <div class="search-bar">
+            <span class="search-ic">🔍</span>
+            <input
+              v-model="keyword"
+              type="text"
+              placeholder="搜索需求标题、关键词..."
+              aria-label="搜索需求"
+            />
           </div>
-        </div>
-      </div>
 
-      <!-- 当前筛选路径 + 清除 -->
-      <div class="filter-path">
-        <span>
-          当前筛选：{{ typeFilter }} · {{ statusFilter }} · {{ sortLabel }}
-          <template v-if="keyword">· 关键词“{{ keyword }}”</template>
-        </span>
-        <button v-if="hasActiveFilter" class="btn-clear" @click="clearFilters">清除筛选</button>
-      </div>
-      </div>
-
-      <!-- 需求列表 -->
-      <p class="result-count">筛选到 {{ filteredDemands.length }} 条需求</p>
-      <div v-if="filteredDemands.length" class="demand-list">
-        <article
-          v-for="d in filteredDemands"
-          :key="d.id"
-          class="demand-card" :class="statusClass(d.status)"
-          tabindex="0"
-          role="button"
-          @click="openDetail(d)"
-          @keydown.enter="openDetail(d)"
-        >
-          <div class="demand-main">
-            <h2 class="demand-title">{{ d.title }}</h2>
-            <div class="demand-meta">
-              <span class="meta">📍 {{ d.town }} · {{ d.village }}</span>
-              <span class="meta">🏷️ {{ d.majors.join(' / ') }}</span>
-            </div>
-            <div class="demand-badges">
-              <span class="cert-badge">✓ {{ d.certBy }}审核发布</span>
-              <span class="time">{{ d.publishTime }} 发布</span>
+          <!-- 排序（竖向单选） -->
+          <div class="fgroup">
+            <p class="fgroup-title">排序</p>
+            <div class="sort-list" role="radiogroup" aria-label="排序方式">
+              <button
+                v-for="o in sortOptions"
+                :key="o.value"
+                class="sort-item"
+                :class="{ active: sortBy === o.value }"
+                role="radio"
+                :aria-checked="sortBy === o.value"
+                @click="sortBy = o.value"
+              >{{ o.label }}</button>
             </div>
           </div>
-          <span class="status" :class="statusClass(d.status)">{{ d.status }}</span>
-        </article>
+
+          <!-- 需求类型 -->
+          <div class="fgroup">
+            <p class="fgroup-title">需求类型</p>
+            <div class="chip-wall" role="group" aria-label="需求类型">
+              <button
+                v-for="t in typeOptions"
+                :key="t"
+                class="fchip"
+                :class="{ active: typeFilter === t }"
+                @click="typeFilter = t"
+              >{{ t }}</button>
+            </div>
+          </div>
+
+          <!-- 状态 -->
+          <div class="fgroup">
+            <p class="fgroup-title">状态</p>
+            <div class="chip-wall" role="group" aria-label="状态">
+              <button
+                v-for="s in statusOptions"
+                :key="s"
+                class="fchip"
+                :class="{ active: statusFilter === s }"
+                @click="statusFilter = s"
+              >{{ s }}</button>
+            </div>
+          </div>
+
+          <button v-if="hasActiveFilter" class="btn-clear" @click="clearFilters">清除全部筛选</button>
+        </aside>
+
+        <!-- 窄屏抽屉遮罩 -->
+        <div v-if="filterOpen" class="filter-backdrop" @click="filterOpen = false" />
+
+        <!-- 右侧结果区 -->
+        <div class="result-area">
+          <!-- 已选条件面包屑 -->
+          <div v-if="activeChips.length" class="crumbs">
+            <button v-for="(chip, i) in activeChips" :key="i" class="crumb" @click="removeChip(chip)">
+              {{ chip.label }} <span class="crumb-x">✕</span>
+            </button>
+            <button class="crumb-clear" @click="clearFilters">清空全部</button>
+          </div>
+
+          <p class="result-count">筛选到 {{ filteredDemands.length }} 条需求</p>
+
+          <div v-if="loading" class="empty">加载中…</div>
+          <div v-else-if="loadError" class="empty">{{ loadError }}，请刷新重试。</div>
+          <div v-else-if="filteredDemands.length" class="demand-list">
+            <article
+              v-for="d in filteredDemands"
+              :key="d.id"
+              class="demand-card" :class="statusClass(d.status)"
+              tabindex="0"
+              role="button"
+              @click="openDetail(d)"
+              @keydown.enter="openDetail(d)"
+            >
+              <div class="demand-main">
+                <h2 class="demand-title">{{ d.title }}</h2>
+                <div class="demand-meta">
+                  <span class="meta">📍 {{ d.town }} · {{ d.village }}</span>
+                  <span class="meta">🏷️ {{ d.majors.join(' / ') }}</span>
+                </div>
+                <div class="demand-badges">
+                  <span class="cert-badge">✓ {{ d.certBy }}审核发布</span>
+                  <span class="time">{{ d.publishTime }} 发布</span>
+                </div>
+              </div>
+              <span class="status" :class="statusClass(d.status)">{{ d.status }}</span>
+            </article>
+          </div>
+          <p v-else class="empty">没有匹配的需求，试试调整筛选或搜索关键词。</p>
+        </div>
       </div>
-      <p v-else class="empty">没有匹配的需求，试试调整筛选或搜索关键词。</p>
 
       <!-- 问答互动区 -->
       <section class="qa-section">
@@ -142,81 +164,49 @@
       </section>
     </div>
 
-    <!-- 需求详情模态框 -->
-    <Teleport to="body">
-      <transition name="modal-fade">
-        <div
-          v-if="activeDemand"
-          class="modal-mask"
-          @click.self="closeDetail"
-        >
-          <div class="modal" role="dialog" aria-modal="true" :aria-label="activeDemand.title">
-            <button class="modal-close" aria-label="关闭" @click="closeDetail">×</button>
-            <span class="status modal-status" :class="statusClass(activeDemand.status)">
-              {{ activeDemand.status }}
-            </span>
-            <h2 class="modal-title">{{ activeDemand.title }}</h2>
-            <p class="modal-sub">
-              📍 {{ activeDemand.town }} · {{ activeDemand.village }}　·　{{ activeDemand.publishTime }} 发布
-            </p>
-            <p class="cert-badge modal-cert">✓ {{ activeDemand.certBy }}审核发布</p>
-
-            <h3 class="modal-h3">需求详情</h3>
-            <p class="modal-desc">{{ activeDemand.desc }}</p>
-
-            <h3 class="modal-h3">所需专业 / 技能</h3>
-            <div class="modal-majors">
-              <span v-for="m in activeDemand.majors" :key="m" class="tag active">{{ m }}</span>
-            </div>
-
-            <h3 class="modal-h3">预期成果</h3>
-            <p class="modal-desc">{{ activeDemand.expected }}</p>
-
-            <h3 class="modal-h3">联系人</h3>
-            <p class="modal-desc">{{ activeDemand.contact }}　{{ activeDemand.phone }}</p>
-
-            <div class="modal-actions">
-              <div class="modal-counts">
-                <button class="count-btn" @click="toggleLike(activeDemand)">
-                  {{ likedIds.has(activeDemand.id) ? '❤️' : '🤍' }} 点赞
-                </button>
-                <button class="count-btn" @click="toggleFav(activeDemand)">
-                  {{ favIds.has(activeDemand.id) ? '⭐' : '☆' }} 收藏
-                </button>
-              </div>
-              <button
-                class="btn-respond"
-                :disabled="activeDemand.status === '已完成'"
-                @click="onRespond(activeDemand)"
-              >
-                {{ activeDemand.status === '已完成' ? '需求已完成' : '我要响应' }}
-              </button>
-            </div>
-          </div>
-        </div>
-      </transition>
-    </Teleport>
-
     <!-- 全站共享 Toast -->
     <AppToast ref="toastRef" />
   </section>
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, onBeforeUnmount } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import AppToast from '@/components/AppToast.vue'
-import voiceData from './voice-data.json'
+import { listDemands, listQa } from './api.js'
 
-// —— 数据（reactive 便于问答区点赞本地生效） ——
-const demands = reactive(voiceData.demands.map((d) => ({ ...d })))
-const qaList = reactive(voiceData.qa.map((q) => ({ ...q, answers: q.answers.map((a) => ({ ...a })) })))
-const totalCount = 89
+const router = useRouter()
+
+// —— 数据（从后端拉取；reactive 便于问答区点赞本地生效） ——
+const demands = reactive([])
+const qaList = reactive([])
+const loading = ref(true)
+const loadError = ref('')
+const totalCount = computed(() => demands.length)
+
+async function loadData() {
+  loading.value = true
+  loadError.value = ''
+  try {
+    const [dRes, qa] = await Promise.all([listDemands({ pageSize: 1000 }), listQa()])
+    demands.splice(0, demands.length, ...(dRes.demands || []))
+    qaList.splice(0, qaList.length, ...qa.map((q) => ({ ...q, answers: (q.answers || []).map((a) => ({ ...a })) })))
+  } catch (e) {
+    loadError.value = e.message || '加载失败'
+  } finally {
+    loading.value = false
+  }
+}
+onMounted(loadData)
 
 // —— Toast ——
 const toastRef = ref(null)
 function toast(text) {
   toastRef.value?.show(text)
 }
+
+// —— 窄屏筛选抽屉开关 ——
+const filterOpen = ref(false)
 
 // —— 搜索 / 排序 / 筛选 状态 ——
 const keyword = ref('')
@@ -243,6 +233,22 @@ function clearFilters() {
   typeFilter.value = '全部'
   statusFilter.value = '全部'
   sortBy.value = 'latest'
+}
+
+// —— 已选条件面包屑 ——
+const activeChips = computed(() => {
+  const chips = []
+  if (keyword.value) chips.push({ type: 'keyword', label: `关键词“${keyword.value}”` })
+  if (typeFilter.value !== '全部') chips.push({ type: 'type', label: typeFilter.value })
+  if (statusFilter.value !== '全部') chips.push({ type: 'status', label: statusFilter.value })
+  if (sortBy.value !== 'latest') chips.push({ type: 'sort', label: sortLabel.value })
+  return chips
+})
+function removeChip(chip) {
+  if (chip.type === 'keyword') keyword.value = ''
+  else if (chip.type === 'type') typeFilter.value = '全部'
+  else if (chip.type === 'status') statusFilter.value = '全部'
+  else if (chip.type === 'sort') sortBy.value = 'latest'
 }
 
 // —— 筛选 + 排序（真实生效） ——
@@ -272,29 +278,9 @@ function statusClass(status) {
   return 'st-done'
 }
 
-// —— 需求详情模态框 ——
-const activeDemand = ref(null)
-const likedIds = reactive(new Set())
-const favIds = reactive(new Set())
-
+// —— 点击卡片跳转独立详情页 ——
 function openDetail(d) {
-  activeDemand.value = d
-}
-function closeDetail() {
-  activeDemand.value = null
-}
-function toggleLike(d) {
-  likedIds.has(d.id) ? likedIds.delete(d.id) : likedIds.add(d.id)
-}
-function toggleFav(d) {
-  favIds.has(d.id) ? favIds.delete(d.id) : favIds.add(d.id)
-}
-function onRespond(d) {
-  if (d.status === '已完成') return
-  if (window.confirm(`确认响应「${d.title}」？提交后将等待团委确认。`)) {
-    toast('响应成功，等待团委确认')
-    closeDetail()
-  }
+  router.push({ name: 'voice-detail', params: { id: d.id } })
 }
 
 // —— 头部发布按钮 ——
@@ -309,21 +295,14 @@ function likeAnswer(a) {
 function onAnswer(q) {
   toast('回答已提交，感谢你的青年智慧')
 }
-
-// —— ESC 关闭模态框 ——
-function onKeydown(e) {
-  if (e.key === 'Escape' && activeDemand.value) closeDetail()
-}
-onMounted(() => window.addEventListener('keydown', onKeydown))
-onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
 </script>
 
 <style scoped>
 .voice-page { padding: 2.6rem 0 3rem; }
-.container { max-width: 1180px; margin: 0 auto; padding: 0 clamp(1rem, 4vw, 2rem); }
+.container { max-width: none; margin: 0; padding: 0 clamp(1rem, 4vw, 2.5rem); }
 
 /* —— 页面头部 —— */
-.page-head { margin-bottom: 1.8rem; }
+.page-head { margin-bottom: 1.6rem; }
 .kicker { font-size: 13px; font-weight: 700; color: var(--color-highlight); letter-spacing: .08em; margin: 0 0 .6rem; }
 .head-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 1.5rem; flex-wrap: wrap; }
 .head-text h1 { font-size: clamp(28px, 4vw, 38px); font-weight: 700; color: var(--color-primary-dark); }
@@ -337,54 +316,56 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
 }
 .btn-publish:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(224, 122, 95, .3); }
 
-/* —— 搜索栏 —— */
-.search-bar {
-  display: flex; align-items: center; gap: .6rem;
-  padding: .3rem 1.2rem; margin-bottom: 1.2rem;
+/* —— 两栏布局 —— */
+.voice-body { display: grid; grid-template-columns: 260px 1fr; gap: 1.8rem; align-items: start; }
+
+/* —— 左侧筛选侧栏 —— */
+.filter-sidebar {
+  position: sticky; top: 88px;
+  display: flex; flex-direction: column; gap: 1.2rem;
   background: var(--color-card); border: 1px solid var(--color-border);
-  border-radius: 50px; box-shadow: var(--shadow-card);
+  border-radius: var(--radius); padding: 1.2rem 1.2rem 1.4rem; box-shadow: var(--shadow-sm);
 }
+.sidebar-head { display: none; align-items: center; justify-content: space-between; }
+.sidebar-title { font-weight: 700; color: var(--color-primary-dark); font-size: 1.1rem; }
+.sidebar-close { border: none; background: transparent; font-size: 1.2rem; cursor: pointer; color: var(--color-text-light); }
+
+.fgroup { display: flex; flex-direction: column; gap: .6rem; }
+.fgroup-title { margin: 0; font-size: .82rem; font-weight: 700; color: var(--color-text-secondary); letter-spacing: .04em; }
+
+/* 搜索 */
+.search-bar { display: flex; align-items: center; gap: .5rem; padding: .2rem .9rem; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: 50px; }
 .search-ic { font-size: 1rem; }
-.search-bar input { flex: 1; border: none; outline: none; background: transparent; padding: .6rem 0; font-size: .95rem; color: var(--color-text); }
+.search-bar input { flex: 1; min-width: 0; border: none; outline: none; background: transparent; padding: .55rem 0; font-size: .9rem; color: var(--color-text); }
 
-/* —— 排序胶囊 —— */
-.chips { display: flex; flex-wrap: wrap; gap: .6rem; margin-bottom: 1.2rem; }
-.chip {
-  padding: .45rem 1.1rem; border: 1px solid var(--color-border); border-radius: 50px;
-  background: var(--color-card); color: var(--color-text-secondary); font-size: .88rem; cursor: pointer;
-  transition: all var(--transition);
-}
-.chip:hover { border-color: var(--color-primary); color: var(--color-primary); }
-.chip.active { background: var(--color-primary); border-color: var(--color-primary); color: #fff; }
+/* 排序（竖向单选） */
+.sort-list { display: flex; flex-direction: column; gap: .4rem; }
+.sort-item { text-align: left; padding: .45rem .8rem; border: 1px solid var(--color-border); border-radius: 8px; background: var(--color-card); color: var(--color-text-secondary); font-size: .86rem; cursor: pointer; transition: all var(--transition); }
+.sort-item:hover { border-color: var(--color-primary); color: var(--color-primary); }
+.sort-item.active { background: var(--color-primary); border-color: var(--color-primary); color: #fff; }
 
-/* —— 筛选器 —— */
-.filters { display: flex; flex-direction: column; gap: .9rem; margin-bottom: 1rem; }
-.filter-group { display: flex; align-items: baseline; gap: .8rem; flex-wrap: wrap; }
-.filter-label { flex-shrink: 0; font-size: .85rem; font-weight: 600; color: var(--color-text); }
-.tags { display: flex; flex-wrap: wrap; gap: .5rem; }
-.tag {
-  padding: .3rem .85rem; border: 1px solid var(--color-border); border-radius: 50px;
-  background: var(--color-bg); color: var(--color-text-secondary); font-size: .82rem; cursor: pointer;
-  transition: all var(--transition);
-}
-.tag:hover { border-color: var(--color-secondary); }
-.tag.active { background: var(--color-accent); border-color: var(--color-secondary); color: var(--color-primary-dark); font-weight: 600; }
+/* 类型 / 状态胶囊墙 */
+.chip-wall { display: flex; flex-wrap: wrap; gap: .45rem; }
+.fchip { padding: .32rem .9rem; border: 1px solid var(--color-border); border-radius: 50px; background: var(--color-bg); color: var(--color-text-secondary); font-size: .8rem; cursor: pointer; transition: all var(--transition); }
+.fchip:hover { border-color: var(--color-primary); color: var(--color-primary); }
+.fchip.active { background: var(--color-primary); border-color: var(--color-primary); color: #fff; }
 
-/* —— 筛选路径 —— */
-.filter-path {
-  display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
-  font-size: .85rem; color: var(--color-text-light); margin-bottom: .4rem;
-}
-.btn-clear {
-  border: 1px solid var(--color-border); background: var(--color-card); color: var(--color-highlight);
-  padding: .25rem .8rem; border-radius: 50px; font-size: .8rem; cursor: pointer;
-}
+.btn-clear { border: 1px solid var(--color-border); background: var(--color-card); color: var(--color-highlight); padding: .5rem .8rem; border-radius: 8px; font-size: .84rem; cursor: pointer; }
 .btn-clear:hover { border-color: var(--color-highlight); }
+
+/* —— 右侧结果区 —— */
+.crumbs { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: .9rem; }
+.crumb { display: inline-flex; align-items: center; gap: .35rem; padding: .3rem .8rem; border: 1px solid var(--color-primary); border-radius: 50px; background: var(--color-primary); color: #fff; font-size: .8rem; cursor: pointer; }
+.crumb-x { font-size: .72rem; opacity: .85; }
+.crumb:hover { background: var(--color-primary-dark); border-color: var(--color-primary-dark); }
+.crumb-clear { padding: .3rem .8rem; border: 1px solid var(--color-border); border-radius: 50px; background: var(--color-card); color: var(--color-highlight); font-size: .8rem; cursor: pointer; }
+.crumb-clear:hover { border-color: var(--color-highlight); }
 .result-count { font-size: .82rem; color: var(--color-text-light); margin: 0 0 1rem; }
 
 /* —— 需求列表 —— */
 .demand-list { display: flex; flex-direction: column; gap: 1rem; }
 .demand-card {
+  position: relative; overflow: hidden;
   display: flex; align-items: center; justify-content: space-between; gap: 1rem;
   padding: 1.3rem 1.5rem; background: var(--color-card);
   border: 1px solid var(--color-border); border-radius: var(--radius);
@@ -402,6 +383,16 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
 }
 .time { font-size: .8rem; color: var(--color-text-light); }
 
+/* 状态色条 */
+.demand-card::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+  width: 5px; border-radius: 0 3px 3px 0; transition: background var(--transition);
+}
+.demand-card.st-pending::before { background: var(--color-highlight); }
+.demand-card.st-doing::before { background: #4a8fbf; }
+.demand-card.st-done::before { background: #aaa; }
+.demand-card.st-pending, .demand-card.st-doing, .demand-card.st-done { padding-left: 1.8rem; }
+
 /* —— 状态标签配色 —— */
 .status { flex-shrink: 0; padding: .35rem .9rem; border-radius: 50px; font-size: .82rem; font-weight: 600; white-space: nowrap; }
 .st-pending { background: #fff3e0; color: var(--color-highlight); }
@@ -409,41 +400,8 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
 .st-done { background: #f0f0f0; color: #888; }
 
 .empty { padding: 2.5rem; text-align: center; color: var(--color-text-light); background: var(--color-card); border: 1px dashed var(--color-border); border-radius: var(--radius); }
-/* —— 筛选面板 —— */
-.filter-panel {
-  background: var(--color-card);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  padding: 1.2rem 1.4rem 0.8rem;
-  margin-bottom: 1rem;
-  box-shadow: var(--shadow-sm);
-}
-.filter-panel .search-bar { margin-bottom: 0.8rem; }
-.filter-panel .chips { margin-bottom: 0.9rem; }
-.filter-panel .filters { margin-bottom: 0.2rem; }
-.filter-panel .filter-path { margin-bottom: 0; }
 
-/* —— 需求卡片左侧状态色条 —— */
-.demand-card {
-  position: relative;
-  overflow: hidden;
-}
-.demand-card::before {
-  content: '';
-  position: absolute;
-  left: 0; top: 0; bottom: 0;
-  width: 5px;
-  border-radius: 0 3px 3px 0;
-  transition: background var(--transition);
-}
-.demand-card.st-pending::before { background: var(--color-highlight); }
-.demand-card.st-doing::before { background: #4a8fbf; }
-.demand-card.st-done::before { background: #aaa; }
-.demand-card.st-pending { padding-left: 1.8rem; }
-.demand-card.st-doing { padding-left: 1.8rem; }
-.demand-card.st-done { padding-left: 1.8rem; }
-
-/* —— 问答互动区 —— */
+/* —— 问答互动区（整宽，位于两栏下方） —— */
 .qa-section { margin-top: 3rem; }
 .qa-head h2 { font-size: 1.5rem; color: var(--color-primary-dark); }
 .qa-head p { margin: .5rem 0 1.4rem; color: var(--color-text-secondary); font-size: .95rem; }
@@ -479,49 +437,20 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
 }
 .btn-answer:hover { background: var(--color-primary-dark); }
 
-/* —— 模态框 —— */
-.modal-mask {
-  position: fixed; inset: 0; z-index: 2000;
-  display: flex; align-items: center; justify-content: center; padding: 1.5rem;
-  background: rgba(30, 30, 30, .5);
-}
-.modal {
-  position: relative; width: 100%; max-width: 640px; max-height: 88vh; overflow-y: auto;
-  padding: 2rem 2.2rem; background: var(--color-card); border-radius: var(--radius);
-  box-shadow: 0 20px 60px rgba(0, 0, 0, .25);
-}
-.modal-close {
-  position: absolute; top: 1rem; right: 1.2rem; border: none; background: transparent;
-  font-size: 1.8rem; line-height: 1; color: var(--color-text-light); cursor: pointer;
-}
-.modal-close:hover { color: var(--color-text); }
-.modal-status { display: inline-block; }
-.modal-title { margin: .8rem 0 .5rem; font-size: 1.5rem; color: var(--color-primary-dark); }
-.modal-sub { font-size: .88rem; color: var(--color-text-secondary); }
-.modal-cert { margin-top: .8rem; }
-.modal-h3 { margin: 1.4rem 0 .5rem; font-size: 1rem; color: var(--color-text); }
-.modal-desc { font-size: .92rem; color: var(--color-text-secondary); line-height: 1.8; }
-.modal-majors { display: flex; flex-wrap: wrap; gap: .5rem; }
-.modal-actions {
-  display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
-  margin-top: 1.8rem; padding-top: 1.4rem; border-top: 1px solid var(--color-border);
-}
-.modal-counts { display: flex; gap: .7rem; }
-.count-btn {
-  border: 1px solid var(--color-border); background: var(--color-bg); color: var(--color-text-secondary);
-  padding: .45rem 1rem; border-radius: 50px; font-size: .85rem; cursor: pointer; transition: all var(--transition);
-}
-.count-btn:hover { border-color: var(--color-highlight); color: var(--color-highlight); }
-.btn-respond {
-  padding: .7rem 1.8rem; border: none; border-radius: 50px; cursor: pointer;
-  background: var(--color-highlight); color: #fff; font-size: .95rem; font-weight: 600;
-  transition: transform var(--transition), box-shadow var(--transition);
-}
-.btn-respond:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(224, 122, 95, .3); }
-.btn-respond:disabled { background: #cfcfcf; cursor: not-allowed; }
+/* —— 窄屏筛选按钮 + 抽屉 —— */
+.filter-toggle { display: none; width: 100%; margin-bottom: 1rem; padding: .7rem 1rem; border: 1px solid var(--color-border); border-radius: 50px; background: var(--color-card); color: var(--color-primary-dark); font-size: .9rem; font-weight: 600; cursor: pointer; box-shadow: var(--shadow-sm); }
+.filter-backdrop { display: none; }
 
-/* —— 过渡动画 —— */
-.modal-fade-enter-active, .modal-fade-leave-active { transition: opacity var(--transition); }
-.modal-fade-enter-from, .modal-fade-leave-to { opacity: 0; }
+@media (max-width: 960px) {
+  .voice-body { grid-template-columns: 1fr; }
+  .filter-toggle { display: block; }
+  .filter-backdrop { display: block; position: fixed; inset: 0; background: rgba(0, 0, 0, .4); z-index: 60; }
+  .filter-sidebar {
+    position: fixed; top: 0; left: 0; bottom: 0; z-index: 70;
+    width: min(320px, 86vw); border-radius: 0; overflow-y: auto;
+    transform: translateX(-100%); transition: transform var(--transition);
+  }
+  .filter-sidebar.open { transform: translateX(0); }
+  .sidebar-head { display: flex; }
+}
 </style>
-

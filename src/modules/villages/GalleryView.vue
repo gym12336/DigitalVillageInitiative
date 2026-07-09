@@ -34,14 +34,29 @@
           </div>
         </router-link>
       </div>
-      <p v-else class="empty">该村暂无影像素材。</p>
+      <p v-else-if="error" class="empty">{{ error }}，请刷新重试。</p>
+      <p v-else class="empty">加载中…</p>
     </div>
   </section>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-import villages from '@/data/encyclopedia-villages.json'
+import { ref, computed, onMounted } from 'vue'
+import { fetchAllVillages } from '@/api/villages.js'
+
+const villages = ref([])
+const loading = ref(true)
+const error = ref('')
+
+onMounted(async () => {
+  try {
+    villages.value = await fetchAllVillages()
+  } catch (e) {
+    error.value = e.message || '加载失败'
+  } finally {
+    loading.value = false
+  }
+})
 
 const villageId = ref('全部')
 

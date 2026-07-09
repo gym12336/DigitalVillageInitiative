@@ -26,7 +26,7 @@
         </div>
         <div class="info-bar">
           <span class="cert" :class="certClass">✓ {{ village.certLabel }}</span>
-          <span v-if="village.manager" class="manager">
+          <span v-if="village.manager && village.manager.name" class="manager">
             <span class="m-avatar">{{ village.manager.name.charAt(0) }}</span>
             <span class="m-text">{{ village.manager.name }} · {{ village.manager.role }}</span>
           </span>
@@ -191,20 +191,52 @@
 
     <AppToast ref="toastRef" />
   </section>
+  <section v-else-if="error" class="vd empty-page">
+    <p>{{ error }}。<router-link to="/villages">返回乡村列表</router-link></p>
+  </section>
   <section v-else class="vd empty-page">
-    <p>未找到该村庄。<router-link to="/villages">返回乡村列表</router-link></p>
+    <div class="skeleton">
+      <div class="sk-banner"></div>
+      <div class="sk-container">
+        <div class="sk-line sk-title"></div>
+        <div class="sk-line sk-sub"></div>
+        <div class="sk-line sk-sub short"></div>
+        <div class="sk-row"><div class="sk-card"></div><div class="sk-card"></div><div class="sk-card"></div></div>
+        <div class="sk-line sk-text"></div>
+        <div class="sk-line sk-text"></div>
+        <div class="sk-line sk-text short"></div>
+      </div>
+    </div>
   </section>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import AppToast from '@/components/AppToast.vue'
-import villages from '@/data/encyclopedia-villages.json'
+import { fetchVillage } from '@/api/villages.js'
 import practiceData from '@/modules/practice/practice-data.json'
 
 const route = useRoute()
-const village = computed(() => villages.find((v) => v.id === route.params.id) || null)
+const village = ref(null)
+const loading = ref(true)
+const error = ref('')
+
+async function loadVillage(id) {
+  loading.value = true
+  error.value = ''
+  try {
+    village.value = await fetchVillage(id)
+    if (!village.value) error.value = '未找到该村庄'
+  } catch (e) {
+    error.value = e.message || '加载失败'
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(() => loadVillage(route.params.id))
+watch(() => route.params.id, (id) => loadVillage(id))
 
 const toastRef = ref(null)
 const soon = () => toastRef.value?.show('功能即将上线')
@@ -268,6 +300,20 @@ onBeforeUnmount(stopAuto)
 .back { display: inline-block; margin: 1.6rem 0 .4rem; color: var(--color-primary); font-size: .9rem; }
 .back:hover { color: var(--color-primary-dark); }
 .empty-page { text-align: center; padding: 4rem 1rem; color: var(--color-text-light); }
+
+/* 骨架屏 */
+.skeleton { width: 100%; }
+.sk-banner { width: 100%; height: 260px; background: linear-gradient(90deg, #e8e8e8 25%, #f5f5f5 50%, #e8e8e8 75%); background-size: 200% 100%; animation: sk-shimmer 1.5s infinite; }
+.sk-container { max-width: 1200px; margin: 1.5rem auto; padding: 0 clamp(1.5rem, 4vw, 3rem); display: flex; flex-direction: column; gap: .8rem; }
+.sk-line { height: 16px; border-radius: 4px; background: linear-gradient(90deg, #e8e8e8 25%, #f5f5f5 50%, #e8e8e8 75%); background-size: 200% 100%; animation: sk-shimmer 1.5s infinite; }
+.sk-title { height: 36px; width: 40%; }
+.sk-sub { height: 14px; width: 60%; }
+.sk-sub.short { width: 30%; }
+.sk-text { height: 14px; width: 100%; }
+.sk-text.short { width: 70%; }
+.sk-row { display: flex; gap: .8rem; margin: .6rem 0; }
+.sk-card { flex: 1; height: 100px; border-radius: var(--radius); background: linear-gradient(90deg, #e8e8e8 25%, #f5f5f5 50%, #e8e8e8 75%); background-size: 200% 100%; animation: sk-shimmer 1.5s infinite; }
+@keyframes sk-shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
 
 /* ===== 通用 block ===== */
 .block { margin-top: 2rem; padding-top: 1.8rem; border-top: 1px solid var(--color-border); }

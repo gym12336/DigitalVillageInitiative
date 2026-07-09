@@ -17,8 +17,8 @@
 
     <section class="block diy-note">
       <p>
-        想要更自由的图表编排、主题与导出？「成果搭建台」提供意图 → Spec → 渲染的深度可视化能力，
-        作为独立项目单独推进，本期为占位入口。
+        「成果搭建台」是一个低代码可视化工作台：把大组件 + 基础组件拖进栅格画布，
+        插槽自动从本档案灌数据，DIY 微调后可导出 JSON 或一个双击即开的静态展示网站。
       </p>
     </section>
 
@@ -28,16 +28,23 @@
 
 <script setup>
 import { ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import ResultCards from './ResultCards.vue'
 import AppToast from '@/components/AppToast.vue'
 
-defineProps({
+const props = defineProps({
   dossier: { type: Object, required: true },
 })
 
+const route = useRoute()
+const router = useRouter()
 const toastRef = ref(null)
 function onDiy() {
-  toastRef.value?.show('成果搭建台为独立项目，敬请期待 🚧')
+  // 带上本档案 id 作为数据源 + 当前队 id（作品持久化归属），直达成果搭建台。
+  const query = { source: props.dossier.id }
+  const teamId = route.params.teamId
+  if (teamId) query.team = teamId
+  router.push({ path: '/practice/studio/edit', query })
 }
 </script>
 

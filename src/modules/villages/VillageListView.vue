@@ -2,7 +2,7 @@
   <section class="enc-page">
     <div class="container">
       <!-- 头条推荐：多卡跑马灯 -->
-      <div class="hero-picks" @mouseenter="pauseAuto" @mouseleave="resumeAuto">
+      <div v-if="!loading && !loadError" class="hero-picks" @mouseenter="pauseAuto" @mouseleave="resumeAuto">
         <div class="picks-head">
           <p class="hero-kicker">📌 精选乡村 · 本周推荐</p>
           <div class="picks-nav">
@@ -62,7 +62,7 @@
       </button>
 
       <!-- 左栏筛选 + 右结果 两栏布局 -->
-      <div class="enc-body">
+      <div v-if="!loading && !loadError" class="enc-body">
         <!-- 左侧筛选侧栏（窄屏为抽屉） -->
         <aside class="filter-sidebar" :class="{ open: filterOpen }" aria-label="筛选">
           <div class="sidebar-head">
@@ -191,6 +191,12 @@
           <p v-else class="empty">没有匹配的乡村，试试调整筛选或搜索关键词。</p>
         </div>
       </div>
+
+      <!-- 加载 / 错误兜底 -->
+      <div v-else class="list-empty">
+        <p v-if="loadError" class="empty">{{ loadError }}，请刷新重试。</p>
+        <p v-else class="empty">加载中…</p>
+      </div>
     </div>
   </section>
 </template>
@@ -199,16 +205,30 @@
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute } from 'vue-router'
 import VillageCard from '@/components/VillageCard.vue'
-import villages from '@/data/encyclopedia-villages.json'
+import { fetchAllVillages } from '@/api/villages.js'
 import { buildRegionTree, filterVillages, sortVillages, allHonors, allTagsByCategory } from '@/lib/encyclopedia.js'
 
 const route = useRoute()
 
+const villages = ref([])
+const loading = ref(true)
+const loadError = ref('')
+
+onMounted(async () => {
+  try {
+    villages.value = await fetchAllVillages()
+  } catch (e) {
+    loadError.value = e.message || '加载失败'
+  } finally {
+    loading.value = false
+  }
+})
+
 // —— 头条推荐：多卡跑马灯（取前 6 村） ——
-const highlights = villages.slice(0, 6)
+const highlights = computed(() => villages.value.slice(0, 6))
 const perView = 3
 const startIndex = ref(0)
-const maxStart = computed(() => Math.max(0, highlights.length - perView))
+const maxStart = computed(() => Math.max(0, highlights.value.length - perView))
 function goSlide(i) { startIndex.value = Math.min(Math.max(0, i), maxStart.value) }
 function nextSlide() { startIndex.value = startIndex.value >= maxStart.value ? 0 : startIndex.value + 1 }
 function prevSlide() { startIndex.value = startIndex.value <= 0 ? maxStart.value : startIndex.value - 1 }
@@ -251,12 +271,12 @@ const sortOptions = [
 const sortLabel = computed(() => sortOptions.find((o) => o.value === sortBy.value)?.label ?? '')
 
 // —— 行政树 ——
-const regionTree = buildRegionTree(villages)
-const provinceOptions = computed(() => Object.keys(regionTree))
-const cityOptions = computed(() => (province.value === '全部' ? [] : Object.keys(regionTree[province.value] || {})))
+const regionTree = computed(() => buildRegionTree(villages.value))
+const provinceOptions = computed(() => Object.keys(regionTree.value))
+const cityOptions = computed(() => (province.value === '全部' ? [] : Object.keys(regionTree.value[province.value] || {})))
 const districtOptions = computed(() => {
   if (province.value === '全部' || city.value === '全部') return []
-  return Object.keys((regionTree[province.value] || {})[city.value] || {})
+  return Object.keys((regionTree.value[province.value] || {})[city.value] || {})
 })
 function onProvinceChange() { city.value = '全部'; district.value = '全部' }
 function onCityChange() { district.value = '全部' }
@@ -266,10 +286,10 @@ const regionPath = computed(() => {
 })
 
 // —— 荣誉墙 ——
-const honorList = allHonors(villages)
+const honorList = computed(() => allHonors(villages.value))
 
 // —— 标签分类（六大类） ——
-const tagCategories = allTagsByCategory(villages)
+const tagCategories = computed(() => allTagsByCategory(villages.value))
 
 // 当前筛选参数（不含排序，供结果与计数复用）
 const filterArgs = computed(() => ({
@@ -278,17 +298,17 @@ const filterArgs = computed(() => ({
 }))
 
 // —— 结果 ——
-const visibleVillages = computed(() => sortVillages(filterVillages(villages, filterArgs.value), sortBy.value))
+const visibleVillages = computed(() => sortVillages(filterVillages(villages.value, filterArgs.value), sortBy.value))
 
 // 荣誉计数：除荣誉外其他条件生效后，各荣誉还剩多少村
 function honorCount(h) {
-  const base = filterVillages(villages, { ...filterArgs.value, honor: '全部' })
+  const base = filterVillages(villages.value, { ...filterArgs.value, honor: '全部' })
   return h === '全部' ? base.length : base.filter((v) => (v.honors || []).includes(h)).length
 }
 // 标签计数：除该标签外其他条件生效后，加上该标签还剩多少村
 function tagCount(t) {
   const others = selectedTags.value.filter((x) => x !== t)
-  return filterVillages(villages, { ...filterArgs.value, tags: [...others, t] }).length
+  return filterVillages(villages.value, { ...filterArgs.value, tags: [...others, t] }).length
 }
 
 // 面包屑：当前激活的可删除筛选项

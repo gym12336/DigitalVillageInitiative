@@ -163,7 +163,7 @@ import { ref, reactive, computed, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { retrieve } from './retrieval.js'
 import { generatePlan } from './planGen.js'
-import { retrievalSources } from './sources.js'
+import { getRetrievalSources } from './sources.js'
 
 const props = defineProps({
   dossier: { type: Object, required: true },
@@ -228,9 +228,10 @@ function clonePhase(ph) {
   }
 }
 
-function onSearch() {
+async function onSearch() {
   const idea = ideaInput.value.trim()
-  cards.value = retrieve(idea, retrievalSources, {
+  const sources = await getRetrievalSources()
+  cards.value = retrieve(idea, sources, {
     topic: props.dossier.plan?.topic,
     village: props.dossier.village,
   })

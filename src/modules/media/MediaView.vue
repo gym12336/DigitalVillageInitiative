@@ -30,21 +30,34 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
-import villages from '@/data/villages.json'
+import { fetchAllVillages } from '@/api/villages.js'
+
+const villages = ref([])
+const loading = ref(true)
+
+onMounted(async () => {
+  try {
+    villages.value = await fetchAllVillages()
+  } catch (e) {
+    console.error('加载村庄数据失败:', e)
+  } finally {
+    loading.value = false
+  }
+})
 
 const route = useRoute()
 const scopedVillage = computed(() =>
-  route.query.village ? villages.find((v) => v.id === route.query.village) || null : null
+  route.query.village ? villages.value.find((v) => v.id === route.query.village) || null : null
 )
-const shownVillages = computed(() => (scopedVillage.value ? [scopedVillage.value] : villages))
+const shownVillages = computed(() => (scopedVillage.value ? [scopedVillage.value] : villages.value))
 
 function countPhotos(v) {
-  return (v.extra?.media || []).filter((m) => (typeof m === 'object' ? m.type === 'photo' : false)).length
+  return (v.gallery || []).length
 }
 function countVideos(v) {
-  return (v.extra?.media || []).filter((m) => (typeof m === 'object' ? m.type === 'video' : false)).length
+  return 0
 }
 </script>
 

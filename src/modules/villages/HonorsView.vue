@@ -19,7 +19,7 @@
       </div>
 
       <!-- 榜单 -->
-      <ol class="rank-list">
+      <ol v-if="!loading && !error" class="rank-list">
         <li v-for="(v, i) in ranked" :key="v.id" class="rank-row">
           <span class="rank-no" :class="{ top: i < 3 }">{{ i + 1 }}</span>
           <div class="rank-main">
@@ -35,13 +35,29 @@
           </div>
         </li>
       </ol>
+      <p v-else-if="error" class="empty">{{ error }}，请刷新重试。</p>
+      <p v-else class="empty">加载中…</p>
     </div>
   </section>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-import villages from '@/data/encyclopedia-villages.json'
+import { ref, computed, onMounted } from 'vue'
+import { fetchAllVillages } from '@/api/villages.js'
+
+const villages = ref([])
+const loading = ref(true)
+const error = ref('')
+
+onMounted(async () => {
+  try {
+    villages.value = await fetchAllVillages()
+  } catch (e) {
+    error.value = e.message || '加载失败'
+  } finally {
+    loading.value = false
+  }
+})
 
 const dimensions = [
   { value: 'views', label: '最热浏览', unit: ' 次' },
@@ -55,9 +71,9 @@ function metricValue(v) {
   return (v.stats && v.stats[dimension.value]) || 0
 }
 const ranked = computed(() =>
-  [...villages].sort((a, b) => metricValue(b) - metricValue(a))
+  [...villages.value].sort((a, b) => metricValue(b) - metricValue(a))
 )
-const maxValue = computed(() => Math.max(1, ...villages.map(metricValue)))
+const maxValue = computed(() => Math.max(1, ...villages.value.map(metricValue)))
 function barWidth(v) {
   return `${Math.round((metricValue(v) / maxValue.value) * 100)}%`
 }

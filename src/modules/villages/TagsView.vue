@@ -8,7 +8,7 @@
       </header>
 
       <!-- 标签云：按类别分区 -->
-      <div class="cloud">
+      <div v-if="!loading && !error" class="cloud">
         <div v-for="cat in categories" :key="cat.name" class="cat-block">
           <h3 class="cat-title">{{ cat.name }}</h3>
           <div class="cat-tags">
@@ -24,7 +24,7 @@
       </div>
 
       <!-- 筛选结果 -->
-      <div class="result">
+      <div v-if="!loading && !error" class="result">
         <p class="result-count">
           <template v-if="activeTag">带「{{ activeTag }}」标签的村庄：{{ matched.length }} 个</template>
           <template v-else>点击上方标签查看对应村庄</template>
@@ -33,17 +33,32 @@
           <VillageCard v-for="v in matched" :key="v.id" :village="v" />
         </div>
       </div>
+      <p v-else-if="error" class="empty">{{ error }}，请刷新重试。</p>
+      <p v-else class="empty">加载中…</p>
     </div>
   </section>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import VillageCard from '@/components/VillageCard.vue'
-import villages from '@/data/encyclopedia-villages.json'
+import { fetchAllVillages } from '@/api/villages.js'
 
 const route = useRoute()
+const villages = ref([])
+const loading = ref(true)
+const error = ref('')
+
+onMounted(async () => {
+  try {
+    villages.value = await fetchAllVillages()
+  } catch (e) {
+    error.value = e.message || '加载失败'
+  } finally {
+    loading.value = false
+  }
+})
 
 // 收集六大类下的去重标签
 const categories = computed(() => {
