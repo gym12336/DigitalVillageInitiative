@@ -188,16 +188,16 @@ export function retrieve(idea, sources = {}, { perSource = 4, topic = '', villag
 }
 
 /**
- * 联网搜索目标村信息，结果格式化为统一检索卡片。
- * 失败吞错返回空数组——联网搜索是锦上添花，不阻塞主流程。
+ * 联网搜索目标村信息，结果格式化为统一检索卡片 + AI 概况。
+ * 失败吞错返回空——联网搜索是锦上添花，不阻塞主流程。
  * @param {string} village - 目标村名
  * @param {string} idea - 实践 idea
- * @returns {Promise<Array<{ source: 'web', id: string, title: string, sub: string, path: string, dimension: string, relevance: string }>>}
+ * @returns {Promise<{ cards: Array, overview: { answer: string, references: Array } | null }>}
  */
 export async function searchWeb(village, idea) {
   try {
-    const results = await apiSearchWeb({ village, idea })
-    return results.map((r) => ({
+    const data = await apiSearchWeb({ village, idea })
+    const cards = (data.results || []).map((r) => ({
       source: 'web',
       id: r.url || '',
       title: r.title || '',
@@ -206,7 +206,9 @@ export async function searchWeb(village, idea) {
       dimension: r.dimension || '',
       relevance: r.relevance || 'low',
     }))
+    const overview = data.overview || null
+    return { cards, overview }
   } catch {
-    return []
+    return { cards: [], overview: null }
   }
 }

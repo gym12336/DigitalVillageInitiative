@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-// mock api.js
 vi.mock('@/modules/practice/mine/api.js', () => ({
   apiSearchWeb: vi.fn(),
 }))
@@ -13,37 +12,38 @@ beforeEach(() => {
 })
 
 describe('retrieval.searchWeb', () => {
-  it('api 返回结果 → 格式化为检索卡片（source: web）', async () => {
-    apiSearchWeb.mockResolvedValue([
-      { title: '陈家铺村概况', url: 'https://a.com/1', snippet: '位于浙江...', dimension: 'overview', relevance: 'high' },
-      { title: '竹编产业', url: 'https://b.com/1', snippet: '竹编是...', dimension: 'resources', relevance: 'medium' },
-    ])
-
-    const cards = await searchWeb('陈家铺村', '帮村民卖竹编')
-
-    expect(cards).toHaveLength(2)
-    expect(cards[0]).toEqual({
-      source: 'web',
-      id: 'https://a.com/1',
-      title: '陈家铺村概况',
-      sub: '位于浙江...',
-      path: 'https://a.com/1',
-      dimension: 'overview',
-      relevance: 'high',
+  it('api 返回 results + overview → 格式化为 { cards, overview }', async () => {
+    apiSearchWeb.mockResolvedValue({
+      results: [
+        { title: '陈家铺村概况', url: 'https://a.com/1', snippet: '位于浙江...', dimension: 'overview', relevance: 'high' },
+      ],
+      overview: {
+        answer: '陈家铺村位于浙江省松阳县……',
+        references: [{ title: '源1', url: 'https://r.com', snippet: '...' }],
+      },
     })
-    expect(cards[1].source).toBe('web')
-    expect(cards[1].id).toBe('https://b.com/1')
+
+    const { cards, overview } = await searchWeb('陈家铺村', '帮村民卖竹编')
+
+    expect(cards).toHaveLength(1)
+    expect(cards[0].source).toBe('web')
+    expect(cards[0].title).toBe('陈家铺村概况')
+    expect(overview).not.toBeNull()
+    expect(overview.answer).toContain('陈家铺村位于')
+    expect(overview.references).toHaveLength(1)
   })
 
-  it('api 返回空数组 → 返回空数组', async () => {
-    apiSearchWeb.mockResolvedValue([])
-    const cards = await searchWeb('陈家铺村', '')
+  it('api 返回空 results + overview=null → { cards: [], overview: null }', async () => {
+    apiSearchWeb.mockResolvedValue({ results: [], overview: null })
+    const { cards, overview } = await searchWeb('陈家铺村', '')
     expect(cards).toEqual([])
+    expect(overview).toBeNull()
   })
 
-  it('api 抛错 → 返回空数组（吞错）', async () => {
+  it('api 抛错 → { cards: [], overview: null }', async () => {
     apiSearchWeb.mockRejectedValue(new Error('网络错误'))
-    const cards = await searchWeb('陈家铺村', '')
+    const { cards, overview } = await searchWeb('陈家铺村', '')
     expect(cards).toEqual([])
+    expect(overview).toBeNull()
   })
 })

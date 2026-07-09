@@ -177,7 +177,7 @@ export async function apiGeneratePlan({ idea, refs, village, topic, startDate, e
 // —— 搜索域 ——
 
 /**
- * 联网搜索目标村信息。失败返回空数组。
+ * 联网搜索目标村信息。失败返回空。
  */
 export async function apiSearchWeb({ village, idea } = {}) {
   try {
@@ -185,8 +185,8 @@ export async function apiSearchWeb({ village, idea } = {}) {
       method: 'POST',
       body: { village, idea },
     })
-    return (data && data.results) || []
+    return data || { results: [], overview: null }
   } catch {
-    return []
+    return { results: [], overview: null }
   }
 }
