@@ -53,3 +53,26 @@ export async function extractUploadedDoc(dossierId, file) {
   fd.append('file', file)
   return postForm('/api/practice/media/extract-text', fd)
 }
+
+/**
+ * 上传文本档：一趟往返存盘 + 抽文本。文件既落库（进材料清单，media 带可查看 url），
+ * 又返回 text 供后续 AI 提取。不可解析类型后端返回 422（不存盘）。
+ * @returns {Promise<{media:{url,name,size,ext,kind}, text, truncated}>}
+ */
+export async function extractAndStoreDoc(dossierId, file) {
+  const fd = new FormData()
+  fd.append('dossierId', dossierId)
+  fd.append('file', file)
+  return postForm('/api/practice/media/extract-and-store', fd)
+}
+
+/**
+ * 让 AI 描述一张图片，返回一句图注。恒 200：模型不支持/无 key/失败时 available:false。
+ * @returns {Promise<{available:boolean, description?:string, reason?:string}>}
+ */
+export async function describeImage(dossierId, file) {
+  const fd = new FormData()
+  fd.append('dossierId', dossierId)
+  fd.append('file', file)
+  return postForm('/api/practice/media/describe-image', fd)
+}

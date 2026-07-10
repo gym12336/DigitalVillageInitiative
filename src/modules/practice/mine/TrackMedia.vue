@@ -22,11 +22,19 @@
         </select>
         <input v-model="m.name" class="cell name" placeholder="材料名称" />
         <input v-model="m.note" class="cell" placeholder="备注（可选）" />
-        <button v-if="m.url || m.text" class="mat-link" @click="preview = m">查看 ↗</button>
-        <label v-else class="btn tiny row-file" :class="{ disabled: rowUploading === i }">
-          {{ rowUploading === i ? '上传中…' : '📎 选文件' }}
-          <input type="file" class="file-input" :disabled="rowUploading === i" @change="onRowFile(i, $event)" />
-        </label>
+        <div class="mat-actions">
+          <button
+            v-if="m.url && m.kind === 'image'"
+            class="mat-link"
+            :disabled="describing === i"
+            @click="onDescribe(i)"
+          >{{ describing === i ? 'AI 识图中…' : '🤖 AI 描述此图' }}</button>
+          <button v-if="m.url || m.text" class="mat-link" @click="preview = m">查看 ↗</button>
+          <label v-else class="btn tiny row-file" :class="{ disabled: rowUploading === i }">
+            {{ rowUploading === i ? '上传中…' : '📎 选文件' }}
+            <input type="file" class="file-input" :disabled="rowUploading === i" @change="onRowFile(i, $event)" />
+          </label>
+        </div>
         <button class="chip-x" aria-label="删除" @click="remove(i)">×</button>
       </div>
       <button class="btn tiny ghost" @click="addManual">+ 手动登记材料</button>
@@ -38,7 +46,7 @@
 
 <script setup>
 import { ref } from 'vue'
-import { uploadMedia, extractAndStoreDoc } from './mediaApi.js'
+import { uploadMedia, extractAndStoreDoc, describeImage } from './mediaApi.js'
 import MediaPreview from './MediaPreview.vue'
 
 // 可解析文本档扩展名：这些走 extract-and-store，顺带拿到解析全文供站内预览。
@@ -57,6 +65,7 @@ const emit = defineEmits(['change'])
 
 const materialTypes = ['照片', '视频', '音频', '访谈记录', '调研笔记', '文档', '表格', '其他']
 const preview = ref(null)
+const describing = ref(-1) // 正在 AI 识图的行下标，-1 表示无
 const uploading = ref(false)
 const uploadMsg = ref('')
 const uploadErr = ref(false)
@@ -144,6 +153,36 @@ async function onRowFile(i, e) {
   }
 }
 
+// AI 描述图片：把图注写进该行备注（空时填入，否则追加）。诚实降级：不支持时提示。
+async function onDescribe(i) {
+  const row = props.materials[i]
+  if (!row || !row.url || describing.value !== -1) return
+  // 从 url 取回文件不便，改为直接用 fetch 拉图再转 File 上传。
+  describing.value = i
+  uploadMsg.value = ''
+  uploadErr.value = false
+  try {
+    const resp = await fetch(row.url)
+    if (!resp.ok) throw new Error('无法读取图片')
+    const blob = await resp.blob()
+    const file = new File([blob], row.name || 'image', { type: blob.type })
+    const r = await describeImage(props.dossierId, file)
+    if (r.available && r.description) {
+      row.note = row.note ? `${row.note}｜${r.description}` : r.description
+      uploadMsg.value = 'AI 已生成图注 ✓'
+      emit('change')
+    } else {
+      uploadErr.value = true
+      uploadMsg.value = r.reason || '暂无法识别该图'
+    }
+  } catch (err) {
+    uploadErr.value = true
+    uploadMsg.value = err.message || 'AI 识图失败'
+  } finally {
+    describing.value = -1
+  }
+}
+
 function addManual() {
   props.materials.push({ type: '照片', name: '', note: '' })
   emit('change')
@@ -170,8 +209,10 @@ function remove(i) {
 .mat-row { display: grid; grid-template-columns: 32px 100px 1.4fr 1.4fr auto auto; gap: .5rem; align-items: center; }
 .mat-thumb { width: 32px; height: 32px; object-fit: cover; border-radius: 6px; }
 .mat-ic { font-size: 1.1rem; text-align: center; }
+.mat-actions { display: flex; align-items: center; gap: .7rem; white-space: nowrap; }
 .mat-link { font-size: .8rem; color: var(--color-primary); text-decoration: none; white-space: nowrap; border: none; background: transparent; cursor: pointer; padding: 0; }
 .mat-link:hover { text-decoration: underline; }
+.mat-link:disabled { color: var(--color-text-light); cursor: default; text-decoration: none; }
 
 .cell {
   padding: .5rem .7rem; font-size: .88rem; color: var(--color-text);

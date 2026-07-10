@@ -107,3 +107,68 @@ async function safeReadText(res) {
     return ''
   }
 }
+
+/**
+ * 多模态：给一张图 + 提示词，返回纯文本描述。OpenAI 兼容 content 数组格式。
+ * 注意：DeepSeek 官方 deepseek-chat 不支持图片输入——调用会 HTTP 错误，
+ * 上层应捕获并诚实降级。接口就位，换支持视觉的 model/endpoint（如百炼 qwen-vl）即可启用。
+ * opts: { system, prompt, imageDataUrl, apiKey, model, endpoint, timeoutMs, maxTokens, fetch }
+ * @returns {Promise<string>} 描述文本
+ */
+export async function chatVision({
+  system,
+  prompt,
+  imageDataUrl,
+  apiKey = process.env.DEEPSEEK_API_KEY,
+  model = DEFAULT_MODEL,
+  endpoint = DEFAULT_ENDPOINT,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+  maxTokens = 512,
+  fetch: fetchImpl = globalThis.fetch,
+} = {}) {
+  if (!apiKey) throw new NoKeyError()
+  if (!fetchImpl) throw new DeepseekError('fetch 不可用')
+  if (!imageDataUrl) throw new DeepseekError('缺少图片数据')
+
+  const body = {
+    model,
+    messages: [
+      { role: 'system', content: system || '' },
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: prompt || '请描述这张图片的内容。' },
+          { type: 'image_url', image_url: { url: imageDataUrl } },
+        ],
+      },
+    ],
+    max_tokens: maxTokens,
+    temperature: 0.4,
+  }
+
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), timeoutMs)
+  try {
+    const res = await fetchImpl(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    })
+    if (!res.ok) {
+      const text = await safeReadText(res)
+      throw new DeepseekError(`DeepSeek HTTP ${res.status}: ${text.slice(0, 200)}`)
+    }
+    const data = await res.json()
+    const content = data?.choices?.[0]?.message?.content
+    if (!content || typeof content !== 'string') {
+      throw new DeepseekError('DeepSeek 返回缺少 message.content')
+    }
+    return content.trim()
+  } catch (e) {
+    if (e instanceof NoKeyError || e instanceof DeepseekError) throw e
+    throw new DeepseekError(e?.message || 'DeepSeek 视觉调用失败', e)
+  } finally {
+    clearTimeout(timer)
+  }
+}

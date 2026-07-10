@@ -97,6 +97,79 @@ describe('POST /api/practice/media/extract-text', () => {
   })
 })
 
+describe('POST /api/practice/media/extract-and-store', () => {
+  it('上传可解析文本档 → 存盘并返回 media + text', async () => {
+    const token = await register('alice')
+    const { dossierId } = await createTeamAndDossier(token)
+    const res = await request(app).post('/api/practice/media/extract-and-store').set(auth(token))
+      .field('dossierId', dossierId)
+      .attach('file', Buffer.from('第一行\n第二行'), 'notes.txt')
+    expect(res.status).toBe(201)
+    expect(res.body.media.kind).toBe('doc')
+    expect(res.body.media.url).toMatch(new RegExp(`/uploads/practice/${dossierId}/`))
+    expect(res.body.text).toContain('第一行')
+  })
+
+  it('图片等不可解析类型 → 422（不存盘）', async () => {
+    const token = await register('alice')
+    const { dossierId } = await createTeamAndDossier(token)
+    const res = await request(app).post('/api/practice/media/extract-and-store').set(auth(token))
+      .field('dossierId', dossierId)
+      .attach('file', Buffer.from('fakejpg'), 'photo.jpg')
+    expect(res.status).toBe(422)
+  })
+
+  it('非该档所属队成员 → 403', async () => {
+    const alice = await register('alice')
+    const { dossierId } = await createTeamAndDossier(alice)
+    const bob = await register('bob')
+    const res = await request(app).post('/api/practice/media/extract-and-store').set(auth(bob))
+      .field('dossierId', dossierId)
+      .attach('file', Buffer.from('x'), 'note.txt')
+    expect(res.status).toBe(403)
+  })
+})
+
+describe('POST /api/practice/media/describe-image', () => {
+  it('未登录 → 401', async () => {
+    const res = await request(app).post('/api/practice/media/describe-image')
+      .field('dossierId', 'd1')
+      .attach('file', Buffer.from('img'), 'photo.jpg')
+    expect(res.status).toBe(401)
+  })
+
+  it('非图片文件 → 422', async () => {
+    const token = await register('alice')
+    const { dossierId } = await createTeamAndDossier(token)
+    const res = await request(app).post('/api/practice/media/describe-image').set(auth(token))
+      .field('dossierId', dossierId)
+      .attach('file', Buffer.from('文本内容'), 'notes.txt')
+    expect(res.status).toBe(422)
+  })
+
+  it('图片但无 LLM 视觉支持 → 200 且 available:false（不抛）', async () => {
+    const token = await register('alice')
+    const { dossierId } = await createTeamAndDossier(token)
+    const res = await request(app).post('/api/practice/media/describe-image').set(auth(token))
+      .field('dossierId', dossierId)
+      .attach('file', Buffer.from('fakepng'), 'photo.png')
+    expect(res.status).toBe(200)
+    expect(res.body).toHaveProperty('available')
+    expect(res.body.available).toBe(false)
+    expect(res.body).toHaveProperty('reason')
+  })
+
+  it('非该档所属队成员 → 403', async () => {
+    const alice = await register('alice')
+    const { dossierId } = await createTeamAndDossier(alice)
+    const bob = await register('bob')
+    const res = await request(app).post('/api/practice/media/describe-image').set(auth(bob))
+      .field('dossierId', dossierId)
+      .attach('file', Buffer.from('x'), 'photo.jpg')
+    expect(res.status).toBe(403)
+  })
+})
+
 describe('POST /api/practice/media/extract', () => {
   it('空文本 → 400', async () => {
     const token = await register('alice')
