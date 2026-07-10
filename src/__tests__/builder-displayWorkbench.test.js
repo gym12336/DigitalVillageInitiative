@@ -1,7 +1,21 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
-import DisplayWorkbench from '../modules/builder/display/DisplayWorkbench.vue'
 import { resetState } from '../modules/builder/editor/stageEditor.js'
+
+// Mock vue-router — DisplayWorkbench uses useRoute() in setup
+vi.mock('vue-router', () => ({
+  useRoute: () => ({
+    params: { dossierId: '' },
+    name: 'builder-display',
+    path: '/builder/display',
+  }),
+  useRouter: () => ({
+    push: vi.fn(),
+    replace: vi.fn(),
+  }),
+}))
+
+import DisplayWorkbench from '../modules/builder/display/DisplayWorkbench.vue'
 
 beforeEach(() => {
   resetState()
@@ -16,6 +30,7 @@ describe('DisplayWorkbench', () => {
           EditorCanvas: { template: '<div class="mock-canvas"></div>' },
           PropertyPanel: { template: '<div class="mock-props"></div>' },
           DisplayComponentLibrary: { template: '<div class="mock-lib"></div>' },
+          DossierPicker: { template: '<div class="mock-picker"></div>' },
         },
       },
     })
@@ -29,6 +44,7 @@ describe('DisplayWorkbench', () => {
           EditorCanvas: { template: '<div class="mock-canvas"></div>' },
           PropertyPanel: { template: '<div class="mock-props"></div>' },
           DisplayComponentLibrary: { template: '<div class="mock-lib"></div>' },
+          DossierPicker: { template: '<div class="mock-picker"></div>' },
         },
       },
     })
