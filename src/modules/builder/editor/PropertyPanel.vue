@@ -143,6 +143,7 @@
             <option value="line">折线图</option>
             <option value="dumbbell">哑铃图</option>
             <option value="trend-badge">涨跌徽标</option>
+            <option value="radar">雷达图</option>
           </select>
         </div>
         <div class="pp-field">
@@ -173,6 +174,54 @@
           <button class="pp-sr-del" @click="removeSensor(comp, i)">×</button>
         </div>
       </div>
+
+      <!-- Timeline props -->
+      <div v-if="comp.type === 'timeline'" class="pp-section">
+        <div class="pp-field">
+          <label>标题</label>
+          <input type="text" v-model="comp.props.title" />
+        </div>
+        <h4 class="pp-subtitle">
+          事件列表
+          <button class="pp-add" @click="addTimelineEvent(comp)">+ 添加事件</button>
+        </h4>
+        <div v-for="(ev, i) in comp.props.events" :key="i" class="pp-timeline-row">
+          <div class="pp-timeline-fields">
+            <input type="text" v-model="ev.date" placeholder="日期" class="pp-tl-date" />
+            <input type="text" v-model="ev.title" placeholder="标题" class="pp-tl-title" />
+          </div>
+          <textarea v-model="ev.description" placeholder="描述" rows="2" class="pp-tl-desc"></textarea>
+          <button class="pp-sr-del" @click="removeTimelineEvent(comp, i)">×</button>
+        </div>
+      </div>
+
+      <!-- Datatable props -->
+      <div v-if="comp.type === 'datatable'" class="pp-section">
+        <div class="pp-field">
+          <label>标题</label>
+          <input type="text" v-model="comp.props.title" />
+        </div>
+        <h4 class="pp-subtitle">
+          列定义
+          <button class="pp-add" @click="addDatatableColumn(comp)">+ 添加列</button>
+        </h4>
+        <div class="pp-dt-columns">
+          <div v-for="(col, ci) in comp.props.columns" :key="'col'+ci" class="pp-dt-col-item">
+            <input type="text" v-model="comp.props.columns[ci]" placeholder="列名" class="pp-dt-col-input" />
+            <button v-if="comp.props.columns.length > 1" class="pp-sr-del" @click="removeDatatableColumn(comp, ci)">×</button>
+          </div>
+        </div>
+        <h4 class="pp-subtitle">
+          数据行
+          <button class="pp-add" @click="addDatatableRow(comp)">+ 添加行</button>
+        </h4>
+        <div v-for="(row, ri) in comp.props.rows" :key="'row'+ri" class="pp-dt-row">
+          <div class="pp-dt-row-inputs">
+            <input v-for="(col, ci) in comp.props.columns" :key="ci" type="text" v-model="comp.props.rows[ri][ci]" :placeholder="col" class="pp-dt-cell" />
+          </div>
+          <button v-if="comp.props.rows.length > 1" class="pp-sr-del" @click="removeDatatableRow(comp, ri)">×</button>
+        </div>
+      </div>
     </template>
   </div>
 </template>
@@ -184,7 +233,7 @@ import { state, getSelected, deleteComponent } from './stageEditor.js'
 const comp = computed(() => getSelected())
 
 function typeLabel(type) {
-  const labels = { text: '📝 文本', image: '🖼 图片', chart: '📊 图表', 'agri-sensor': '🌡 传感器' }
+  const labels = { text: '📝 文本', image: '🖼 图片', chart: '📊 图表', 'agri-sensor': '🌡 传感器', 'timeline': '⏳ 时间轴', 'datatable': '📋 数据表' }
   return labels[type] || type
 }
 
@@ -194,6 +243,34 @@ function addSensor(comp) {
 
 function removeSensor(comp, index) {
   comp.props.sensors.splice(index, 1)
+}
+
+// Timeline helpers
+function addTimelineEvent(comp) {
+  comp.props.events.push({ date: '', title: '', description: '' })
+}
+function removeTimelineEvent(comp, i) {
+  if (comp.props.events.length > 1) comp.props.events.splice(i, 1)
+}
+
+// Datatable helpers
+function addDatatableColumn(comp) {
+  const newCol = '新列'
+  comp.props.columns.push(newCol)
+  comp.props.rows.forEach(row => row.push(''))
+}
+function removeDatatableColumn(comp, ci) {
+  if (comp.props.columns.length > 1) {
+    comp.props.columns.splice(ci, 1)
+    comp.props.rows.forEach(row => row.splice(ci, 1))
+  }
+}
+function addDatatableRow(comp) {
+  const newRow = new Array(comp.props.columns.length).fill('')
+  comp.props.rows.push(newRow)
+}
+function removeDatatableRow(comp, ri) {
+  if (comp.props.rows.length > 1) comp.props.rows.splice(ri, 1)
 }
 </script>
 
@@ -308,4 +385,32 @@ function removeSensor(comp, index) {
   transition: all var(--transition-fast);
 }
 .pp-sr-del:hover { color: #c0392b; }
+
+/* Timeline editor rows */
+.pp-timeline-row {
+  display: flex; flex-direction: column; gap: 4px;
+  padding: 8px; margin-bottom: 6px;
+  border: 1px solid var(--color-border-light);
+  border-radius: 10px;
+  background: rgba(44,125,160,0.02);
+  position: relative;
+}
+.pp-timeline-fields { display: flex; gap: 6px; }
+.pp-tl-date { flex: 0 0 90px; }
+.pp-tl-title { flex: 1; }
+.pp-tl-desc {
+  font-size: 0.78rem; padding: 4px 8px;
+  border: 1px solid var(--color-border-light);
+  border-radius: 6px; outline: none; resize: vertical;
+  background: var(--color-bg); color: var(--color-text);
+  font-family: inherit;
+}
+
+/* Datatable editor */
+.pp-dt-columns { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 10px; }
+.pp-dt-col-item { display: flex; align-items: center; gap: 2px; }
+.pp-dt-col-input { width: 80px; }
+.pp-dt-row { display: flex; align-items: flex-start; gap: 4px; margin-bottom: 4px; }
+.pp-dt-row-inputs { display: flex; gap: 4px; flex: 1; overflow-x: auto; }
+.pp-dt-cell { width: 80px; flex-shrink: 0; }
 </style>
