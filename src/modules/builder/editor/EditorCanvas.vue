@@ -16,6 +16,8 @@
         <button class="tb-btn" @click="redo" :disabled="state.historyIndex >= state.history.length - 1" title="重做">↪</button>
       </div>
       <div class="ec-tb-right">
+        <button class="tb-btn" @click="onSaveAsBigComponent" :disabled="state.selectedId === null" title="将选中的组件保存为大组件">📦 保存为大组件</button>
+        <span class="tb-sep"></span>
         <select class="tb-select" :value="state.zoom" @change="onZoomChange">
           <option v-for="z in ZOOM_OPTIONS" :key="z" :value="z">{{ Math.round(z * 100) }}%</option>
         </select>
@@ -55,13 +57,6 @@
       <div v-if="boxSelect.active" class="ec-box-select" :style="boxSelectStyle"></div>
     </div>
 
-    <!-- Status Bar -->
-    <div class="ec-statusbar">
-      <span>{{ state.pageWidth }} × {{ state.pageHeight }}</span>
-      <span v-if="state.selectedId">选中: #{{ state.selectedId }}</span>
-      <span>{{ state.components.length }} 个组件</span>
-    </div>
-
     <!-- Context menu -->
     <div v-if="ctxMenu.show" class="ec-ctxmenu" :style="{ left: ctxMenu.x + 'px', top: ctxMenu.y + 'px' }" @click.stop>
       <button @click="ctxDelete">删除</button>
@@ -78,12 +73,20 @@ import { useRouter } from 'vue-router'
 import {
   state, addComponentAt, selectComponent,
   selectByRect, deleteComponent, bringToFront, cloneComponent,
-  copySelected, pasteClipboard, undo, redo, setZoom, pushHistory, save, getSelected,
+  copySelected, pasteClipboard, undo, redo, setZoom, pushHistory, save, getSelected, load,
 } from './stageEditor.js'
 import { renderChartSvg } from './chartRenderer.js'
 import { renderSensorMarkup } from './sensorRenderer.js'
+import { getBigComponent, saveBigComponent } from '../display/bigComponentStore.js'
 
 const router = useRouter()
+
+const props = defineProps({
+  saveKey: {
+    type: String,
+    default: 'builder-save',
+  },
+})
 const ZOOM_OPTIONS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2]
 
 // Refs
@@ -161,7 +164,18 @@ function addToCanvas(type) {
   addComponentAt(type, cx + Math.random() * 200, cy + Math.random() * 150)
 }
 
-function onSave() { save() }
+function onSave() { save(props.saveKey) }
+function onSaveAsBigComponent() {
+  if (state.selectedId === null) return
+  const selected = state.components.filter(c => c.id === state.selectedId)
+  if (!selected.length) return
+
+  const name = window.prompt('请输入大组件名称：', '我的大组件')
+  if (!name || !name.trim()) return
+
+  saveBigComponent(name.trim(), selected)
+  alert('✅ 已收录到自定义大组件库')
+}
 function onPreview() {
   import('./buildPreview.js').then(m => m.buildAndOpen(state))
 }
@@ -183,7 +197,26 @@ function onDrop(e) {
   const rect = viewportRef.value.getBoundingClientRect()
   const x = (e.clientX - rect.left + viewportRef.value.scrollLeft) / state.zoom
   const y = (e.clientY - rect.top + viewportRef.value.scrollTop) / state.zoom
-  addComponentAt(info.type, Math.round(x), Math.round(y))
+
+  if (info.type === 'big-component' && info.bigComponentId) {
+    const bc = getBigComponent(info.bigComponentId)
+    if (!bc) return
+    const baseX = Math.round(x)
+    const baseY = Math.round(y)
+    bc.children.forEach(child => {
+      const comp = JSON.parse(JSON.stringify(child))
+      comp.id = state.nextId++
+      comp.x = baseX + (comp.x || 0)
+      comp.y = baseY + (comp.y || 0)
+      state.components.push(comp)
+    })
+    if (bc.children.length > 0) {
+      state.selectedId = state.components[state.components.length - 1].id
+    }
+    pushHistory()
+  } else {
+    addComponentAt(info.type, Math.round(x), Math.round(y))
+  }
 }
 
 // ---- Stage mouse events ----
@@ -364,6 +397,7 @@ onMounted(() => {
     viewportRef.value.addEventListener('contextmenu', onStageContextMenu)
   }
   document.addEventListener('click', onGlobalClick)
+  load(props.saveKey)
 })
 
 onUnmounted(() => {
@@ -451,6 +485,7 @@ onUnmounted(() => {
   flex: 1; overflow: auto; position: relative; outline: none;
   margin: 12px 0;
   border-radius: 20px;
+  padding: 24px;
   background:
     linear-gradient(90deg, var(--editor-canvas-grid-line) 1px, transparent 1px),
     linear-gradient(var(--editor-canvas-grid-line) 1px, transparent 1px),
@@ -459,7 +494,7 @@ onUnmounted(() => {
 }
 
 /* ============ Stage ============ */
-.ec-stage-wrap { margin: 48px auto; }
+.ec-stage-wrap { margin: 0 auto; }
 .ec-stage {
   transform-origin: 0 0;
   position: relative;
@@ -537,17 +572,4 @@ onUnmounted(() => {
   color: var(--color-text);
 }
 
-/* ============ 底部状态栏 ============ */
-.ec-statusbar {
-  display: flex; align-items: center; gap: 1.2rem;
-  padding: 0.4rem 1rem;
-  background: var(--editor-topbar-bg);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-radius: 14px;
-  margin: 0 0 4px 0;
-  font-size: 0.72rem;
-  color: rgba(255,255,255,0.55);
-  flex-shrink: 0;
-}
 </style>
