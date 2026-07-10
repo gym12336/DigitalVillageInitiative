@@ -18,13 +18,13 @@
           <button class="btn primary">进入编辑</button>
         </article>
 
-        <article class="hub-card disabled">
+        <article class="hub-card" tabindex="0" role="button" @click="goDisplay" @keydown.enter="goDisplay">
           <div class="hc-icon">🖥️</div>
           <div class="hc-body">
             <h2>大屏展示工作台</h2>
-            <p>排版所有组件，自由调整布局与样式，一键导出纯静态展示网页。</p>
+            <p>排版所有组件（含自定义大组件），自由调整布局与样式，一键导出纯静态展示网页。</p>
           </div>
-          <span class="hc-badge">即将开放</span>
+          <button class="btn primary">进入展示</button>
         </article>
       </div>
     </div>
@@ -37,6 +37,9 @@ import { useRouter } from 'vue-router'
 const router = useRouter()
 function goEditor() {
   router.push('/builder/editor')
+}
+function goDisplay() {
+  router.push('/builder/display')
 }
 </script>
 

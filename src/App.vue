@@ -12,5 +12,5 @@ import SiteFooter from '@/components/SiteFooter.vue'
 import '@/assets/theme/theme.css'
 
 const route = useRoute()
-const isEditorRoute = computed(() => route.path.startsWith('/builder/editor'))
+const isEditorRoute = computed(() => route.path.startsWith('/builder/editor') || route.path.startsWith('/builder/display'))
 </script>
