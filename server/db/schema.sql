@@ -45,3 +45,21 @@ CREATE TABLE IF NOT EXISTS dossiers (
 
 -- 列表页按本队 + updated_at 倒序取，复合索引更顺。
 CREATE INDEX IF NOT EXISTS idx_dossiers_team_updated ON dossiers(team_id, updated_at);
+
+-- 搭建台成果文档（大组件编辑台画布 / 大屏展示工作台画布 / 大组件模板）。
+-- type: 'editor' | 'display' | 'big-component'；editor 与 display 每 dossier 各最多一条（upsert）。
+CREATE TABLE IF NOT EXISTS builder_documents (
+  id          TEXT PRIMARY KEY,
+  dossier_id  TEXT NOT NULL,
+  created_by  INTEGER NOT NULL,
+  type        TEXT NOT NULL CHECK (type IN ('editor', 'display', 'big-component')),
+  name        TEXT,
+  payload     TEXT NOT NULL,
+  created_at  TEXT NOT NULL,
+  updated_at  TEXT NOT NULL,
+  FOREIGN KEY (dossier_id) REFERENCES dossiers(id) ON DELETE CASCADE,
+  FOREIGN KEY (created_by) REFERENCES users(id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_builder_documents_dossier_type
+  ON builder_documents(dossier_id, type);
