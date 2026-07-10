@@ -384,17 +384,39 @@ export function renderTrendBadge(data, w, h, { title = '' } = {}) {
 
 export function renderChartSvg(component) {
   const { props, width, height } = component
-  const data = parseCSV(props.csvText)
-  if (!data.length) {
-    return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
-      <rect width="${width}" height="${height}" fill="#f8fbfd"/>
-      <text x="${width / 2}" y="${height / 2}" text-anchor="middle" font-size="14" fill="#687b8b">无数据</text>
-    </svg>`
-  }
+
+  const emptySvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+    <rect width="${width}" height="${height}" fill="#f8fbfd"/>
+    <text x="${width / 2}" y="${height / 2}" text-anchor="middle" font-size="14" fill="#687b8b">无数据</text>
+  </svg>`
+
+  const opts = { title: props.title }
+
   switch (props.chartType) {
-    case 'pie':  return renderPieChart(data, width, height, { title: props.title })
-    case 'line': return renderLineChart(data, width, height, { title: props.title })
+    case 'pie': {
+      const data = parseCSV(props.csvText)
+      return data.length ? renderPieChart(data, width, height, opts) : emptySvg
+    }
+    case 'line': {
+      const data = parseCSV(props.csvText)
+      return data.length ? renderLineChart(data, width, height, opts) : emptySvg
+    }
+    case 'stacked-bar': {
+      const data = parseCSVMultiSeries(props.csvText)
+      return data.labels.length ? renderStackedBarChart(data, width, height, opts) : emptySvg
+    }
+    case 'dumbbell': {
+      const data = parseCSVDumbbell(props.csvText)
+      return data.length ? renderDumbbellChart(data, width, height, opts) : emptySvg
+    }
+    case 'trend-badge': {
+      const data = parseCSVTrendBadge(props.csvText)
+      return data.length ? renderTrendBadge(data, width, height, opts) : emptySvg
+    }
     case 'bar':
-    default:     return renderBarChart(data, width, height, { title: props.title })
+    default: {
+      const data = parseCSV(props.csvText)
+      return data.length ? renderBarChart(data, width, height, opts) : emptySvg
+    }
   }
 }
