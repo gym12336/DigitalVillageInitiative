@@ -27,7 +27,7 @@
 import { useRouter } from 'vue-router'
 import ResultCards from './ResultCards.vue'
 
-defineProps({
+const props = defineProps({
   dossier: { type: Object, required: true },
 })
 

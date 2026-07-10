@@ -420,6 +420,14 @@ function onGlobalClick() {
   ctxMenu.value.show = false
 }
 
+async function doLoad() {
+  if (props.dossierId) {
+    await loadFromDB(props.dossierId, props.documentType)
+  } else {
+    load(props.documentType === 'display' ? 'builder-display-save' : 'builder-save')
+  }
+}
+
 onMounted(async () => {
   document.addEventListener('keydown', onKeyDown)
   if (viewportRef.value) {
@@ -427,11 +435,12 @@ onMounted(async () => {
   }
   document.addEventListener('click', onGlobalClick)
 
-  if (props.dossierId) {
-    await loadFromDB(props.dossierId, props.documentType)
-  } else {
-    load(props.documentType === 'display' ? 'builder-display-save' : 'builder-save')
-  }
+  await doLoad()
+})
+
+// Reload when dossier changes (DossierPicker switches via router.replace)
+watch(() => [props.dossierId, props.documentType], () => {
+  doLoad()
 })
 
 onUnmounted(() => {
