@@ -138,8 +138,11 @@
           <label>图表类型</label>
           <select v-model="comp.props.chartType">
             <option value="bar">柱状图</option>
+            <option value="stacked-bar">堆叠柱状图</option>
             <option value="pie">饼图</option>
             <option value="line">折线图</option>
+            <option value="dumbbell">哑铃图</option>
+            <option value="trend-badge">涨跌徽标</option>
           </select>
         </div>
         <div class="pp-field">
