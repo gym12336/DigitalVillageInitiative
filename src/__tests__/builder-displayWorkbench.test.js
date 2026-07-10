@@ -30,7 +30,6 @@ describe('DisplayWorkbench', () => {
           EditorCanvas: { template: '<div class="mock-canvas"></div>' },
           PropertyPanel: { template: '<div class="mock-props"></div>' },
           DisplayComponentLibrary: { template: '<div class="mock-lib"></div>' },
-          DossierPicker: { template: '<div class="mock-picker"></div>' },
         },
       },
     })
@@ -44,7 +43,6 @@ describe('DisplayWorkbench', () => {
           EditorCanvas: { template: '<div class="mock-canvas"></div>' },
           PropertyPanel: { template: '<div class="mock-props"></div>' },
           DisplayComponentLibrary: { template: '<div class="mock-lib"></div>' },
-          DossierPicker: { template: '<div class="mock-picker"></div>' },
         },
       },
     })

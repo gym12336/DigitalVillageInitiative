@@ -1,11 +1,6 @@
 <!-- src/modules/builder/editor/BigComponentEditor.vue -->
 <template>
   <div class="editor-root">
-    <!-- DossierPicker -->
-    <div class="editor-dossier-bar">
-      <DossierPicker :dossier-id="dossierId" />
-    </div>
-
     <!-- Left Panel: Component Library -->
     <aside class="editor-left" :class="{ collapsed: leftCollapsed }">
       <ComponentLibrary v-if="!leftCollapsed" />
@@ -33,7 +28,6 @@ import ComponentLibrary from './ComponentLibrary.vue'
 import EditorCanvas from './EditorCanvas.vue'
 import PropertyPanel from './PropertyPanel.vue'
 import { state } from './stageEditor.js'
-import DossierPicker from '../DossierPicker.vue'
 
 const route = useRoute()
 const leftCollapsed = ref(false)
@@ -166,15 +160,5 @@ const dossierId = computed(() => route.params.dossierId || '')
   border-color: var(--color-primary);
   color: var(--color-primary);
   box-shadow: var(--shadow-sm);
-}
-
-.editor-dossier-bar {
-  display: flex; align-items: center; justify-content: flex-start;
-  padding: 0.4rem 1rem;
-  background: var(--editor-topbar-bg);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-radius: 20px;
-  margin-bottom: 8px;
 }
 </style>

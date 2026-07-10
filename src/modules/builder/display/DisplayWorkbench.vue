@@ -1,11 +1,6 @@
 <!-- src/modules/builder/display/DisplayWorkbench.vue -->
 <template>
   <div class="editor-root">
-    <!-- DossierPicker -->
-    <div class="editor-dossier-bar">
-      <DossierPicker :dossier-id="dossierId" />
-    </div>
-
     <!-- Left Panel: Extended Component Library -->
     <aside class="editor-left" :class="{ collapsed: leftCollapsed }">
       <DisplayComponentLibrary ref="libRef" v-if="!leftCollapsed" :dossier-id="dossierId" />
@@ -33,7 +28,6 @@ import DisplayComponentLibrary from './DisplayComponentLibrary.vue'
 import EditorCanvas from '../editor/EditorCanvas.vue'
 import PropertyPanel from '../editor/PropertyPanel.vue'
 import { state, resetState } from '../editor/stageEditor.js'
-import DossierPicker from '../DossierPicker.vue'
 
 const route = useRoute()
 const leftCollapsed = ref(false)
@@ -171,15 +165,5 @@ watch(dossierId, () => {
   border-color: var(--color-primary);
   color: var(--color-primary);
   box-shadow: var(--shadow-sm);
-}
-
-.editor-dossier-bar {
-  display: flex; align-items: center; justify-content: flex-start;
-  padding: 0.4rem 1rem;
-  background: var(--editor-topbar-bg);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-radius: 20px;
-  margin-bottom: 8px;
 }
 </style>
