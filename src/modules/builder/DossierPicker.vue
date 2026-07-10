@@ -42,12 +42,14 @@
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { currentUser, isAuthed, myTeams } from '../practice/mine/auth.js'
+import { isAuthed, myTeams } from '../practice/mine/auth.js'
 import { apiListDossiers } from '../practice/mine/api.js'
 
 const props = defineProps({
   dossierId: { type: String, default: '' },
 })
+
+const emit = defineEmits(['update:dossierId'])
 
 const router = useRouter()
 const route = useRoute()
@@ -91,12 +93,17 @@ async function loadDossiers() {
 
 function select(d) {
   showPicker.value = false
-  const currentPath = route.path
-  // 例如 /builder/editor → /builder/editor/d1a2b3
-  // 或 /builder/editor/oldId → /builder/editor/d1a2b3
-  const base = currentPath.replace(/\/[^/]+$/, '') // 去掉最后一段
-  const newPath = `${base}/${d.id}`
-  router.replace(newPath)
+  emit('update:dossierId', d.id)
+  const currentName = route.name
+  let targetName
+  if (currentName === 'builder-editor' || currentName === 'builder-editor-dossier') {
+    targetName = 'builder-editor-dossier'
+  } else if (currentName === 'builder-display' || currentName === 'builder-display-dossier') {
+    targetName = 'builder-display-dossier'
+  } else {
+    targetName = 'builder-editor-dossier' // fallback
+  }
+  router.replace({ name: targetName, params: { dossierId: d.id } })
 }
 
 watch(isAuthed, (val) => {
