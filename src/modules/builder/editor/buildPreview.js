@@ -1,6 +1,8 @@
 // src/modules/builder/editor/buildPreview.js
 import { renderChartSvg } from './chartRenderer.js'
 import { renderSensorMarkup } from './sensorRenderer.js'
+import { renderTimelineMarkup } from './timelineRenderer.js'
+import { renderDatatableMarkup } from './datatableRenderer.js'
 
 function esc(s) {
   return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
@@ -25,6 +27,12 @@ function renderComponentHtml(c) {
       break
     case 'agri-sensor':
       inner = renderSensorMarkup(c)
+      break
+    case 'timeline':
+      inner = renderTimelineMarkup(c)
+      break
+    case 'datatable':
+      inner = renderDatatableMarkup(c)
       break
   }
   return `<div style="position:absolute;left:${c.x}px;top:${c.y}px;width:${c.width}px;height:${c.height}px;overflow:hidden;">${inner}</div>`
