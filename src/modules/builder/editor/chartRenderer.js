@@ -6,6 +6,36 @@ const COLORS = [
   '#6fcf97', '#5d9cec',
 ]
 
+export function parseCSVMultiSeries(csvText) {
+  const lines = csvText.trim().split('\n').filter(Boolean)
+  if (lines.length < 2) return { labels: [], series: [], totals: [] }
+  const headers = lines[0].split(',').map(h => h.trim())
+  const labelIdx = headers.indexOf('label')
+  if (labelIdx === -1) return { labels: [], series: [], totals: [] }
+
+  const seriesNames = headers.filter((_, i) => i !== labelIdx)
+  if (seriesNames.length === 0) return { labels: [], series: [], totals: [] }
+
+  const series = seriesNames.map(name => ({ name, values: [] }))
+  const labels = []
+  const totals = []
+
+  for (let i = 1; i < lines.length; i++) {
+    const cols = lines[i].split(',').map(c => c.trim())
+    labels.push(cols[labelIdx] || '')
+    let total = 0
+    seriesNames.forEach((sname, si) => {
+      const colIdx = headers.indexOf(sname)
+      const val = parseFloat(cols[colIdx]) || 0
+      series[si].values.push(val)
+      total += val
+    })
+    totals.push(total)
+  }
+
+  return { labels, series, totals }
+}
+
 export function parseCSV(csvText) {
   const lines = csvText.trim().split('\n').filter(Boolean)
   if (lines.length < 2) return []
@@ -160,6 +190,67 @@ export function renderLineChart(data, w, h, { title = '' } = {}) {
     <polyline points="${points}" fill="none" stroke="${COLORS[0]}" stroke-width="2.5" stroke-linejoin="round"/>
     ${dots}
     ${xLabels}
+  </svg>`
+}
+
+export function renderStackedBarChart(data, w, h, { title = '' } = {}) {
+  const { labels, series, totals } = data
+  const pad = { top: 40, right: 20, bottom: 50, left: 60 }
+  const chartW = w - pad.left - pad.right
+  const chartH = h - pad.top - pad.bottom
+  const maxTotal = Math.max(...totals, 1)
+  const barGap = 8
+  const barW = Math.max(4, (chartW - barGap * (labels.length + 1)) / labels.length)
+
+  let bars = ''
+  labels.forEach((label, i) => {
+    const bx = pad.left + barGap + i * (barW + barGap)
+    let yStack = 0
+    series.forEach((s, si) => {
+      const bh = (s.values[i] / maxTotal) * chartH
+      if (bh <= 0) return
+      const by = pad.top + chartH - yStack - bh
+      const isTop = si === series.length - 1 || series.slice(si + 1).every(ss => ss.values[i] === 0)
+      bars += `<rect x="${bx}" y="${by}" width="${barW}" height="${bh}" fill="${COLORS[si % COLORS.length]}" rx="${isTop ? '3' : '0'}"/>`
+      if (bh > 16) {
+        bars += `<text x="${bx + barW / 2}" y="${by + bh / 2 + 4}" text-anchor="middle" font-size="10" fill="#fff" font-weight="600">${s.values[i]}</text>`
+      }
+      yStack += bh
+    })
+    bars += `<text x="${bx + barW / 2}" y="${pad.top + chartH - yStack - 5}" text-anchor="middle" font-size="10" fill="#627586" font-weight="600">${totals[i]}</text>`
+    bars += `<text x="${bx + barW / 2}" y="${pad.top + chartH + 18}" text-anchor="middle" font-size="10" fill="#687b8b">${label}</text>`
+  })
+
+  // Y axis + grid
+  const yTicks = 4
+  let yAxis = ''
+  for (let i = 0; i <= yTicks; i++) {
+    const val = Math.round((maxTotal / yTicks) * i)
+    const yy = pad.top + chartH - (i / yTicks) * chartH
+    yAxis += `<text x="${pad.left - 8}" y="${yy + 4}" text-anchor="end" font-size="10" fill="#687b8b">${val}</text>`
+    yAxis += `<line x1="${pad.left}" y1="${yy}" x2="${w - pad.right}" y2="${yy}" stroke="rgba(101,126,152,0.12)" stroke-dasharray="3,3"/>`
+  }
+
+  // Legend
+  let legend = ''
+  series.forEach((s, i) => {
+    const lx = pad.left + i * 110
+    const ly = 28
+    legend += `<rect x="${lx}" y="${ly - 6}" width="10" height="10" rx="2" fill="${COLORS[i % COLORS.length]}"/>`
+    legend += `<text x="${lx + 14}" y="${ly + 2}" font-size="10" fill="#627586">${s.name}</text>`
+  })
+
+  let titleSvg = ''
+  if (title) {
+    titleSvg = `<text x="${w / 2}" y="18" text-anchor="middle" font-size="14" font-weight="600" fill="#1c2834">${title}</text>`
+  }
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+    <rect width="${w}" height="${h}" fill="#fafdfe"/>
+    ${titleSvg}
+    ${legend}
+    ${yAxis}
+    ${bars}
   </svg>`
 }
 
