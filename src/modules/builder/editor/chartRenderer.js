@@ -55,6 +55,25 @@ export function parseCSVDumbbell(csvText) {
   })
 }
 
+export function parseCSVTrendBadge(csvText) {
+  const lines = csvText.trim().split('\n').filter(Boolean)
+  if (lines.length < 2) return []
+  const headers = lines[0].split(',').map(h => h.trim())
+  const labelIdx = headers.indexOf('label')
+  const valueIdx = headers.indexOf('value')
+  if (labelIdx === -1 || valueIdx === -1) return []
+  const changeIdx = headers.indexOf('change')
+
+  return lines.slice(1).map(line => {
+    const cols = line.split(',').map(c => c.trim())
+    return {
+      label: cols[labelIdx] || '',
+      value: cols[valueIdx] || '',
+      change: changeIdx !== -1 ? (cols[changeIdx] || '') : '',
+    }
+  })
+}
+
 export function parseCSV(csvText) {
   const lines = csvText.trim().split('\n').filter(Boolean)
   if (lines.length < 2) return []
@@ -316,6 +335,50 @@ export function renderDumbbellChart(data, w, h, { title = '' } = {}) {
     <rect width="${w}" height="${h}" fill="#fafdfe"/>
     ${titleSvg}
     ${rows}
+  </svg>`
+}
+
+export function renderTrendBadge(data, w, h, { title = '' } = {}) {
+  const n = data.length
+  const cols = Math.min(n, 3)
+  const cellW = (w - 16) / cols
+  const rows = Math.ceil(n / cols)
+  const cellH = (h - (title ? 30 : 0) - 8) / rows
+
+  let badges = ''
+  data.forEach((d, i) => {
+    const col = i % cols
+    const row = Math.floor(i / cols)
+    const cx = 8 + col * cellW
+    const cy = (title ? 30 : 0) + 4 + row * cellH
+    const isUp = d.change.startsWith('+')
+    const isDown = d.change.startsWith('-')
+    const trendColor = isUp ? COLORS[2] : isDown ? COLORS[5] : '#687b8b'
+    const arrow = isUp ? '▲' : isDown ? '▼' : ''
+
+    const valSize = n === 1
+      ? Math.min(64, h * 0.38)
+      : Math.min(36, cellH * 0.32)
+    const changeSize = n === 1 ? 18 : 14
+
+    badges += `
+      <g transform="translate(${cx}, ${cy})">
+        <rect x="4" y="4" width="${cellW - 8}" height="${cellH - 8}" rx="12" fill="rgba(44,125,160,0.02)" stroke="rgba(44,125,160,0.06)"/>
+        <text x="${cellW / 2}" y="${cellH * 0.32}" text-anchor="middle" font-size="12" fill="#687b8b">${d.label}</text>
+        <text x="${cellW / 2}" y="${cellH * 0.32 + valSize + 4}" text-anchor="middle" font-size="${valSize}" font-weight="800" fill="#1c2834">${d.value}</text>
+        <text x="${cellW / 2}" y="${cellH * 0.32 + valSize + changeSize + 14}" text-anchor="middle" font-size="${changeSize}" font-weight="600" fill="${trendColor}">${arrow} ${d.change}</text>
+      </g>`
+  })
+
+  let titleSvg = ''
+  if (title) {
+    titleSvg = `<text x="${w / 2}" y="18" text-anchor="middle" font-size="14" font-weight="600" fill="#1c2834">${title}</text>`
+  }
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+    <rect width="${w}" height="${h}" fill="#fafdfe"/>
+    ${titleSvg}
+    ${badges}
   </svg>`
 }
 

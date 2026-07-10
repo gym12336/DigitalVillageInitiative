@@ -90,3 +90,56 @@ describe('renderDumbbellChart', () => {
     expect(svg).toContain('+131.3%')
   })
 })
+
+describe('parseCSVTrendBadge', () => {
+  it('parses label, value, and optional change columns', () => {
+    const csv = 'label,value,change\n茶叶总产量,210,+75%\n农户收入,18500,+131%'
+    const result = parseCSVTrendBadge(csv)
+    expect(result).toHaveLength(2)
+    expect(result[0]).toEqual({ label: '茶叶总产量', value: '210', change: '+75%' })
+    expect(result[1]).toEqual({ label: '农户收入', value: '18500', change: '+131%' })
+  })
+
+  it('handles missing change column', () => {
+    const csv = 'label,value\n产量,210'
+    const result = parseCSVTrendBadge(csv)
+    expect(result[0].change).toBe('')
+  })
+
+  it('returns empty array for invalid CSV', () => {
+    expect(parseCSVTrendBadge('x,y\n1,2')).toEqual([])
+  })
+})
+
+describe('renderTrendBadge', () => {
+  it('returns SVG with large number and trend arrow', () => {
+    const data = [
+      { label: '茶叶总产量', value: '210', change: '+75%' },
+    ]
+    const svg = renderTrendBadge(data, 320, 200, { title: '关键指标' })
+    expect(svg).toContain('<svg')
+    expect(svg).toContain('关键指标')
+    expect(svg).toContain('210')
+    expect(svg).toContain('+75%')
+    // Green for positive change
+    expect(svg).toContain('#6fcf97')
+  })
+
+  it('uses red for negative change', () => {
+    const data = [{ label: '产量', value: '80', change: '-33%' }]
+    const svg = renderTrendBadge(data, 320, 200, {})
+    expect(svg).toContain('#eb5757')
+  })
+
+  it('renders multi-row grid for multiple items', () => {
+    const data = [
+      { label: 'A', value: '100', change: '+10%' },
+      { label: 'B', value: '200', change: '-5%' },
+      { label: 'C', value: '300', change: '+20%' },
+    ]
+    const svg = renderTrendBadge(data, 600, 300, {})
+    expect(svg).toContain('A')
+    expect(svg).toContain('B')
+    expect(svg).toContain('C')
+  })
+})
