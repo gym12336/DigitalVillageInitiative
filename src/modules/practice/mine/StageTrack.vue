@@ -1,6 +1,9 @@
 <template>
   <div class="stage">
-    <!-- ① 本阶段任务：只对 stage:'track' 的一段任务做勾选，实践前不勾。 -->
+    <!-- 进度看板 + 动态督进 -->
+    <TrackProgress :dossier="dossierForAnalysis" />
+
+    <!-- ① 本阶段任务：只对 stage:'track' 的一段任务做勾选。 -->
     <section v-if="hasTrackPhase" class="block">
       <h2 class="block-title">① 本阶段任务</h2>
       <p class="block-desc">对照实践前定的分阶段任务，勾掉已完成项，进度会自动更新。</p>
@@ -21,9 +24,18 @@
       </ul>
     </section>
 
-    <!-- 计划指标核对 + 前后值 -->
+    <!-- ② AI 帮你理素材（提取审校） -->
+    <TrackExtract
+      :dossier-id="dossier.id"
+      :people="state.people"
+      :metric-values="state.metricValues"
+      :materials="state.materials"
+      @change="save"
+    />
+
+    <!-- ③ 指标采集 + 前后值 -->
     <section class="block">
-      <h2 class="block-title">{{ hasTrackPhase ? '②' : '①' }} 指标采集</h2>
+      <h2 class="block-title">③ 指标采集</h2>
       <p class="block-desc">对照方案里「计划采集的指标」，填入实地采集的前后值。</p>
       <div v-if="metricValues.length" class="metric-table">
         <div class="mt-head">
@@ -41,26 +53,12 @@
       <button class="btn tiny ghost" @click="addMetric">+ 添加指标</button>
     </section>
 
-    <!-- 材料登记 -->
-    <section class="block">
-      <h2 class="block-title">{{ hasTrackPhase ? '③' : '②' }} 材料清单</h2>
-      <p class="block-desc">登记实地采集的材料（照片、访谈记录、调研笔记等）。仅记录元数据，不上传文件。</p>
-      <div class="mat-list">
-        <div v-for="(m, i) in materials" :key="i" class="mat-row">
-          <select v-model="m.type" class="cell type">
-            <option v-for="t in materialTypes" :key="t" :value="t">{{ t }}</option>
-          </select>
-          <input v-model="m.name" class="cell name" placeholder="材料名称" />
-          <input v-model="m.note" class="cell" placeholder="备注（可选）" />
-          <button class="chip-x" aria-label="删除" @click="removeMaterial(i)">×</button>
-        </div>
-        <button class="btn tiny ghost" @click="addMaterial">+ 添加材料</button>
-      </div>
-    </section>
+    <!-- ④ 材料清单（上传 + 登记） -->
+    <TrackMedia :materials="state.materials" :dossier-id="dossier.id" @change="save" />
 
-    <!-- 人物访谈 -->
+    <!-- ⑤ 人物访谈 -->
     <section class="block">
-      <h2 class="block-title">{{ hasTrackPhase ? '④' : '③' }} 人物访谈</h2>
+      <h2 class="block-title">⑤ 人物访谈</h2>
       <p class="block-desc">记录访谈到的乡村人物，他们的话会进入成果的人物故事墙。</p>
       <div class="people-list">
         <div v-for="(p, i) in people" :key="i" class="person-row">
@@ -77,31 +75,19 @@
       <button class="btn primary" @click="save">保存采集数据</button>
       <span v-if="justSaved" class="saved-hint">已保存 ✓</span>
     </div>
-
-    <!-- 缺口分析 -->
-    <section class="block gap-block">
-      <h2 class="block-title">🔍 还缺什么</h2>
-      <div v-if="analysis.gaps.length" class="gap-list">
-        <div v-for="(g, i) in analysis.gaps" :key="i" class="gap-item" :class="g.level">
-          <span class="gap-ic">{{ g.level === 'warn' ? '⚠️' : '💡' }}</span>
-          <span>{{ g.message }}</span>
-        </div>
-      </div>
-      <p v-else class="gap-ok">✅ 数据齐整，随时可以去「实践后」生成成果卡。</p>
-    </section>
   </div>
 </template>
 
 <script setup>
 import { reactive, ref, computed, watch } from 'vue'
-import { analyzeGaps } from './gapAnalysis.js'
+import TrackProgress from './TrackProgress.vue'
+import TrackMedia from './TrackMedia.vue'
+import TrackExtract from './TrackExtract.vue'
 
 const props = defineProps({
   dossier: { type: Object, required: true },
 })
 const emit = defineEmits(['update'])
-
-const materialTypes = ['照片', '视频', '访谈记录', '调研笔记', '文档', '其他']
 
 function clone(d) {
   const c = d.collected || {}
@@ -114,9 +100,11 @@ function clone(d) {
 
 const state = reactive(clone(props.dossier))
 const metricValues = computed(() => state.metricValues)
-const materials = computed(() => state.materials)
 const people = computed(() => state.people)
 const justSaved = ref(false)
+
+// 传给 TrackProgress 的档案：并进当前编辑态，实时反映未保存的采集。
+const dossierForAnalysis = computed(() => ({ ...props.dossier, collected: { ...state } }))
 
 // —— 阶段任务（track 段）——
 const trackPhase = computed(() => {
@@ -166,15 +154,8 @@ watch(
   },
 )
 
-// 实时缺口分析：把当前编辑状态并进档案再算
-const analysis = computed(() =>
-  analyzeGaps({ ...props.dossier, collected: { ...state } }),
-)
-
 function addMetric() { state.metricValues.push({ name: '', before: '', after: '', unit: '' }) }
 function removeMetric(i) { state.metricValues.splice(i, 1) }
-function addMaterial() { state.materials.push({ type: '照片', name: '', note: '' }) }
-function removeMaterial(i) { state.materials.splice(i, 1) }
 function addPerson() { state.people.push({ name: '', role: '', quote: '' }) }
 function removePerson(i) { state.people.splice(i, 1) }
 
@@ -229,9 +210,8 @@ function save() {
 .mt-head { display: grid; grid-template-columns: 1.6fr 1fr 1fr .8fr; gap: .5rem; font-size: .78rem; color: var(--color-text-light); padding: 0 .3rem; }
 .mt-row { display: grid; grid-template-columns: 1.6fr 1fr 1fr .8fr auto; gap: .5rem; align-items: center; }
 
-/* 材料 / 人物 */
-.mat-list, .people-list { display: flex; flex-direction: column; gap: .5rem; }
-.mat-row { display: grid; grid-template-columns: 100px 1.4fr 1.4fr auto; gap: .5rem; align-items: center; }
+/* 人物 */
+.people-list { display: flex; flex-direction: column; gap: .5rem; }
 .person-row { display: grid; grid-template-columns: 1fr 1fr 2fr auto; gap: .5rem; align-items: center; }
 .cell.wide { width: 100%; }
 
@@ -246,16 +226,8 @@ function save() {
 .save-bar { display: flex; align-items: center; gap: 1rem; }
 .saved-hint { font-size: .85rem; color: var(--color-primary); }
 
-/* 缺口 */
-.gap-block { padding: 1.3rem 1.4rem; background: var(--color-card); border: 1px solid var(--color-border); border-radius: var(--radius); box-shadow: var(--shadow-card); }
-.gap-list { display: flex; flex-direction: column; gap: .6rem; }
-.gap-item { display: flex; gap: .6rem; align-items: flex-start; padding: .7rem .9rem; border-radius: 10px; font-size: .88rem; line-height: 1.5; }
-.gap-item.warn { background: #fff3e0; color: #a15b28; }
-.gap-item.tip { background: var(--color-bg); color: var(--color-text-secondary); }
-.gap-ok { margin: 0; font-size: .92rem; color: var(--color-primary); }
-
 @media (max-width: 640px) {
   .mt-head { display: none; }
-  .mt-row, .mat-row, .person-row { grid-template-columns: 1fr 1fr auto; }
+  .mt-row, .person-row { grid-template-columns: 1fr 1fr auto; }
 }
 </style>
