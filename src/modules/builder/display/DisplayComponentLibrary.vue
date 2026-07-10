@@ -58,8 +58,8 @@ const NATIVE_CATEGORIES = [
   {
     id: 'change', icon: '📊', name: '讲「变化」— 帮扶对比',
     items: [
-      { label: '哑铃图', icon: '🔗', type: 'chart', chartType: 'bar' },
-      { label: '涨跌徽标', icon: '📈', type: 'chart', chartType: 'bar' },
+      { label: '哑铃图', icon: '🔗', type: 'chart', chartType: 'dumbbell' },
+      { label: '涨跌徽标', icon: '📈', type: 'chart', chartType: 'trend-badge' },
     ],
   },
   {
@@ -79,7 +79,7 @@ const NATIVE_CATEGORIES = [
     id: 'composition', icon: '🍩', name: '讲「构成 / 分布」',
     items: [
       { label: '饼图', icon: '🥧', type: 'chart', chartType: 'pie' },
-      { label: '堆叠柱', icon: '📊', type: 'chart', chartType: 'bar' },
+      { label: '堆叠柱', icon: '📊', type: 'chart', chartType: 'stacked-bar' },
     ],
   },
   {

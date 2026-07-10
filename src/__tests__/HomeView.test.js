@@ -30,11 +30,10 @@ describe('HomeView 首页中枢', () => {
     expect(w.find('.info-stub').exists()).toBe(true)
   })
 
-  it('渲染全部模块卡（启用 + 建设中），建设中带「建设中」标记', () => {
+  it('只渲染已启用的模块卡，不展示未启用模块', () => {
     const w = mount(HomeView, { global: { stubs } })
     expect(w.text()).toContain('村庄主页')
-    expect(w.text()).toContain('资源榜单')
-    expect(w.text()).toContain('建设中')
+    expect(w.text()).not.toContain('资源榜单')
   })
 
   it('渲染英雄区标语与数据看板', () => {

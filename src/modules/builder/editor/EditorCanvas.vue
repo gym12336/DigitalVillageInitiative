@@ -161,7 +161,7 @@ const stageHtml = computed(() => {
 
 // ---- Actions ----
 
-function goBack() { router.push('/builder') }
+function goBack() { router.push(props.dossierId ? `/builder?dossierId=${props.dossierId}` : '/builder') }
 function addToCanvas(type) {
   const cx = state.pageWidth / 2 - 200
   const cy = state.pageHeight / 2 - 150

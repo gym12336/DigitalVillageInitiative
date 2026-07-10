@@ -44,7 +44,7 @@ export const modules = [
     metric: '了解我们',
   },
   {
-    id: 'builder', name: '成果搭建台', icon: '🛠️', path: '/builder', enabled: true,
+    id: 'builder', name: '成果搭建台', icon: '🛠️', path: '/builder', enabled: false,
     desc: '可视化组件DIY搭建，自由组合导出成果',
     hook: '拖拽组件、组合大组件、一键导出展示页。',
     metric: '成果可视化',

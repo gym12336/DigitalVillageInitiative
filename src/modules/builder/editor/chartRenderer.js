@@ -273,14 +273,14 @@ export function renderStackedBarChart(data, w, h, { title = '' } = {}) {
   let legend = ''
   series.forEach((s, i) => {
     const lx = pad.left + i * 110
-    const ly = 28
+    const ly = 34
     legend += `<rect x="${lx}" y="${ly - 6}" width="10" height="10" rx="2" fill="${COLORS[i % COLORS.length]}"/>`
     legend += `<text x="${lx + 14}" y="${ly + 2}" font-size="10" fill="#627586">${s.name}</text>`
   })
 
   let titleSvg = ''
   if (title) {
-    titleSvg = `<text x="${w / 2}" y="18" text-anchor="middle" font-size="14" font-weight="600" fill="#1c2834">${title}</text>`
+    titleSvg = `<text x="${w / 2}" y="22" text-anchor="middle" font-size="14" font-weight="600" fill="#1c2834">${title}</text>`
   }
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
