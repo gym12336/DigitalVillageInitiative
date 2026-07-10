@@ -9,7 +9,7 @@ const PEOPLE_MIN = 2 // 人物访谈建议数
  * 分析档案缺口。返回 { gaps: [{type, level, message}], complete: boolean }。
  * complete 表示无 warn 级缺口（tip 不影响完整性判断）。
  */
-export function analyzeGaps(dossier) {
+export function analyzeGaps(dossier, now = Date.now()) {
   const gaps = []
   if (!dossier) return { gaps, complete: false }
 
@@ -75,8 +75,51 @@ export function analyzeGaps(dossier) {
     })
   }
 
+  // 5) 时段过半但进度不足：对照 startDate/endDate 与整体完成度做动态督进。
+  const pace = computePace(dossier, plan, collected, planMetrics, materials, people, now)
+  if (pace && pace.elapsedRatio > 0.5 && pace.progress < 0.5) {
+    gaps.push({
+      type: 'pace-slow',
+      level: 'warn',
+      message: `实践时段已过 ${Math.round(pace.elapsedRatio * 100)}%，但整体完成度约 ${Math.round(pace.progress * 100)}%，进度偏慢，抓紧补齐任务与采集。`,
+    })
+  }
+
   const complete = gaps.every((g) => g.level !== 'warn')
   return { gaps, complete }
+}
+
+// 计算时段进度与整体完成度。缺时段信息返回 null（不参与督进）。
+// 整体完成度 = 任务/指标/材料/人物 四维完成率的均值（各维无目标则不计入）。
+function computePace(dossier, plan, collected, planMetrics, materials, people, now) {
+  const start = Date.parse(dossier.startDate)
+  const end = Date.parse(dossier.endDate)
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return null
+  const elapsedRatio = Math.max(0, Math.min(1, (now - start) / (end - start)))
+
+  const dims = []
+
+  // 任务维：track 段任务勾选率
+  const phases = Array.isArray(plan.phases) ? plan.phases : []
+  const track = phases.find((p) => p && p.stage === 'track')
+  const tasks = track && Array.isArray(track.tasks) ? track.tasks : []
+  if (tasks.length) dims.push(tasks.filter((t) => t.done).length / tasks.length)
+
+  // 指标维：计划指标里前后值都填齐的比例
+  if (planMetrics.length) {
+    const metricValues = Array.isArray(collected.metricValues) ? collected.metricValues : []
+    const filled = new Set(
+      metricValues.filter((m) => isFilled(m.before) && isFilled(m.after)).map((m) => m.name),
+    )
+    dims.push(planMetrics.filter((pm) => filled.has(pm.name)).length / planMetrics.length)
+  }
+
+  // 材料/人物维：按建议阈值封顶为 1
+  dims.push(Math.min(1, materials.length / MATERIAL_MIN))
+  dims.push(Math.min(1, people.length / PEOPLE_MIN))
+
+  const progress = dims.length ? dims.reduce((a, b) => a + b, 0) / dims.length : 0
+  return { elapsedRatio, progress }
 }
 
 // 视 0 为已填；空串/undefined/null 视为未填。
