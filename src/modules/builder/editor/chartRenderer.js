@@ -621,14 +621,18 @@ export function renderSankeyChart(data, w, h, { title = '' } = {}) {
   const sourceOffsets = new Map(sourceNodes.map(n => [n.name, 0]))
   const targetOffsets = new Map(targetNodes.map(n => [n.name, 0]))
 
+  const sourceNodeMap = new Map(sourceNodes.map(n => [n.name, n]))
+  const targetNodeMap = new Map(targetNodes.map(n => [n.name, n]))
+  const sourceColorIdx = new Map(sourceNodes.map((n, i) => [n.name, i]))
+
   let bands = ''
   links.forEach((link) => {
     const s = sourcePosMap.get(link.source)
     const t = targetPosMap.get(link.target)
     if (!s || !t) return
 
-    const sTotal = sourceNodes.find(n => n.name === link.source).total
-    const tTotal = targetNodes.find(n => n.name === link.target).total
+    const sTotal = sourceNodeMap.get(link.source).total
+    const tTotal = targetNodeMap.get(link.target).total
 
     const h1 = (link.value / sTotal) * s.h
     const h2 = (link.value / tTotal) * t.h
@@ -636,13 +640,13 @@ export function renderSankeyChart(data, w, h, { title = '' } = {}) {
     const y1 = s.y + sourceOffsets.get(link.source)
     const y2 = t.y + targetOffsets.get(link.target)
 
-    const colorIdx = sourceNodes.findIndex(n => n.name === link.source)
+    const colorIdx = sourceColorIdx.get(link.source)
     const color = COLORS[colorIdx % COLORS.length]
 
     const cp1x = sourceRightX + (targetLeftX - sourceRightX) * 0.4
     const cp2x = sourceRightX + (targetLeftX - sourceRightX) * 0.6
 
-    bands += `<path d="M${sourceRightX},${y1} C${cp1x},${y1} ${cp2x},${y2} ${targetLeftX},${y2} L${targetLeftX},${y2 + h2} C${cp2x},${y1 + h1} ${cp1x},${y1 + h1} ${sourceRightX},${y1 + h1} Z" fill="${color}" fill-opacity="0.35" stroke="${color}" stroke-opacity="0.5" stroke-width="0.5"/>`
+    bands += `<path d="M${sourceRightX},${y1} C${cp1x},${y1} ${cp2x},${y2} ${targetLeftX},${y2} L${targetLeftX},${y2 + h2} C${cp2x},${y2 + h2} ${cp1x},${y1 + h1} ${sourceRightX},${y1 + h1} Z" fill="${color}" fill-opacity="0.35" stroke="${color}" stroke-opacity="0.5" stroke-width="0.5"/>`
 
     sourceOffsets.set(link.source, sourceOffsets.get(link.source) + h1)
     targetOffsets.set(link.target, targetOffsets.get(link.target) + h2)
@@ -667,7 +671,7 @@ export function renderSankeyChart(data, w, h, { title = '' } = {}) {
   // Title
   let titleSvg = ''
   if (title) {
-    titleSvg = `<text x="${w / 2}" y="20" text-anchor="middle" font-size="14" font-weight="600" fill="#1c2834">${title}</text>`
+    titleSvg = `<text x="${w / 2}" y="22" text-anchor="middle" font-size="14" font-weight="600" fill="#1c2834">${title}</text>`
   }
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
