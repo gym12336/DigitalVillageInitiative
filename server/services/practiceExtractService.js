@@ -22,12 +22,14 @@ function str(v) {
   return v === undefined || v === null ? '' : String(v)
 }
 
-/** 规范化一条人物：补空串/默认置信度，标 source:auto。 */
+/** 规范化一条人物：补空串/默认置信度，标 source:auto。含富字段 story/highlight。 */
 function normPerson(p) {
   return {
     name: str(p?.name),
     role: str(p?.role),
     quote: str(p?.quote),
+    story: str(p?.story),
+    highlight: str(p?.highlight),
     confidence: num(p?.confidence),
     source: 'auto',
   }
@@ -37,6 +39,8 @@ function normMetric(m) {
     name: str(m?.name),
     value: str(m?.value),
     unit: str(m?.unit),
+    insight: str(m?.insight),
+    isHighlight: !!m?.isHighlight,
     confidence: num(m?.confidence),
     source: 'auto',
   }
@@ -45,6 +49,8 @@ function normHint(h) {
   return {
     name: str(h?.name),
     note: str(h?.note),
+    summary: str(h?.summary),
+    theme: str(h?.theme),
     confidence: num(h?.confidence),
     source: 'auto',
   }

@@ -7,17 +7,21 @@
       :is="node.view.level || 'h2'"
       v-if="node.type === 'heading'"
       class="c-heading"
-      :style="{ textAlign: node.view.align }"
+      :style="{ textAlign: node.view.align, color: node.view.color || undefined }"
     >{{ node.view.text || '（空标题）' }}</component>
 
     <!-- 文本 -->
-    <p v-else-if="node.type === 'text'" class="c-text" :style="{ textAlign: node.view.align }">
+    <p
+      v-else-if="node.type === 'text'"
+      class="c-text"
+      :style="{ textAlign: node.view.align, color: node.view.color || undefined, fontSize: textSize(node.view.size) }"
+    >
       {{ node.view.content || '（空文本）' }}
     </p>
 
     <!-- 图片 -->
     <figure v-else-if="node.type === 'image'" class="c-image">
-      <img v-if="node.view.src" :src="node.view.src" :alt="node.view.alt" />
+      <img v-if="node.view.src" :src="node.view.src" :alt="node.view.alt" :style="{ objectFit: node.view.fit || 'cover', borderRadius: imgRadius(node.view.radius) }" />
       <div v-else class="img-placeholder">图片待补充</div>
       <figcaption v-if="node.view.caption">{{ node.view.caption }}</figcaption>
     </figure>
@@ -31,9 +35,10 @@
       <template v-else>
         <!-- KPI -->
         <div v-if="node.type === 'kpiGrid'" class="kpi-grid">
-          <div v-for="(k, i) in node.view.items" :key="i" class="kpi">
-            <span class="kpi-num">{{ k.value }}<i>{{ k.unit }}</i></span>
+          <div v-for="(k, i) in node.view.items" :key="i" class="kpi" :class="{ hi: k.isHighlight }">
+            <span class="kpi-num" :style="{ color: node.view.accent || undefined }">{{ k.value }}<i>{{ k.unit }}</i></span>
             <span class="kpi-label">{{ k.name }}</span>
+            <span v-if="k.insight" class="kpi-insight">{{ k.insight }}</span>
           </div>
         </div>
 
@@ -44,6 +49,7 @@
               <span>{{ m.name }}</span>
               <span :class="m.up ? 'up' : m.down ? 'down' : ''">{{ m.deltaLabel }}</span>
             </div>
+            <p v-if="m.insight" class="cmp-insight">{{ m.insight }}</p>
             <div class="bar-line">
               <span class="bar-tag">前</span>
               <div class="bar-track"><div class="bar before" :style="{ width: m.beforePct + '%' }" /></div>
@@ -51,7 +57,7 @@
             </div>
             <div class="bar-line">
               <span class="bar-tag">后</span>
-              <div class="bar-track"><div class="bar after" :style="{ width: m.afterPct + '%' }" /></div>
+              <div class="bar-track"><div class="bar after" :style="{ width: m.afterPct + '%', background: node.view.accent || undefined }" /></div>
               <span>{{ m.after }}{{ m.unit }}</span>
             </div>
           </div>
@@ -60,28 +66,31 @@
         <!-- 时间轴 -->
         <ol v-else-if="node.type === 'timeline'" class="timeline">
           <li v-for="(t, i) in node.view.events" :key="i">
-            <span class="tl-dot" />
+            <span class="tl-dot" :style="{ background: node.view.accent || undefined }" />
             <div>
               <p class="tl-name">{{ t.name }}</p>
-              <p v-if="t.note" class="tl-note">{{ t.note }}</p>
-              <span class="tl-type">{{ t.type }}</span>
+              <p v-if="t.summary" class="tl-note">{{ t.summary }}</p>
+              <p v-else-if="t.note" class="tl-note">{{ t.note }}</p>
+              <span class="tl-type">{{ t.theme || t.type }}</span>
             </div>
           </li>
         </ol>
 
         <!-- 人物墙 -->
-        <div v-else-if="node.type === 'peopleWall'" class="people-wall">
+        <div v-else-if="node.type === 'peopleWall'" class="people-wall" :style="peopleGrid(node.view.columns)">
           <article v-for="(p, i) in node.view.people" :key="i" class="person">
             <div class="avatar" :style="{ background: p.color }">{{ p.initial }}</div>
             <p class="person-name">{{ p.name }}<span v-if="p.role" class="person-role"> · {{ p.role }}</span></p>
-            <p v-if="p.quote" class="person-quote">“{{ p.quote }}”</p>
+            <span v-if="p.highlight" class="person-tag">{{ p.highlight }}</span>
+            <p v-if="p.story" class="person-story">{{ p.story }}</p>
+            <p v-else-if="p.quote" class="person-quote">“{{ p.quote }}”</p>
           </article>
         </div>
 
         <!-- 地图点位（骨架：卫星地图为二期，本期先落地点标签占位）-->
         <div v-else-if="node.type === 'mapPoint'" class="map-point">
           <span class="map-pin">📍</span>
-          <span class="map-place">{{ node.view.place || '（未指定地点）' }}</span>
+          <span class="map-place" :style="{ color: node.view.accent || undefined }">{{ node.view.place || '（未指定地点）' }}</span>
         </div>
       </template>
     </div>
@@ -92,6 +101,18 @@
 defineProps({
   node: { type: Object, required: true },
 })
+
+// 受约束样式 → 具体 CSS 值的小映射（与静态导出 exportSite 保持一致）。
+function textSize(size) {
+  return { small: '.82rem', large: '1.15rem' }[size] || '.9rem'
+}
+function imgRadius(radius) {
+  return { none: '0', large: '18px' }[radius] ?? '10px'
+}
+function peopleGrid(columns) {
+  if (columns && columns >= 2) return { gridTemplateColumns: `repeat(${columns}, 1fr)` }
+  return {} // auto：沿用 CSS 里的 auto-fill
+}
 </script>
 
 <style scoped>
@@ -109,9 +130,14 @@ defineProps({
 
 .kpi-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: .7rem; }
 .kpi { display: flex; flex-direction: column; gap: .25rem; padding: .8rem .6rem; text-align: center; background: var(--color-bg); border-radius: 10px; }
+.kpi.hi { background: var(--color-accent); box-shadow: inset 0 0 0 1px var(--color-primary); }
 .kpi-num { font-size: 1.4rem; font-weight: 700; color: var(--color-primary-dark); }
 .kpi-num i { font-size: .8rem; font-style: normal; color: var(--color-text-light); margin-left: 2px; }
 .kpi-label { font-size: .78rem; color: var(--color-text-secondary); }
+.kpi-insight { font-size: .7rem; color: var(--color-primary-dark); line-height: 1.4; margin-top: .2rem; }
+.cmp-insight { margin: 0 0 .4rem; font-size: .76rem; color: var(--color-primary-dark); line-height: 1.5; }
+.person-tag { font-size: .68rem; color: #fff; background: var(--color-primary); padding: .1rem .5rem; border-radius: 50px; }
+.person-story { margin: .1rem 0 0; font-size: .76rem; color: var(--color-text-secondary); line-height: 1.5; text-align: left; }
 
 .cmp-list { display: flex; flex-direction: column; gap: .9rem; }
 .cmp-head { display: flex; justify-content: space-between; font-size: .88rem; font-weight: 600; margin-bottom: .35rem; }

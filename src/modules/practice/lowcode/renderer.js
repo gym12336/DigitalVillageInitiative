@@ -72,11 +72,11 @@ function isNum(v) {
 function buildView(type, props, resolved) {
   switch (type) {
     case 'heading':
-      return { text: props.text, level: props.level, align: props.align }
+      return { text: props.text, level: props.level, align: props.align, color: props.color }
     case 'text':
-      return { content: props.content, align: props.align }
+      return viewText(props, resolved.content)
     case 'image':
-      return { src: props.src, alt: props.alt, caption: props.caption }
+      return { src: props.src, alt: props.alt, caption: props.caption, fit: props.fit, radius: props.radius }
     case 'kpiGrid':
       return viewKpi(props, resolved.items)
     case 'beforeAfter':
@@ -96,6 +96,15 @@ function slot(res) {
   return res || { value: null, missing: true, kind: 'unknown' }
 }
 
+// 文本组件：绑定了成果综述(scalar)则用综述，否则用 props.content。
+function viewText(props, res) {
+  let content = props.content
+  if (res && res.kind === 'scalar' && typeof res.value === 'string' && res.value.trim()) {
+    content = res.value
+  }
+  return { content, align: props.align, size: props.size, color: props.color }
+}
+
 function viewKpi(props, res) {
   const s = slot(res)
   const items = (Array.isArray(s.value) ? s.value : [])
@@ -104,8 +113,10 @@ function viewKpi(props, res) {
       name: m.name || '',
       unit: m.unit || '',
       value: isNum(m.after) ? Number(m.after) : Number(m.before),
+      insight: m.insight || '',
+      isHighlight: !!m.isHighlight,
     }))
-  return { title: props.title, items, missing: s.missing }
+  return { title: props.title, accent: props.accent || '', items, missing: s.missing }
 }
 
 function viewBeforeAfter(props, res) {
@@ -127,17 +138,25 @@ function viewBeforeAfter(props, res) {
         up: delta > 0,
         down: delta < 0,
         deltaLabel: delta === 0 ? '持平' : (delta > 0 ? '▲ +' : '▼ ') + Math.abs(delta) + (m.unit || ''),
+        insight: m.insight || '',
+        isHighlight: !!m.isHighlight,
       }
     })
-  return { title: props.title, items, missing: s.missing }
+  return { title: props.title, accent: props.accent || '', items, missing: s.missing }
 }
 
 function viewTimeline(props, res) {
   const s = slot(res)
   const events = (Array.isArray(s.value) ? s.value : [])
     .filter((m) => m.name)
-    .map((m) => ({ name: m.name, note: m.note || '', type: m.type || '材料' }))
-  return { title: props.title, events, missing: s.missing }
+    .map((m) => ({
+      name: m.name,
+      note: m.note || '',
+      type: m.type || '材料',
+      summary: m.summary || '',
+      theme: m.theme || '',
+    }))
+  return { title: props.title, accent: props.accent || '', events, missing: s.missing }
 }
 
 const AVATAR_COLORS = ['#6b8c5c', '#c9a86a', '#4a8fbf', '#e07a5f', '#8a9a5b', '#b07d62']
@@ -150,14 +169,17 @@ function viewPeopleWall(props, res) {
       name: p.name,
       role: p.role || '',
       quote: p.quote || '',
+      story: p.story || '',
+      highlight: p.highlight || '',
       initial: String(p.name).trim().slice(0, 1),
       color: AVATAR_COLORS[i % AVATAR_COLORS.length],
     }))
-  return { title: props.title, people, missing: s.missing }
+  const columns = ['2', '3', '4'].includes(props.columns) ? Number(props.columns) : 0
+  return { title: props.title, columns, people, missing: s.missing }
 }
 
 function viewMapPoint(props, res) {
   const s = slot(res)
   const place = s.kind === 'scalar' ? s.value : ''
-  return { title: props.title, place, missing: s.missing }
+  return { title: props.title, accent: props.accent || '', place, missing: s.missing }
 }

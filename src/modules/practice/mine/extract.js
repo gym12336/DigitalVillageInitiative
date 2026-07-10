@@ -23,6 +23,21 @@ export async function extractFromText(text) {
   }
 }
 
+/**
+ * 生成成果综述。主调后端 /summarize;失败/断网返回空结果，不抛。
+ * @param {object} data - { people, metricValues, materials, topic, village }
+ * @returns {Promise<{summary, highlights, source}>}
+ */
+export async function summarizeCollected(data = {}) {
+  try {
+    const r = await request('/api/practice/media/summarize', { method: 'POST', body: data })
+    if (r && typeof r.summary === 'string') return r
+    return { summary: '', highlights: [], source: 'error' }
+  } catch {
+    return { summary: '', highlights: [], source: 'error' }
+  }
+}
+
 // —— 本地兜底：极简规则，离线可用、可测。source:'template'。——
 
 // 「李伯说 / 王姐表示 / 张老师提到：xxx」→ 人物 + 引语。
@@ -43,7 +58,7 @@ export function localExtract(text) {
     const name = m[1]
     if (seenPeople.has(name)) continue
     seenPeople.add(name)
-    people.push({ name, role: '', quote: m[2].trim(), confidence: 0.4, source: 'auto' })
+    people.push({ name, role: '', quote: m[2].trim(), story: '', highlight: '', confidence: 0.4, source: 'auto' })
   }
 
   const metrics = []
@@ -53,7 +68,7 @@ export function localExtract(text) {
     const name = m[1].trim()
     if (!name || seenMetrics.has(name)) continue
     seenMetrics.add(name)
-    metrics.push({ name, value: m[2], unit: m[3], confidence: 0.4, source: 'auto' })
+    metrics.push({ name, value: m[2], unit: m[3], insight: '', isHighlight: false, confidence: 0.4, source: 'auto' })
   }
 
   return { people, metrics, materialHints: [], source: 'template' }

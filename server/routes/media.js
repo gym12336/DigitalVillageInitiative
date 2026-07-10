@@ -7,6 +7,7 @@ import { assertMember } from '../services/teamService.js'
 import { storeFile, SIZE_LIMITS } from '../services/mediaService.js'
 import { extractText, isParsable, kindOf } from '../lib/fileText.js'
 import { extractFromText } from '../services/practiceExtractService.js'
+import { summarize } from '../services/practiceSummaryService.js'
 import { describeImage } from '../services/imageDescribeService.js'
 import { httpError } from '../lib/validate.js'
 
@@ -115,6 +116,24 @@ export function makeMediaRouter({ db, secret, uploadDir }) {
       if (!text.trim()) throw httpError(400, '缺少待提取文本')
       if (text.length > EXTRACT_TEXT_LIMIT) throw httpError(413, '文本过长')
       const result = await extractFromText(text)
+      res.json(result)
+    } catch (e) {
+      next(e)
+    }
+  })
+
+  // 成果综述生成：body { people, metricValues, materials, topic, village }，
+  // 返回 { summary, highlights, source }。恒 200：无数据/无 key/失败回落空，不抛。
+  router.post('/summarize', async (req, res, next) => {
+    try {
+      const b = req.body || {}
+      const result = await summarize({
+        people: Array.isArray(b.people) ? b.people : [],
+        metricValues: Array.isArray(b.metricValues) ? b.metricValues : [],
+        materials: Array.isArray(b.materials) ? b.materials : [],
+        topic: b.topic,
+        village: b.village,
+      })
       res.json(result)
     } catch (e) {
       next(e)

@@ -22,10 +22,33 @@
       <button class="btn primary" :disabled="!text.trim() || extracting" @click="onExtract">
         {{ extracting ? 'AI 提取中…' : 'AI 提取' }}
       </button>
+      <button class="btn tiny ghost" :disabled="summarizing" @click="onSummarize">
+        {{ summarizing ? '综述生成中…' : '📝 生成成果综述' }}
+      </button>
       <span v-if="parsing" class="ex-hint">解析文档中…</span>
       <span v-else-if="parsingFile" class="ex-hint">🤖 AI 正在读取「{{ parsingFile }}」…</span>
       <span v-else-if="msg" class="ex-hint" :class="msgErr ? 'err' : ''">{{ msg }}</span>
       <span v-if="lastSource === 'template'" class="ex-hint tpl">离线兜底提取，可联网后重试 AI</span>
+    </div>
+
+    <span v-if="summaryMsg" class="ex-hint" :class="{ err: summaryDraft.source === 'error' }">{{ summaryMsg }}</span>
+
+    <!-- 成果综述待审校 -->
+    <div v-if="summaryDraft.has" class="draft-wrap">
+      <div class="draft-group">
+        <h3 class="draft-title">成果综述（AI 生成，采纳后进成果页）</h3>
+        <textarea v-model="summaryDraft.summary" class="ex-input" rows="4" placeholder="AI 生成的成果综述" />
+        <div v-if="summaryDraft.highlights.length" class="hl-list">
+          <div v-for="(h, i) in summaryDraft.highlights" :key="'hl' + i" class="draft-card">
+            <input v-model="summaryDraft.highlights[i]" class="cell wide" placeholder="成果亮点" />
+            <button class="chip-x" aria-label="删除" @click="summaryDraft.highlights.splice(i, 1)">×</button>
+          </div>
+        </div>
+        <div class="sum-actions">
+          <button class="btn tiny" @click="adoptSummary">采纳进成果页</button>
+          <button class="btn tiny ghost" @click="summaryDraft.has = false">丢弃</button>
+        </div>
+      </div>
     </div>
 
     <!-- 待审校卡片 -->
@@ -75,7 +98,7 @@
 
 <script setup>
 import { reactive, ref, computed } from 'vue'
-import { extractFromText } from './extract.js'
+import { extractFromText, summarizeCollected } from './extract.js'
 import { extractAndStoreDoc } from './mediaApi.js'
 
 const props = defineProps({
@@ -84,6 +107,10 @@ const props = defineProps({
   people: { type: Array, required: true },
   metricValues: { type: Array, required: true },
   materials: { type: Array, required: true },
+  // 成果综述采纳目标（父组件 collected 的引用容器）+ 方案上下文。
+  collected: { type: Object, default: null },
+  topic: { type: String, default: '' },
+  village: { type: String, default: '' },
 })
 const emit = defineEmits(['change'])
 
@@ -95,6 +122,11 @@ const msg = ref('')
 const msgErr = ref(false)
 const lastSource = ref('')
 const draft = reactive({ people: [], metrics: [], materialHints: [] })
+
+// 成果综述待审校区。
+const summarizing = ref(false)
+const summaryMsg = ref('')
+const summaryDraft = reactive({ summary: '', highlights: [], has: false })
 
 const hasDraft = computed(() => !!lastSource.value && lastSource.value !== 'empty')
 const allEmpty = computed(() => !draft.people.length && !draft.metrics.length && !draft.materialHints.length)
@@ -199,22 +231,65 @@ async function onPickDoc(e) {
 }
 
 // 采纳：并入父组件 state 并去掉该草稿卡；通知父组件保存。
+// 携带 AI 富字段（story/highlight、insight/isHighlight），供成果组件直接渲染。
 function adoptPerson(i) {
   const p = draft.people[i]
-  props.people.push({ name: p.name, role: p.role, quote: p.quote })
+  props.people.push({ name: p.name, role: p.role, quote: p.quote, story: p.story || '', highlight: p.highlight || '' })
   draft.people.splice(i, 1)
   emit('change')
 }
 function adoptMetric(i) {
   const m = draft.metrics[i]
-  props.metricValues.push({ name: m.name, before: '', after: m.value, unit: m.unit })
+  props.metricValues.push({ name: m.name, before: '', after: m.value, unit: m.unit, insight: m.insight || '', isHighlight: !!m.isHighlight })
   draft.metrics.splice(i, 1)
   emit('change')
 }
 function adoptHint(i) {
   const h = draft.materialHints[i]
-  props.materials.push({ type: '其他', name: h.name, note: h.note })
+  props.materials.push({ type: '其他', name: h.name, note: h.note, summary: h.summary || '', theme: h.theme || '' })
   draft.materialHints.splice(i, 1)
+  emit('change')
+}
+
+// 生成成果综述：把已采集的人物/指标/材料喂给 AI，产出综述 + 亮点进待审校。
+async function onSummarize() {
+  if (summarizing.value) return
+  summarizing.value = true
+  summaryMsg.value = ''
+  try {
+    const r = await summarizeCollected({
+      people: props.people,
+      metricValues: props.metricValues,
+      materials: props.materials,
+      topic: props.topic,
+      village: props.village,
+    })
+    if (r.source === 'empty') {
+      summaryMsg.value = '还没有可综述的采集数据，先采纳一些人物/指标/材料。'
+      summaryDraft.has = false
+    } else if (r.source === 'error' || (!r.summary && !r.highlights.length)) {
+      summaryMsg.value = '综述暂未生成，可补充材料后重试。'
+      summaryDraft.has = false
+    } else {
+      summaryDraft.summary = r.summary
+      summaryDraft.highlights = Array.isArray(r.highlights) ? r.highlights.slice() : []
+      summaryDraft.source = r.source
+      summaryDraft.has = true
+      summaryMsg.value = ''
+    }
+  } finally {
+    summarizing.value = false
+  }
+}
+
+// 采纳成果综述：写入父组件 collected.summary / highlights，供成果页文本组件绑定。
+function adoptSummary() {
+  if (props.collected) {
+    props.collected.summary = summaryDraft.summary
+    props.collected.highlights = summaryDraft.highlights.filter((h) => String(h).trim())
+  }
+  summaryDraft.has = false
+  summaryMsg.value = '成果综述已采纳 ✓'
   emit('change')
 }
 </script>

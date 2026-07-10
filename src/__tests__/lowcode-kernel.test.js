@@ -1,6 +1,6 @@
 // 低代码内核四模块 + 预置 + 导出 的 TDD 覆盖。
 import { describe, it, expect } from 'vitest'
-import { REGISTRY, DATA_SOURCES, isKnownType, isKnownSource, listComponents, GRID_COLS } from '@/modules/practice/lowcode/registry.js'
+import { REGISTRY, DATA_SOURCES, PALETTE, isKnownType, isKnownSource, isKnownColor, listComponents, GRID_COLS } from '@/modules/practice/lowcode/registry.js'
 import { validateWork } from '@/modules/practice/lowcode/validate.js'
 import { resolveBindings } from '@/modules/practice/lowcode/binding.js'
 import { renderWork } from '@/modules/practice/lowcode/renderer.js'
@@ -51,11 +51,12 @@ describe('registry', () => {
     expect(isKnownSource('metricValues')).toBe(true)
     expect(isKnownSource('secrets')).toBe(false)
   })
-  it('每个插槽的 accepts 都是白名单里的源', () => {
+  it('每个插槽的 accepts 都是白名单里的源；default 为白名单源或空串（可选未绑定）', () => {
     for (const def of Object.values(REGISTRY)) {
       for (const s of def.slots) {
         for (const src of s.accepts) expect(DATA_SOURCES[src]).toBeTruthy()
-        expect(DATA_SOURCES[s.default]).toBeTruthy()
+        // default 允许空串（表示插槽可选、默认不绑定，渲染时回落 props）；否则必是白名单源。
+        if (s.default !== '') expect(DATA_SOURCES[s.default]).toBeTruthy()
       }
     }
   })
@@ -102,6 +103,28 @@ describe('validate', () => {
     const r = validateWork({ blocks: [{ type: 'kpiGrid', x: 0, y: 0, w: 6, h: 2, bindings: { items: 'people' } }] })
     expect(r.valid).toBe(false)
     expect(r.errors.some((e) => /不接受数据源/.test(e.message))).toBe(true)
+  })
+  it('调色板外的颜色被拦', () => {
+    const r = validateWork({ blocks: [{ type: 'heading', x: 0, y: 0, w: 12, h: 1, props: { color: 'red; content:evil' } }] })
+    expect(r.valid).toBe(false)
+    expect(r.errors.some((e) => /调色板/.test(e.message))).toBe(true)
+  })
+  it('调色板内颜色 + 空串（默认）通过', () => {
+    expect(validateWork({ blocks: [{ type: 'heading', x: 0, y: 0, w: 12, h: 1, props: { color: '#6b8c5c' } }] }).valid).toBe(true)
+    expect(validateWork({ blocks: [{ type: 'heading', x: 0, y: 0, w: 12, h: 1, props: { color: '' } }] }).valid).toBe(true)
+  })
+  it('select 属性越界值被拦', () => {
+    const r = validateWork({ blocks: [{ type: 'heading', x: 0, y: 0, w: 12, h: 1, props: { level: 'h9' } }] })
+    expect(r.valid).toBe(false)
+  })
+})
+
+describe('registry colors', () => {
+  it('isKnownColor 认调色板 + 空串，拒其它', () => {
+    expect(isKnownColor('')).toBe(true)
+    expect(isKnownColor('#6b8c5c')).toBe(true)
+    expect(isKnownColor('rgb(1,2,3)')).toBe(false)
+    expect(PALETTE.length).toBeGreaterThan(2)
   })
 })
 
@@ -155,6 +178,24 @@ describe('renderer', () => {
     const kpi = rendered.nodes.find((n) => n.type === 'kpiGrid')
     expect(kpi.view.missing).toBe(true)
   })
+  it('样式属性（accent/size/color）穿透到 view', () => {
+    const w = createEmptyWork()
+    w.blocks = [
+      createBlock('kpiGrid', { x: 0, y: 0, w: 12, props: { accent: '#e07a5f' }, genId: () => 'k' }),
+      createBlock('text', { x: 0, y: 2, w: 6, props: { size: 'large', color: '#4d6b3e' }, genId: () => 't' }),
+    ]
+    const rendered = renderWork(resolveBindings(w, dossier))
+    expect(rendered.nodes.find((n) => n.type === 'kpiGrid').view.accent).toBe('#e07a5f')
+    const tv = rendered.nodes.find((n) => n.type === 'text').view
+    expect(tv.size).toBe('large')
+    expect(tv.color).toBe('#4d6b3e')
+  })
+  it('grid.h 反映组件高度', () => {
+    const w = createEmptyWork()
+    w.blocks = [createBlock('image', { x: 0, y: 0, w: 6, h: 5, genId: () => 'i' })]
+    const rendered = renderWork(resolveBindings(w, dossier))
+    expect(rendered.nodes[0].grid.h).toBe(5)
+  })
 })
 
 describe('presets', () => {
@@ -187,6 +228,12 @@ describe('export', () => {
     const html = toStaticSite(renderWork(resolveBindings(w, dossier)))
     expect(html).not.toContain('<script>x</script>')
     expect(html).toContain('&lt;img onerror=1&gt;')
+  })
+  it('导出应用强调色到静态 HTML', () => {
+    const w = createEmptyWork({ title: 'T' })
+    w.blocks = [createBlock('kpiGrid', { x: 0, y: 0, w: 12, props: { accent: '#e07a5f' }, genId: () => 'k' })]
+    const html = toStaticSite(renderWork(resolveBindings(w, dossier)))
+    expect(html).toContain('#e07a5f')
   })
   it('缺失数据的大组件导出显示待补充', () => {
     const w = createEmptyWork({ title: 'T' })

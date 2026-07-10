@@ -30,6 +30,9 @@
       :people="state.people"
       :metric-values="state.metricValues"
       :materials="state.materials"
+      :collected="state"
+      :topic="dossier.plan?.topic || ''"
+      :village="dossier.village || dossier.plan?.targetVillage || ''"
       @change="save"
     />
 
@@ -95,6 +98,8 @@ function clone(d) {
     metricValues: (c.metricValues || []).map((m) => ({ ...m })),
     materials: (c.materials || []).map((m) => ({ type: '照片', ...m })),
     people: (c.people || []).map((p) => ({ ...p })),
+    summary: c.summary || '',
+    highlights: Array.isArray(c.highlights) ? c.highlights.slice() : [],
   }
 }
 
@@ -165,6 +170,8 @@ function save() {
       metricValues: state.metricValues.map((m) => ({ ...m })),
       materials: state.materials.map((m) => ({ ...m })),
       people: state.people.map((p) => ({ ...p })),
+      summary: state.summary || '',
+      highlights: Array.isArray(state.highlights) ? state.highlights.slice() : [],
     },
   })
   justSaved.value = true

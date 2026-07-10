@@ -20,6 +20,25 @@
 // 栅格总列数（画布固定 12 列，组件宽度以列为单位）。
 export const GRID_COLS = 12
 
+// 受约束的调色板（AI/用户只能从白名单里选颜色，禁飞区校验更好讲）。
+// 空串 '' = 用主题默认色，不写死。
+export const PALETTE = [
+  { key: '', label: '默认' },
+  { key: '#6b8c5c', label: '橄榄绿' },
+  { key: '#4d6b3e', label: '深绿' },
+  { key: '#d4a373', label: '麦色' },
+  { key: '#e07a5f', label: '珊瑚橘' },
+  { key: '#4a8fbf', label: '天蓝' },
+  { key: '#1e1e1e', label: '墨黑' },
+  { key: '#ffffff', label: '白' },
+]
+
+/** 颜色是否在调色板白名单内（'' 合法，表示默认）。 */
+export function isKnownColor(c) {
+  if (c === '' || c === undefined) return true
+  return PALETTE.some((p) => p.key === c)
+}
+
 /**
  * 数据源白名单：插槽只能绑定到这里声明的源。
  * kind='list' 是数组源（大组件遍历渲染），kind='scalar' 是标量源（文本填充）。
@@ -32,6 +51,8 @@ export const DATA_SOURCES = {
   village: { label: '目标村庄', kind: 'scalar', path: 'village' },
   topic: { label: '实践主题', kind: 'scalar', path: 'plan.topic' },
   targetVillage: { label: '目标村（方案）', kind: 'scalar', path: 'plan.targetVillage' },
+  summary: { label: '成果综述', kind: 'scalar', path: 'collected.summary' },
+  highlights: { label: '成果亮点', kind: 'list', path: 'collected.highlights' },
 }
 
 /**
@@ -55,6 +76,7 @@ export const REGISTRY = {
       { key: 'text', label: '标题文字', type: 'text', default: '成果标题' },
       { key: 'level', label: '层级', type: 'select', options: ['h1', 'h2', 'h3'], default: 'h2' },
       { key: 'align', label: '对齐', type: 'select', options: ['left', 'center', 'right'], default: 'left' },
+      { key: 'color', label: '文字颜色', type: 'color', default: '' },
     ],
     slots: [],
   },
@@ -66,8 +88,13 @@ export const REGISTRY = {
     props: [
       { key: 'content', label: '正文', type: 'textarea', default: '在这里写一段说明文字。' },
       { key: 'align', label: '对齐', type: 'select', options: ['left', 'center', 'right'], default: 'left' },
+      { key: 'size', label: '字号', type: 'select', options: ['small', 'normal', 'large'], default: 'normal' },
+      { key: 'color', label: '文字颜色', type: 'color', default: '' },
     ],
-    slots: [],
+    // 可选绑定成果综述：绑定后正文用 AI 综述，未绑定时用 props.content。
+    slots: [
+      { key: 'content', label: '正文来源', accepts: ['summary'], default: '' },
+    ],
   },
   image: {
     category: 'basic',
@@ -78,6 +105,8 @@ export const REGISTRY = {
       { key: 'src', label: '图片地址', type: 'text', default: '' },
       { key: 'alt', label: '替代文本', type: 'text', default: '' },
       { key: 'caption', label: '图注', type: 'text', default: '' },
+      { key: 'fit', label: '裁剪方式', type: 'select', options: ['cover', 'contain'], default: 'cover' },
+      { key: 'radius', label: '圆角', type: 'select', options: ['none', 'small', 'large'], default: 'small' },
     ],
     slots: [],
   },
@@ -88,7 +117,10 @@ export const REGISTRY = {
     name: 'KPI 指标卡',
     icon: '🎯',
     defaultSize: { w: 12, h: 2 },
-    props: [{ key: 'title', label: '卡组标题', type: 'text', default: '关键指标' }],
+    props: [
+      { key: 'title', label: '卡组标题', type: 'text', default: '关键指标' },
+      { key: 'accent', label: '强调色', type: 'color', default: '' },
+    ],
     slots: [
       { key: 'items', label: '指标来源', accepts: ['metricValues'], default: 'metricValues' },
     ],
@@ -98,7 +130,10 @@ export const REGISTRY = {
     name: '帮扶前后对比',
     icon: '📊',
     defaultSize: { w: 6, h: 3 },
-    props: [{ key: 'title', label: '标题', type: 'text', default: '帮扶前后对比' }],
+    props: [
+      { key: 'title', label: '标题', type: 'text', default: '帮扶前后对比' },
+      { key: 'accent', label: '“后”条颜色', type: 'color', default: '' },
+    ],
     slots: [
       { key: 'items', label: '指标来源', accepts: ['metricValues'], default: 'metricValues' },
     ],
@@ -108,7 +143,10 @@ export const REGISTRY = {
     name: '实践时间轴',
     icon: '🧭',
     defaultSize: { w: 6, h: 4 },
-    props: [{ key: 'title', label: '标题', type: 'text', default: '实践足迹' }],
+    props: [
+      { key: 'title', label: '标题', type: 'text', default: '实践足迹' },
+      { key: 'accent', label: '节点颜色', type: 'color', default: '' },
+    ],
     slots: [
       { key: 'events', label: '事件来源', accepts: ['materials'], default: 'materials' },
     ],
@@ -118,7 +156,10 @@ export const REGISTRY = {
     name: '人物故事墙',
     icon: '👥',
     defaultSize: { w: 6, h: 3 },
-    props: [{ key: 'title', label: '标题', type: 'text', default: '人物故事墙' }],
+    props: [
+      { key: 'title', label: '标题', type: 'text', default: '人物故事墙' },
+      { key: 'columns', label: '每行人数', type: 'select', options: ['auto', '2', '3', '4'], default: 'auto' },
+    ],
     slots: [
       { key: 'people', label: '人物来源', accepts: ['people'], default: 'people' },
     ],
@@ -128,7 +169,10 @@ export const REGISTRY = {
     name: '地图点位',
     icon: '📍',
     defaultSize: { w: 6, h: 4 },
-    props: [{ key: 'title', label: '标题', type: 'text', default: '实践地点' }],
+    props: [
+      { key: 'title', label: '标题', type: 'text', default: '实践地点' },
+      { key: 'accent', label: '强调色', type: 'color', default: '' },
+    ],
     slots: [
       { key: 'place', label: '地点来源', accepts: ['village', 'targetVillage'], default: 'village' },
     ],

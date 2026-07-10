@@ -58,24 +58,30 @@ function renderInner(node) {
   switch (node.type) {
     case 'heading': {
       const tag = ['h1', 'h2', 'h3'].includes(v.level) ? v.level : 'h2'
-      return `<${tag} class="c-heading" style="text-align:${v.align || 'left'}">${esc(v.text)}</${tag}>`
+      const c = v.color ? `;color:${esc(v.color)}` : ''
+      return `<${tag} class="c-heading" style="text-align:${v.align || 'left'}${c}">${esc(v.text)}</${tag}>`
     }
-    case 'text':
-      return `<p class="c-text" style="text-align:${v.align || 'left'}">${esc(v.content)}</p>`
-    case 'image':
+    case 'text': {
+      const size = { small: '.82rem', large: '1.15rem' }[v.size] || '.9rem'
+      const c = v.color ? `;color:${esc(v.color)}` : ''
+      return `<p class="c-text" style="text-align:${v.align || 'left'};font-size:${size}${c}">${esc(v.content)}</p>`
+    }
+    case 'image': {
+      const radius = { none: '0', large: '18px' }[v.radius] ?? '10px'
       return v.src
-        ? `<figure class="c-image"><img src="${esc(v.src)}" alt="${esc(v.alt)}"/>${v.caption ? `<figcaption>${esc(v.caption)}</figcaption>` : ''}</figure>`
+        ? `<figure class="c-image"><img src="${esc(v.src)}" alt="${esc(v.alt)}" style="object-fit:${v.fit === 'contain' ? 'contain' : 'cover'};border-radius:${radius}"/>${v.caption ? `<figcaption>${esc(v.caption)}</figcaption>` : ''}</figure>`
         : `<div class="c-image placeholder">图片待补充</div>`
+    }
     case 'kpiGrid':
-      return card(v.title, v.missing, kpiInner(v.items))
+      return card(v.title, v.missing, kpiInner(v.items, v.accent))
     case 'beforeAfter':
-      return card(v.title, v.missing, beforeAfterInner(v.items))
+      return card(v.title, v.missing, beforeAfterInner(v.items, v.accent))
     case 'timeline':
-      return card(v.title, v.missing, timelineInner(v.events))
+      return card(v.title, v.missing, timelineInner(v.events, v.accent))
     case 'peopleWall':
-      return card(v.title, v.missing, peopleInner(v.people))
+      return card(v.title, v.missing, peopleInner(v.people, v.columns))
     case 'mapPoint':
-      return card(v.title, v.missing, mapInner(v.place))
+      return card(v.title, v.missing, mapInner(v.place, v.accent))
     default:
       return ''
   }
@@ -88,36 +94,42 @@ function card(title, missing, inner) {
   return `<div class="card">${head}${inner}</div>`
 }
 
-function kpiInner(items) {
+function kpiInner(items, accent) {
+  const c = accent ? ` style="color:${esc(accent)}"` : ''
   return `<div class="kpi-grid">${(items || [])
-    .map((k) => `<div class="kpi"><span class="kpi-num">${esc(k.value)}<i>${esc(k.unit)}</i></span><span class="kpi-label">${esc(k.name)}</span></div>`)
+    .map((k) => `<div class="kpi${k.isHighlight ? ' hi' : ''}"><span class="kpi-num"${c}>${esc(k.value)}<i>${esc(k.unit)}</i></span><span class="kpi-label">${esc(k.name)}</span>${k.insight ? `<span class="kpi-insight">${esc(k.insight)}</span>` : ''}</div>`)
     .join('')}</div>`
 }
 
-function beforeAfterInner(items) {
+function beforeAfterInner(items, accent) {
+  const c = accent ? `;background:${esc(accent)}` : ''
   return `<div class="cmp-list">${(items || [])
     .map(
       (m) => `<div class="cmp-row"><div class="cmp-head"><span>${esc(m.name)}</span><span class="${m.up ? 'up' : m.down ? 'down' : ''}">${esc(m.deltaLabel)}</span></div>
+${m.insight ? `<p class="cmp-insight">${esc(m.insight)}</p>` : ''}
 <div class="bar-line"><span class="bar-tag">前</span><div class="bar-track"><div class="bar before" style="width:${m.beforePct}%"></div></div><span>${esc(m.before)}${esc(m.unit)}</span></div>
-<div class="bar-line"><span class="bar-tag">后</span><div class="bar-track"><div class="bar after" style="width:${m.afterPct}%"></div></div><span>${esc(m.after)}${esc(m.unit)}</span></div></div>`,
+<div class="bar-line"><span class="bar-tag">后</span><div class="bar-track"><div class="bar after" style="width:${m.afterPct}%${c}"></div></div><span>${esc(m.after)}${esc(m.unit)}</span></div></div>`,
     )
     .join('')}</div>`
 }
 
-function timelineInner(events) {
+function timelineInner(events, accent) {
+  const c = accent ? ` style="background:${esc(accent)}"` : ''
   return `<ol class="timeline">${(events || [])
-    .map((t) => `<li><span class="tl-dot"></span><div><p class="tl-name">${esc(t.name)}</p>${t.note ? `<p class="tl-note">${esc(t.note)}</p>` : ''}<span class="tl-type">${esc(t.type)}</span></div></li>`)
+    .map((t) => `<li><span class="tl-dot"${c}></span><div><p class="tl-name">${esc(t.name)}</p>${t.summary ? `<p class="tl-note">${esc(t.summary)}</p>` : (t.note ? `<p class="tl-note">${esc(t.note)}</p>` : '')}<span class="tl-type">${esc(t.theme || t.type)}</span></div></li>`)
     .join('')}</ol>`
 }
 
-function peopleInner(people) {
-  return `<div class="people-wall">${(people || [])
-    .map((p) => `<article class="person"><div class="avatar" style="background:${esc(p.color)}">${esc(p.initial)}</div><p class="person-name">${esc(p.name)}${p.role ? `<span class="person-role"> · ${esc(p.role)}</span>` : ''}</p>${p.quote ? `<p class="person-quote">“${esc(p.quote)}”</p>` : ''}</article>`)
+function peopleInner(people, columns) {
+  const grid = columns && columns >= 2 ? ` style="grid-template-columns:repeat(${columns},1fr)"` : ''
+  return `<div class="people-wall"${grid}>${(people || [])
+    .map((p) => `<article class="person"><div class="avatar" style="background:${esc(p.color)}">${esc(p.initial)}</div><p class="person-name">${esc(p.name)}${p.role ? `<span class="person-role"> · ${esc(p.role)}</span>` : ''}</p>${p.highlight ? `<span class="person-tag">${esc(p.highlight)}</span>` : ''}${p.story ? `<p class="person-story">${esc(p.story)}</p>` : (p.quote ? `<p class="person-quote">“${esc(p.quote)}”</p>` : '')}</article>`)
     .join('')}</div>`
 }
 
-function mapInner(place) {
-  return `<div class="map-point"><span class="map-pin">📍</span><span class="map-place">${esc(place)}</span></div>`
+function mapInner(place, accent) {
+  const c = accent ? ` style="color:${esc(accent)}"` : ''
+  return `<div class="map-point"><span class="map-pin">📍</span><span class="map-place"${c}>${esc(place)}</span></div>`
 }
 
 /** 内联样式：栅格 + 暖绿主题的静态精简版（脱离平台自包含）。 */
@@ -138,9 +150,14 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:"PingFang SC","
 .c-image.placeholder{display:grid;place-items:center;height:100%;min-height:120px;color:#8a8a8a;background:var(--card);border:1px dashed var(--border);border-radius:12px}
 .kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:.8rem}
 .kpi{display:flex;flex-direction:column;gap:.3rem;padding:1rem .8rem;text-align:center;background:var(--bg);border-radius:12px}
+.kpi.hi{background:var(--accent);box-shadow:inset 0 0 0 1px var(--green)}
 .kpi-num{font-size:1.5rem;font-weight:700;color:var(--green-dark)}
 .kpi-num i{font-size:.85rem;font-style:normal;color:#8a8a8a;margin-left:2px}
 .kpi-label{font-size:.8rem;color:var(--muted)}
+.kpi-insight{font-size:.72rem;color:var(--green-dark);line-height:1.4;margin-top:.2rem}
+.cmp-insight{margin:0 0 .4rem;font-size:.78rem;color:var(--green-dark);line-height:1.5}
+.person-tag{font-size:.68rem;color:#fff;background:var(--green);padding:.1rem .5rem;border-radius:50px}
+.person-story{margin:.1rem 0 0;font-size:.78rem;color:var(--muted);line-height:1.5;text-align:left}
 .cmp-list{display:flex;flex-direction:column;gap:1rem}
 .cmp-head{display:flex;justify-content:space-between;font-size:.9rem;font-weight:600;margin-bottom:.4rem}
 .cmp-head .up{color:var(--green)}.cmp-head .down{color:var(--coral)}
