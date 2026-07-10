@@ -66,13 +66,13 @@ const NATIVE_CATEGORIES = [
     id: 'overview', icon: '📈', name: '讲「整体画像」— 概览',
     items: [
       { label: 'KPI 卡组', icon: '🃏', type: 'agri-sensor' },
-      { label: '雷达图', icon: '🕸️', type: 'chart', chartType: 'bar' },
+      { label: '雷达图', icon: '🕸️', type: 'chart', chartType: 'radar' },
     ],
   },
   {
     id: 'timeline', icon: '⏱️', name: '讲「过程」— 时间线',
     items: [
-      { label: '时间轴', icon: '📋', type: 'chart', chartType: 'bar' },
+      { label: '时间轴', icon: '📋', type: 'timeline' },
     ],
   },
   {
@@ -128,7 +128,7 @@ const NATIVE_CATEGORIES = [
   {
     id: 'honor', icon: '🏆', name: '荣誉佐证',
     items: [
-      { label: '数据表', icon: '📋', type: 'chart', chartType: 'bar' },
+      { label: '数据表', icon: '📋', type: 'datatable' },
     ],
   },
   {
