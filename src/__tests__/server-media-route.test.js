@@ -96,3 +96,26 @@ describe('POST /api/practice/media/extract-text', () => {
     expect(res.status).toBe(422)
   })
 })
+
+describe('POST /api/practice/media/extract', () => {
+  it('空文本 → 400', async () => {
+    const token = await register('alice')
+    const res = await request(app).post('/api/practice/media/extract').set(auth(token))
+      .send({ text: '   ' })
+    expect(res.status).toBe(400)
+  })
+
+  it('有文本、无 LLM key → 恒 200，返回空结果 source', async () => {
+    const token = await register('alice')
+    const res = await request(app).post('/api/practice/media/extract').set(auth(token))
+      .send({ text: '李伯是竹编手艺人，他说这门手艺不能断。' })
+    expect(res.status).toBe(200)
+    expect(res.body).toHaveProperty('people')
+    expect(res.body).toHaveProperty('source')
+  })
+
+  it('未登录 → 401', async () => {
+    const res = await request(app).post('/api/practice/media/extract').send({ text: 'x' })
+    expect(res.status).toBe(401)
+  })
+})

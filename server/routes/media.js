@@ -6,7 +6,10 @@ import { makeAuth } from '../middleware/auth.js'
 import { assertMember } from '../services/teamService.js'
 import { storeFile, SIZE_LIMITS } from '../services/mediaService.js'
 import { extractText, isParsable } from '../lib/fileText.js'
+import { extractFromText } from '../services/practiceExtractService.js'
 import { httpError } from '../lib/validate.js'
+
+const EXTRACT_TEXT_LIMIT = 20_000
 
 // 内存存储：拿到 buffer 后交给 mediaService 按 kind 分档校验再落盘。
 // multer 层只设最大档（音视频 200MB）作硬顶，细分档在 service 层。
@@ -61,6 +64,20 @@ export function makeMediaRouter({ db, secret, uploadDir }) {
       }
       const { text, truncated } = await extractText(req.file.buffer, req.file.originalname)
       res.json({ text, truncated })
+    } catch (e) {
+      next(e)
+    }
+  })
+
+  // AI 结构化提取：body { text }，返回待审校的人物/指标/材料要点。
+  // 恒 200：无 key/网络断/超时时 service 静默回落空结果，source 标出来源。
+  router.post('/extract', async (req, res, next) => {
+    try {
+      const text = String(req.body?.text || '')
+      if (!text.trim()) throw httpError(400, '缺少待提取文本')
+      if (text.length > EXTRACT_TEXT_LIMIT) throw httpError(413, '文本过长')
+      const result = await extractFromText(text)
+      res.json(result)
     } catch (e) {
       next(e)
     }
