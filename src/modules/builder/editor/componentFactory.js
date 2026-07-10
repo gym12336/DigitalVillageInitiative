@@ -71,6 +71,7 @@ function defaultCsvFor(chartType) {
     case 'dumbbell':      return 'label,start,end\n茶叶产量,120,210\n农户年收入,8000,18500\n合作社数量,3,12\n村集体资产,50,320'
     case 'trend-badge':   return 'label,value,change\n销售额,128,560,+12.5%\n用户数,42,091,+8.3%\n转化率,3.28%,-0.5%'
     case 'radar':         return 'label,产业兴旺,生态宜居,乡风文明,治理有效,生活富裕\n李家村,80,65,72,88,70\n全县平均,60,55,58,62,50'
+    case 'sankey':        return 'source,target,value\n产业收入,基础设施建设,120\n产业收入,教育投入,80\n产业收入,医疗健康,50\n政策补贴,基础设施建设,60\n政策补贴,教育投入,40\n社会捐赠,医疗健康,30'
     default:              return 'label,value\n类别A,35\n类别B,68\n类别C,42\n类别D,55\n类别E,27'
   }
 }
