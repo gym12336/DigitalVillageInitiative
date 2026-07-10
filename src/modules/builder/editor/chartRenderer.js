@@ -535,6 +535,149 @@ export function renderRadarChart(data, w, h, { title = '' } = {}) {
   </svg>`
 }
 
+export function parseCSVSankey(csvText) {
+  const lines = csvText.trim().split('\n').filter(Boolean)
+  if (lines.length < 2) return { sourceNodes: [], targetNodes: [], links: [], maxFlow: 0 }
+
+  const headers = lines[0].split(',').map(h => h.trim())
+  const sourceIdx = headers.indexOf('source')
+  const targetIdx = headers.indexOf('target')
+  const valueIdx = headers.indexOf('value')
+
+  if (sourceIdx === -1 || targetIdx === -1 || valueIdx === -1) {
+    return { sourceNodes: [], targetNodes: [], links: [], maxFlow: 0 }
+  }
+
+  const links = []
+  const sourceTotals = new Map()
+  const targetTotals = new Map()
+
+  for (let i = 1; i < lines.length; i++) {
+    const cols = lines[i].split(',').map(c => c.trim())
+    const source = cols[sourceIdx]
+    const target = cols[targetIdx]
+    const value = parseFloat(cols[valueIdx]) || 0
+
+    if (!source || !target || value <= 0) continue
+
+    links.push({ source, target, value })
+    sourceTotals.set(source, (sourceTotals.get(source) || 0) + value)
+    targetTotals.set(target, (targetTotals.get(target) || 0) + value)
+  }
+
+  if (links.length === 0) {
+    return { sourceNodes: [], targetNodes: [], links: [], maxFlow: 0 }
+  }
+
+  const sourceNodes = [...sourceTotals.entries()].map(([name, total]) => ({ name, total }))
+  const targetNodes = [...targetTotals.entries()].map(([name, total]) => ({ name, total }))
+
+  const sourceTotal = sourceNodes.reduce((s, n) => s + n.total, 0)
+  const targetTotal = targetNodes.reduce((s, n) => s + n.total, 0)
+  const maxFlow = Math.max(sourceTotal, targetTotal)
+
+  return { sourceNodes, targetNodes, links, maxFlow }
+}
+
+export function renderSankeyChart(data, w, h, { title = '' } = {}) {
+  const { sourceNodes, targetNodes, links, maxFlow } = data
+
+  if (sourceNodes.length === 0 && targetNodes.length === 0) {
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+      <rect width="${w}" height="${h}" fill="#f8fbfd"/>
+      <text x="${w / 2}" y="${h / 2}" text-anchor="middle" font-size="14" fill="#687b8b">无数据</text>
+    </svg>`
+  }
+
+  const pad = { top: title ? 44 : 24, bottom: 20, left: 80, right: 80 }
+  const nodeW = 18
+  const chartH = h - pad.top - pad.bottom
+  const flowScale = chartH / maxFlow
+
+  const sourceX = pad.left
+  const sourceRightX = sourceX + nodeW
+  const targetRightX = w - pad.right
+  const targetLeftX = targetRightX - nodeW
+
+  // Position source nodes — stack vertically
+  let sy = pad.top
+  const sourcePosMap = new Map()
+  sourceNodes.forEach((node) => {
+    const nh = Math.max(16, node.total * flowScale)
+    sourcePosMap.set(node.name, { y: sy, h: nh })
+    sy += nh + 12
+  })
+
+  // Position target nodes — stack vertically
+  let ty = pad.top
+  const targetPosMap = new Map()
+  targetNodes.forEach((node) => {
+    const nh = Math.max(16, node.total * flowScale)
+    targetPosMap.set(node.name, { y: ty, h: nh })
+    ty += nh + 12
+  })
+
+  // Draw flow bands — filled bezier paths, one per link
+  const sourceOffsets = new Map(sourceNodes.map(n => [n.name, 0]))
+  const targetOffsets = new Map(targetNodes.map(n => [n.name, 0]))
+
+  let bands = ''
+  links.forEach((link) => {
+    const s = sourcePosMap.get(link.source)
+    const t = targetPosMap.get(link.target)
+    if (!s || !t) return
+
+    const sTotal = sourceNodes.find(n => n.name === link.source).total
+    const tTotal = targetNodes.find(n => n.name === link.target).total
+
+    const h1 = (link.value / sTotal) * s.h
+    const h2 = (link.value / tTotal) * t.h
+
+    const y1 = s.y + sourceOffsets.get(link.source)
+    const y2 = t.y + targetOffsets.get(link.target)
+
+    const colorIdx = sourceNodes.findIndex(n => n.name === link.source)
+    const color = COLORS[colorIdx % COLORS.length]
+
+    const cp1x = sourceRightX + (targetLeftX - sourceRightX) * 0.4
+    const cp2x = sourceRightX + (targetLeftX - sourceRightX) * 0.6
+
+    bands += `<path d="M${sourceRightX},${y1} C${cp1x},${y1} ${cp2x},${y2} ${targetLeftX},${y2} L${targetLeftX},${y2 + h2} C${cp2x},${y1 + h1} ${cp1x},${y1 + h1} ${sourceRightX},${y1 + h1} Z" fill="${color}" fill-opacity="0.35" stroke="${color}" stroke-opacity="0.5" stroke-width="0.5"/>`
+
+    sourceOffsets.set(link.source, sourceOffsets.get(link.source) + h1)
+    targetOffsets.set(link.target, targetOffsets.get(link.target) + h2)
+  })
+
+  // Draw node rectangles and labels
+  let nodesSvg = ''
+  sourceNodes.forEach((n, i) => {
+    const p = sourcePosMap.get(n.name)
+    const color = COLORS[i % COLORS.length]
+    nodesSvg += `<rect x="${sourceX}" y="${p.y}" width="${nodeW}" height="${p.h}" rx="3" fill="${color}"/>`
+    nodesSvg += `<text x="${sourceX - 6}" y="${p.y + p.h / 2 + 4}" text-anchor="end" font-size="12" fill="#627586">${n.name}</text>`
+  })
+
+  targetNodes.forEach((n, i) => {
+    const p = targetPosMap.get(n.name)
+    const color = COLORS[(i + sourceNodes.length) % COLORS.length]
+    nodesSvg += `<rect x="${targetLeftX}" y="${p.y}" width="${nodeW}" height="${p.h}" rx="3" fill="${color}"/>`
+    nodesSvg += `<text x="${targetRightX + 6}" y="${p.y + p.h / 2 + 4}" text-anchor="start" font-size="12" fill="#627586">${n.name}</text>`
+  })
+
+  // Title
+  let titleSvg = ''
+  if (title) {
+    titleSvg = `<text x="${w / 2}" y="20" text-anchor="middle" font-size="14" font-weight="600" fill="#1c2834">${title}</text>`
+  }
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+    <rect width="${w}" height="${h}" fill="#fafdfe"/>
+    ${titleSvg}
+    ${bands}
+    ${nodesSvg}
+  </svg>`
+}
+
 export function renderChartSvg(component) {
   const { props, width, height } = component
 
@@ -569,6 +712,10 @@ export function renderChartSvg(component) {
     case 'radar': {
       const data = parseCSVRadar(props.csvText)
       return data.dimensions.length ? renderRadarChart(data, width, height, opts) : emptySvg
+    }
+    case 'sankey': {
+      const data = parseCSVSankey(props.csvText)
+      return data.links.length ? renderSankeyChart(data, width, height, opts) : emptySvg
     }
     case 'bar':
     default: {
