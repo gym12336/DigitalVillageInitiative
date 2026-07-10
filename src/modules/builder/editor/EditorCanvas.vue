@@ -10,6 +10,8 @@
         <button class="tb-btn" @click="addToCanvas('chart')">📊 图表</button>
         <button class="tb-btn" @click="addToCanvas('image')">🖼 图片</button>
         <button class="tb-btn" @click="addToCanvas('agri-sensor')">🌡 传感器</button>
+        <button class="tb-btn" @click="addToCanvas('timeline')">⏱ 时间轴</button>
+        <button class="tb-btn" @click="addToCanvas('datatable')">📋 数据表</button>
       </div>
       <div class="ec-tb-center">
         <button class="tb-btn" @click="undo" :disabled="state.historyIndex <= 0" title="撤销">↩</button>
@@ -78,6 +80,8 @@ import {
 } from './stageEditor.js'
 import { renderChartSvg } from './chartRenderer.js'
 import { renderSensorMarkup } from './sensorRenderer.js'
+import { renderTimelineMarkup } from './timelineRenderer.js'
+import { renderDatatableMarkup } from './datatableRenderer.js'
 
 const router = useRouter()
 
@@ -149,6 +153,12 @@ function renderComponentMarkup(c) {
       break
     case 'agri-sensor':
       inner = renderSensorMarkup(c)
+      break
+    case 'timeline':
+      inner = renderTimelineMarkup(c)
+      break
+    case 'datatable':
+      inner = renderDatatableMarkup(c)
       break
   }
 
@@ -244,7 +254,7 @@ async function onDrop(e) {
     }
     pushHistory()
   } else {
-    addComponentAt(info.type, Math.round(x), Math.round(y))
+    addComponentAt(info.type, Math.round(x), Math.round(y), info.chartType)
   }
 }
 
