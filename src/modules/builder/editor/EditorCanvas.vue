@@ -74,17 +74,21 @@ import {
   state, addComponentAt, selectComponent,
   selectByRect, deleteComponent, bringToFront, cloneComponent,
   copySelected, pasteClipboard, undo, redo, setZoom, pushHistory, save, getSelected, load,
+  saveToDB, loadFromDB,
 } from './stageEditor.js'
 import { renderChartSvg } from './chartRenderer.js'
 import { renderSensorMarkup } from './sensorRenderer.js'
-import { getBigComponent, saveBigComponent } from '../display/bigComponentStore.js'
 
 const router = useRouter()
 
 const props = defineProps({
-  saveKey: {
+  documentType: {
     type: String,
-    default: 'builder-save',
+    default: 'editor',   // 'editor' | 'display'
+  },
+  dossierId: {
+    type: String,
+    default: '',
   },
 })
 const ZOOM_OPTIONS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2]
@@ -164,17 +168,39 @@ function addToCanvas(type) {
   addComponentAt(type, cx + Math.random() * 200, cy + Math.random() * 150)
 }
 
-function onSave() { save(props.saveKey) }
-function onSaveAsBigComponent() {
+async function onSave() {
+  if (props.dossierId) {
+    try {
+      await saveToDB(props.dossierId, props.documentType)
+      alert('✅ 已保存到数据库')
+    } catch (e) {
+      alert('❌ 保存失败：' + (e.message || '未知错误'))
+    }
+  } else {
+    // 无 dossierId 时回退到 localStorage（向后兼容）
+    save(props.documentType === 'display' ? 'builder-display-save' : 'builder-save')
+    alert('⚠️ 已保存到本地（请先选择实践档案以保存到数据库）')
+  }
+}
+async function onSaveAsBigComponent() {
   if (state.selectedId === null) return
+  if (!props.dossierId) {
+    alert('⚠️ 请先选择实践档案')
+    return
+  }
   const selected = state.components.filter(c => c.id === state.selectedId)
   if (!selected.length) return
 
   const name = window.prompt('请输入大组件名称：', '我的大组件')
   if (!name || !name.trim()) return
 
-  saveBigComponent(name.trim(), selected)
-  alert('✅ 已收录到自定义大组件库')
+  const { saveBigComponent } = await import('../display/bigComponentStore.js')
+  try {
+    await saveBigComponent(props.dossierId, name.trim(), selected)
+    alert('✅ 已收录到自定义大组件库')
+  } catch (e) {
+    alert('❌ 保存大组件失败：' + (e.message || '未知错误'))
+  }
 }
 function onPreview() {
   import('./buildPreview.js').then(m => m.buildAndOpen(state))
@@ -188,7 +214,7 @@ function onDragOver(e) {
   e.dataTransfer.dropEffect = 'copy'
 }
 
-function onDrop(e) {
+async function onDrop(e) {
   e.preventDefault()
   const raw = e.dataTransfer.getData('text/plain')
   if (!raw) return
@@ -199,18 +225,21 @@ function onDrop(e) {
   const y = (e.clientY - rect.top + viewportRef.value.scrollTop) / state.zoom
 
   if (info.type === 'big-component' && info.bigComponentId) {
-    const bc = getBigComponent(info.bigComponentId)
+    const { loadBigComponents } = await import('../display/bigComponentStore.js')
+    const all = await loadBigComponents(props.dossierId)
+    const bc = all.find(b => b.id === info.bigComponentId)
     if (!bc) return
     const baseX = Math.round(x)
     const baseY = Math.round(y)
-    bc.children.forEach(child => {
+    const children = JSON.parse(bc.payload).children
+    children.forEach(child => {
       const comp = JSON.parse(JSON.stringify(child))
       comp.id = state.nextId++
       comp.x = baseX + (comp.x || 0)
       comp.y = baseY + (comp.y || 0)
       state.components.push(comp)
     })
-    if (bc.children.length > 0) {
+    if (children.length > 0) {
       state.selectedId = state.components[state.components.length - 1].id
     }
     pushHistory()
@@ -391,13 +420,18 @@ function onGlobalClick() {
   ctxMenu.value.show = false
 }
 
-onMounted(() => {
+onMounted(async () => {
   document.addEventListener('keydown', onKeyDown)
   if (viewportRef.value) {
     viewportRef.value.addEventListener('contextmenu', onStageContextMenu)
   }
   document.addEventListener('click', onGlobalClick)
-  load(props.saveKey)
+
+  if (props.dossierId) {
+    await loadFromDB(props.dossierId, props.documentType)
+  } else {
+    load(props.documentType === 'display' ? 'builder-display-save' : 'builder-save')
+  }
 })
 
 onUnmounted(() => {
