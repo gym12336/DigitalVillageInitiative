@@ -36,6 +36,25 @@ export function parseCSVMultiSeries(csvText) {
   return { labels, series, totals }
 }
 
+export function parseCSVDumbbell(csvText) {
+  const lines = csvText.trim().split('\n').filter(Boolean)
+  if (lines.length < 2) return []
+  const headers = lines[0].split(',').map(h => h.trim())
+  const labelIdx = headers.indexOf('label')
+  const startIdx = headers.indexOf('start')
+  const endIdx = headers.indexOf('end')
+  if (labelIdx === -1 || startIdx === -1 || endIdx === -1) return []
+
+  return lines.slice(1).map(line => {
+    const cols = line.split(',').map(c => c.trim())
+    return {
+      label: cols[labelIdx] || '',
+      start: parseFloat(cols[startIdx]) || 0,
+      end: parseFloat(cols[endIdx]) || 0,
+    }
+  })
+}
+
 export function parseCSV(csvText) {
   const lines = csvText.trim().split('\n').filter(Boolean)
   if (lines.length < 2) return []
@@ -251,6 +270,52 @@ export function renderStackedBarChart(data, w, h, { title = '' } = {}) {
     ${legend}
     ${yAxis}
     ${bars}
+  </svg>`
+}
+
+export function renderDumbbellChart(data, w, h, { title = '' } = {}) {
+  const n = data.length
+  const rowH = Math.min(60, (h - 80) / Math.max(n, 1))
+  const startY = 55
+  const leftPad = 120
+  const rightPad = 80
+  const chartW = w - leftPad - rightPad
+
+  const allVals = data.flatMap(d => [d.start, d.end])
+  const minVal = Math.min(...allVals)
+  const maxVal = Math.max(...allVals)
+  const range = maxVal - minVal || 1
+
+  const toX = (val) => leftPad + ((val - minVal) / range) * chartW
+
+  let rows = ''
+  data.forEach((d, i) => {
+    const cy = startY + i * rowH + rowH / 2
+    const x1 = toX(d.start)
+    const x2 = toX(d.end)
+    const change = d.start !== 0 ? ((d.end - d.start) / d.start * 100) : 0
+    const changeStr = (change >= 0 ? '+' : '') + change.toFixed(1) + '%'
+    const changeColor = change >= 0 ? '#6fcf97' : '#eb5757'
+    const arrow = change >= 0 ? '▲' : '▼'
+
+    rows += `<text x="${leftPad - 10}" y="${cy + 4}" text-anchor="end" font-size="12" fill="#627586">${d.label}</text>`
+    rows += `<circle cx="${x1}" cy="${cy}" r="7" fill="#a0c4d8" stroke="#fff" stroke-width="2"/>`
+    rows += `<line x1="${x1 + 7}" y1="${cy}" x2="${x2 - 7}" y2="${cy}" stroke="rgba(101,126,152,0.35)" stroke-width="2.5" stroke-dasharray="4,3"/>`
+    rows += `<circle cx="${x2}" cy="${cy}" r="9" fill="#2c7da0" stroke="#fff" stroke-width="2"/>`
+    rows += `<text x="${x1}" y="${cy - 12}" text-anchor="middle" font-size="10" fill="#687b8b">${d.start}</text>`
+    rows += `<text x="${x2}" y="${cy - 14}" text-anchor="middle" font-size="12" fill="#1c2834" font-weight="600">${d.end}</text>`
+    rows += `<text x="${w - 10}" y="${cy + 4}" text-anchor="end" font-size="12" font-weight="600" fill="${changeColor}">${arrow} ${changeStr}</text>`
+  })
+
+  let titleSvg = ''
+  if (title) {
+    titleSvg = `<text x="${w / 2}" y="22" text-anchor="middle" font-size="14" font-weight="600" fill="#1c2834">${title}</text>`
+  }
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+    <rect width="${w}" height="${h}" fill="#fafdfe"/>
+    ${titleSvg}
+    ${rows}
   </svg>`
 }
 
