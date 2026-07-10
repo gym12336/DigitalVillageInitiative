@@ -22,17 +22,32 @@
         </select>
         <input v-model="m.name" class="cell name" placeholder="材料名称" />
         <input v-model="m.note" class="cell" placeholder="备注（可选）" />
-        <a v-if="m.url" class="mat-link" :href="m.url" target="_blank" rel="noopener">查看 ↗</a>
+        <button v-if="m.url || m.text" class="mat-link" @click="preview = m">查看 ↗</button>
+        <label v-else class="btn tiny row-file" :class="{ disabled: rowUploading === i }">
+          {{ rowUploading === i ? '上传中…' : '📎 选文件' }}
+          <input type="file" class="file-input" :disabled="rowUploading === i" @change="onRowFile(i, $event)" />
+        </label>
         <button class="chip-x" aria-label="删除" @click="remove(i)">×</button>
       </div>
       <button class="btn tiny ghost" @click="addManual">+ 手动登记材料</button>
     </div>
+
+    <MediaPreview :item="preview" @close="preview = null" />
   </section>
 </template>
 
 <script setup>
 import { ref } from 'vue'
-import { uploadMedia } from './mediaApi.js'
+import { uploadMedia, extractAndStoreDoc } from './mediaApi.js'
+import MediaPreview from './MediaPreview.vue'
+
+// 可解析文本档扩展名：这些走 extract-and-store，顺带拿到解析全文供站内预览。
+const PARSABLE_EXT = new Set(['txt', 'md', 'docx', 'pdf', 'csv', 'xlsx', 'xls'])
+function extOf(name) {
+  const s = String(name || '')
+  const dot = s.lastIndexOf('.')
+  return dot >= 0 && dot < s.length - 1 ? s.slice(dot + 1).toLowerCase() : ''
+}
 
 const props = defineProps({
   materials: { type: Array, required: true }, // 直接改传入数组（父组件 state 的引用）
@@ -41,9 +56,11 @@ const props = defineProps({
 const emit = defineEmits(['change'])
 
 const materialTypes = ['照片', '视频', '音频', '访谈记录', '调研笔记', '文档', '表格', '其他']
+const preview = ref(null)
 const uploading = ref(false)
 const uploadMsg = ref('')
 const uploadErr = ref(false)
+const rowUploading = ref(-1) // 正在上传的行下标，-1 表示无
 
 const KIND_TO_TYPE = { image: '照片', av: '视频', doc: '文档', table: '表格', other: '其他' }
 const KIND_ICON = { image: '🖼', av: '🎬', doc: '📄', table: '📊', other: '📎' }
@@ -57,14 +74,29 @@ async function onPick(e) {
   uploadMsg.value = ''
   uploadErr.value = false
   try {
-    const media = await uploadMedia(props.dossierId, file)
-    props.materials.push({
-      type: KIND_TO_TYPE[media.kind] || '其他',
-      name: media.name,
-      note: '',
-      url: media.url,
-      kind: media.kind,
-    })
+    // 文本档走 extract-and-store：存盘同时拿解析全文，站内预览能读内容而非只下载。
+    if (PARSABLE_EXT.has(extOf(file.name))) {
+      const { media, text } = await extractAndStoreDoc(props.dossierId, file)
+      props.materials.push({
+        type: KIND_TO_TYPE[media.kind] || '文档',
+        name: media.name,
+        note: '',
+        url: media.url,
+        kind: media.kind,
+        ext: media.ext,
+        text: text || '',
+      })
+    } else {
+      const media = await uploadMedia(props.dossierId, file)
+      props.materials.push({
+        type: KIND_TO_TYPE[media.kind] || '其他',
+        name: media.name,
+        note: '',
+        url: media.url,
+        kind: media.kind,
+        ext: media.ext,
+      })
+    }
     uploadMsg.value = '上传成功 ✓'
     emit('change')
   } catch (err) {
@@ -72,6 +104,43 @@ async function onPick(e) {
     uploadMsg.value = err.message || '上传失败'
   } finally {
     uploading.value = false
+  }
+}
+
+// 行内选文件：给某条手动登记的材料补传真实文件，绑定到该行（保留已填的名称/备注）。
+async function onRowFile(i, e) {
+  const file = e.target.files && e.target.files[0]
+  e.target.value = ''
+  if (!file) return
+  const row = props.materials[i]
+  if (!row) return
+  rowUploading.value = i
+  uploadMsg.value = ''
+  uploadErr.value = false
+  try {
+    if (PARSABLE_EXT.has(extOf(file.name))) {
+      const { media, text } = await extractAndStoreDoc(props.dossierId, file)
+      row.name = row.name || media.name
+      row.type = row.type || KIND_TO_TYPE[media.kind] || '文档'
+      row.url = media.url
+      row.kind = media.kind
+      row.ext = media.ext
+      row.text = text || ''
+    } else {
+      const media = await uploadMedia(props.dossierId, file)
+      row.name = row.name || media.name
+      row.type = row.type || KIND_TO_TYPE[media.kind] || '其他'
+      row.url = media.url
+      row.kind = media.kind
+      row.ext = media.ext
+    }
+    uploadMsg.value = '上传成功 ✓'
+    emit('change')
+  } catch (err) {
+    uploadErr.value = true
+    uploadMsg.value = err.message || '上传失败'
+  } finally {
+    rowUploading.value = -1
   }
 }
 
@@ -101,7 +170,7 @@ function remove(i) {
 .mat-row { display: grid; grid-template-columns: 32px 100px 1.4fr 1.4fr auto auto; gap: .5rem; align-items: center; }
 .mat-thumb { width: 32px; height: 32px; object-fit: cover; border-radius: 6px; }
 .mat-ic { font-size: 1.1rem; text-align: center; }
-.mat-link { font-size: .8rem; color: var(--color-primary); text-decoration: none; white-space: nowrap; }
+.mat-link { font-size: .8rem; color: var(--color-primary); text-decoration: none; white-space: nowrap; border: none; background: transparent; cursor: pointer; padding: 0; }
 .mat-link:hover { text-decoration: underline; }
 
 .cell {
