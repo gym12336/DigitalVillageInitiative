@@ -155,7 +155,7 @@ export function getSelected() {
   return state.components.find(c => c.id === state.selectedId) || null
 }
 
-export function save() {
+export function save(key = 'builder-save') {
   const data = {
     components: JSON.parse(JSON.stringify(state.components)),
     pageWidth: state.pageWidth,
@@ -163,11 +163,11 @@ export function save() {
     pageBackground: state.pageBackground,
     nextId: state.nextId,
   }
-  localStorage.setItem('builder-save', JSON.stringify(data))
+  localStorage.setItem(key, JSON.stringify(data))
 }
 
-export function load() {
-  const raw = localStorage.getItem('builder-save')
+export function load(key = 'builder-save') {
+  const raw = localStorage.getItem(key)
   if (!raw) return false
   try {
     const data = JSON.parse(raw)

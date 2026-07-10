@@ -13,6 +13,8 @@ import {
   undo,
   redo,
   getSelected,
+  save,
+  load,
 } from '../modules/builder/editor/stageEditor.js'
 
 beforeEach(() => {
@@ -124,6 +126,49 @@ describe('stageEditor', () => {
       expect(getSelected()).toBeNull()
       addComponentAt('text', 0, 0)
       expect(getSelected().type).toBe('text')
+    })
+  })
+
+  describe('save/load with custom key', () => {
+    beforeEach(() => {
+      localStorage.clear()
+    })
+
+    it('save uses default key "builder-save"', () => {
+      addComponentAt('text', 10, 20)
+      save()
+      expect(localStorage.getItem('builder-save')).toBeTruthy()
+    })
+
+    it('save uses custom key when provided', () => {
+      addComponentAt('text', 10, 20)
+      save('builder-display-save')
+      expect(localStorage.getItem('builder-display-save')).toBeTruthy()
+      expect(localStorage.getItem('builder-save')).toBeFalsy()
+    })
+
+    it('load uses default key "builder-save"', () => {
+      addComponentAt('text', 10, 20)
+      save()
+      resetState()
+      const ok = load()
+      expect(ok).toBe(true)
+      expect(state.components).toHaveLength(1)
+    })
+
+    it('load uses custom key when provided', () => {
+      addComponentAt('image', 30, 40)
+      save('builder-display-save')
+      resetState()
+      const ok = load('builder-display-save')
+      expect(ok).toBe(true)
+      expect(state.components).toHaveLength(1)
+      expect(state.components[0].type).toBe('image')
+    })
+
+    it('load returns false when custom key has no data', () => {
+      localStorage.removeItem('builder-display-save')
+      expect(load('builder-display-save')).toBe(false)
     })
   })
 })
