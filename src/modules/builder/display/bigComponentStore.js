@@ -1,15 +1,15 @@
-const STORAGE_KEY = 'builder-big-components'
+// Big component CRUD backed by /api/builder (database).
+// Each dossier has its own big component library.
+import { apiLoadDocuments, apiSaveDocument, apiDeleteDocument } from '../builderApi.js'
 
 /**
- * Load all big components from localStorage.
- * @returns {Array}
+ * Load all big components for a dossier.
+ * @param {string} dossierId
+ * @returns {Promise<Array>} — each item is the full document row { id, type, name, payload, ... }
  */
-export function loadBigComponents() {
+export async function loadBigComponents(dossierId) {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return []
-    const parsed = JSON.parse(raw)
-    return Array.isArray(parsed) ? parsed : []
+    return await apiLoadDocuments(dossierId, 'big-component')
   } catch {
     return []
   }
@@ -17,11 +17,12 @@ export function loadBigComponents() {
 
 /**
  * Save a new big component with normalized coordinates.
+ * @param {string} dossierId
  * @param {string} name
- * @param {Array} children
- * @returns {object} the saved big component
+ * @param {Array} children — array of canvas component objects
+ * @returns {Promise<object>} the saved document
  */
-export function saveBigComponent(name, children) {
+export async function saveBigComponent(dossierId, name, children) {
   // Deep clone children so originals are not mutated
   const cloned = JSON.parse(JSON.stringify(children))
 
@@ -45,41 +46,35 @@ export function saveBigComponent(name, children) {
     if (bottom > totalHeight) totalHeight = bottom
   }
 
-  const bigComponent = {
-    id: 'bc_' + Date.now(),
-    name,
+  const payload = JSON.stringify({
     children: cloned,
     totalWidth,
     totalHeight,
     thumbnail: '',
     createdAt: Date.now(),
-  }
+  })
 
-  const all = loadBigComponents()
-  all.push(bigComponent)
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(all))
-
-  return bigComponent
+  return apiSaveDocument(dossierId, {
+    type: 'big-component',
+    name,
+    payload,
+  })
 }
 
 /**
- * Delete a big component by id.
- * @param {string} id
+ * Delete a big component by document id.
+ * @param {string} id — document id (not the old localStorage bc_xxx id)
  */
-export function deleteBigComponent(id) {
-  const all = loadBigComponents()
-  const filtered = all.filter((bc) => bc.id !== id)
-  if (filtered.length !== all.length) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered))
+export async function deleteBigComponent(id) {
+  try {
+    await apiDeleteDocument(id)
+  } catch {
+    // Silently ignore errors
   }
 }
 
-/**
- * Get a single big component by id.
- * @param {string} id
- * @returns {object|undefined}
- */
-export function getBigComponent(id) {
-  const all = loadBigComponents()
-  return all.find((bc) => bc.id === id)
+/** @deprecated — use loadBigComponents + find instead */
+export async function getBigComponent(dossierId, bigComponentId) {
+  const all = await loadBigComponents(dossierId)
+  return all.find((bc) => bc.id === bigComponentId)
 }

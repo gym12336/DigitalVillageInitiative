@@ -33,7 +33,7 @@ defineProps({
 
 const router = useRouter()
 function onDiy() {
-  router.push('/builder')
+  router.push('/builder/display/' + props.dossier.id)
 }
 </script>
 
