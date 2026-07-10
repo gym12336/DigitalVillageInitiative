@@ -1,5 +1,6 @@
 // src/modules/builder/editor/stageEditor.js
 import { reactive } from 'vue'
+import { apiLoadDocuments, apiSaveDocument } from '../builderApi.js'
 import { createComponent } from './componentFactory.js'
 
 const HISTORY_LIMIT = 50
@@ -171,6 +172,51 @@ export function load(key = 'builder-save') {
   if (!raw) return false
   try {
     const data = JSON.parse(raw)
+    state.components = data.components || []
+    state.pageWidth = data.pageWidth || 1920
+    state.pageHeight = data.pageHeight || 1080
+    state.pageBackground = data.pageBackground || '#ffffff'
+    state.nextId = data.nextId || 1
+    state.selectedId = null
+    state.history = [JSON.parse(JSON.stringify(state.components))]
+    state.historyIndex = 0
+    state.clipboard = []
+    return true
+  } catch {
+    return false
+  }
+}
+
+// —— Database persistence (replaces localStorage save/load) ——
+
+/**
+ * Save current canvas state to the database.
+ * @param {string} dossierId
+ * @param {'editor'|'display'} type
+ */
+export async function saveToDB(dossierId, type) {
+  const payload = JSON.stringify({
+    components: JSON.parse(JSON.stringify(state.components)),
+    pageWidth: state.pageWidth,
+    pageHeight: state.pageHeight,
+    pageBackground: state.pageBackground,
+    nextId: state.nextId,
+  })
+  await apiSaveDocument(dossierId, { type, payload })
+}
+
+/**
+ * Load canvas state from the database. Resets clipboard/history like localStorage load().
+ * @param {string} dossierId
+ * @param {'editor'|'display'} type
+ * @returns {Promise<boolean>} true if data was loaded, false if no data found
+ */
+export async function loadFromDB(dossierId, type) {
+  try {
+    const docs = await apiLoadDocuments(dossierId, type)
+    if (!docs || docs.length === 0) return false
+    const doc = docs[0]
+    const data = JSON.parse(doc.payload)
     state.components = data.components || []
     state.pageWidth = data.pageWidth || 1920
     state.pageHeight = data.pageHeight || 1080
