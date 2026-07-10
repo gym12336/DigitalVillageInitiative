@@ -5,6 +5,7 @@ export function createComponent(type, x, y, chartType) {
     case 'text':        return createTextComponent(x, y)
     case 'image':       return createImageComponent(x, y)
     case 'chart':       return createChartComponent(x, y, chartType)
+    case 'timeline':    return createTimelineComponent(x, y)
     case 'agri-sensor': return createSensorComponent(x, y)
     default:            throw new Error(`Unknown component type: ${type}`)
   }
@@ -70,6 +71,23 @@ function defaultCsvFor(chartType) {
     case 'trend-badge':   return 'label,value,change\n销售额,128,560,+12.5%\n用户数,42,091,+8.3%\n转化率,3.28%,-0.5%'
     case 'radar':         return 'label,产业兴旺,生态宜居,乡风文明,治理有效,生活富裕\n李家村,80,65,72,88,70\n全县平均,60,55,58,62,50'
     default:              return 'label,value\n类别A,35\n类别B,68\n类别C,42\n类别D,55\n类别E,27'
+  }
+}
+
+export function createTimelineComponent(x, y) {
+  return {
+    type: 'timeline',
+    x, y,
+    width: 600,
+    height: 360,
+    props: {
+      title: '发展历程',
+      events: [
+        { date: '2020-03', title: '事件标题', description: '事件描述' },
+        { date: '2021-06', title: '事件标题', description: '事件描述' },
+        { date: '2022-12', title: '事件标题', description: '事件描述' },
+      ],
+    },
   }
 }
 
