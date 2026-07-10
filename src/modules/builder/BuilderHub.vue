@@ -32,14 +32,17 @@
 </template>
 
 <script setup>
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 
 const router = useRouter()
+const route = useRoute()
+const dossierId = route.query.dossierId || ''
+
 function goEditor() {
-  router.push('/builder/editor')
+  router.push(dossierId ? `/builder/editor/${dossierId}` : '/builder/editor')
 }
 function goDisplay() {
-  router.push('/builder/display')
+  router.push(dossierId ? `/builder/display/${dossierId}` : '/builder/display')
 }
 </script>
 
