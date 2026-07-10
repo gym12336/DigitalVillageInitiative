@@ -1,6 +1,11 @@
 <!-- src/modules/builder/editor/BigComponentEditor.vue -->
 <template>
   <div class="editor-root">
+    <!-- DossierPicker -->
+    <div class="editor-dossier-bar">
+      <DossierPicker :dossier-id="dossierId" />
+    </div>
+
     <!-- Left Panel: Component Library -->
     <aside class="editor-left" :class="{ collapsed: leftCollapsed }">
       <ComponentLibrary v-if="!leftCollapsed" />
@@ -11,7 +16,7 @@
 
     <!-- Center: Canvas -->
     <main class="editor-center">
-      <EditorCanvas />
+      <EditorCanvas document-type="editor" :dossier-id="dossierId" />
     </main>
 
     <!-- Right Panel: Properties -->
@@ -22,17 +27,18 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed } from 'vue'
+import { useRoute } from 'vue-router'
 import ComponentLibrary from './ComponentLibrary.vue'
 import EditorCanvas from './EditorCanvas.vue'
 import PropertyPanel from './PropertyPanel.vue'
-import { state, load } from './stageEditor.js'
+import { state } from './stageEditor.js'
+import DossierPicker from '../DossierPicker.vue'
 
+const route = useRoute()
 const leftCollapsed = ref(false)
 
-onMounted(() => {
-  load() // Restore from localStorage if available
-})
+const dossierId = computed(() => route.params.dossierId || '')
 </script>
 
 <style scoped>
@@ -160,5 +166,15 @@ onMounted(() => {
   border-color: var(--color-primary);
   color: var(--color-primary);
   box-shadow: var(--shadow-sm);
+}
+
+.editor-dossier-bar {
+  display: flex; align-items: center; justify-content: flex-start;
+  padding: 0.4rem 1rem;
+  background: var(--editor-topbar-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 20px;
+  margin-bottom: 8px;
 }
 </style>

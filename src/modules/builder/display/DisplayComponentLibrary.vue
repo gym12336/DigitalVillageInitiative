@@ -47,8 +47,12 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { loadBigComponents, deleteBigComponent } from './bigComponentStore.js'
+
+const props = defineProps({
+  dossierId: { type: String, default: '' },
+})
 
 const NATIVE_CATEGORIES = [
   {
@@ -139,8 +143,13 @@ const search = ref('')
 const bigComponents = ref([])
 const ctxMenu = ref({ show: false, x: 0, y: 0, item: null })
 
-function refreshBigComponents() {
-  bigComponents.value = loadBigComponents()
+async function refreshBigComponents() {
+  if (!props.dossierId) {
+    bigComponents.value = []
+    return
+  }
+  const docs = await loadBigComponents(props.dossierId)
+  bigComponents.value = docs
 }
 
 onMounted(() => {
@@ -150,6 +159,10 @@ onMounted(() => {
 
 onUnmounted(() => {
   document.removeEventListener('click', onGlobalClick)
+})
+
+watch(() => props.dossierId, () => {
+  refreshBigComponents()
 })
 
 function onGlobalClick() {
@@ -162,7 +175,7 @@ const filteredCategories = computed(() => {
     icon: '🧩',
     name: '自定义大组件',
     items: bigComponents.value.map(bc => ({
-      label: bc.name,
+      label: bc.name || '未命名',
       icon: '📦',
       type: 'big-component',
       bigComponentId: bc.id,
@@ -191,10 +204,10 @@ function onContextMenu(e, item, catId) {
   }
 }
 
-function deleteCtxItem() {
+async function deleteCtxItem() {
   if (ctxMenu.value.item) {
-    deleteBigComponent(ctxMenu.value.item.bigComponentId)
-    refreshBigComponents()
+    await deleteBigComponent(ctxMenu.value.item.bigComponentId)
+    await refreshBigComponents()
   }
   ctxMenu.value = { show: false, x: 0, y: 0, item: null }
 }

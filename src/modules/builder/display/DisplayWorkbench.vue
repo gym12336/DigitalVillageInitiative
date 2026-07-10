@@ -1,9 +1,14 @@
 <!-- src/modules/builder/display/DisplayWorkbench.vue -->
 <template>
   <div class="editor-root">
+    <!-- DossierPicker -->
+    <div class="editor-dossier-bar">
+      <DossierPicker :dossier-id="dossierId" />
+    </div>
+
     <!-- Left Panel: Extended Component Library -->
     <aside class="editor-left" :class="{ collapsed: leftCollapsed }">
-      <DisplayComponentLibrary ref="libRef" v-if="!leftCollapsed" />
+      <DisplayComponentLibrary ref="libRef" v-if="!leftCollapsed" :dossier-id="dossierId" />
       <button class="toggle-btn" @click="leftCollapsed = !leftCollapsed" :title="leftCollapsed ? '展开组件库' : '收起组件库'">
         {{ leftCollapsed ? '▶' : '◀' }}
       </button>
@@ -11,7 +16,7 @@
 
     <!-- Center: Canvas -->
     <main class="editor-center">
-      <EditorCanvas save-key="builder-display-save" />
+      <EditorCanvas document-type="display" :dossier-id="dossierId" />
     </main>
 
     <!-- Right Panel: Properties -->
@@ -22,19 +27,28 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import DisplayComponentLibrary from './DisplayComponentLibrary.vue'
 import EditorCanvas from '../editor/EditorCanvas.vue'
 import PropertyPanel from '../editor/PropertyPanel.vue'
 import { state, resetState } from '../editor/stageEditor.js'
+import DossierPicker from '../DossierPicker.vue'
 
+const route = useRoute()
 const leftCollapsed = ref(false)
 const libRef = ref(null)
 
+const dossierId = computed(() => route.params.dossierId || '')
+
 onMounted(() => {
   resetState()
-  // EditorCanvas will load from 'builder-display-save' via its saveKey prop
-  // Refresh custom big component list
+  // EditorCanvas will load from DB (or localStorage fallback) via its onMounted
+})
+
+// When dossierId changes, reset and reload
+watch(dossierId, () => {
+  resetState()
   if (libRef.value?.refreshBigComponents) {
     libRef.value.refreshBigComponents()
   }
@@ -157,5 +171,15 @@ onMounted(() => {
   border-color: var(--color-primary);
   color: var(--color-primary);
   box-shadow: var(--shadow-sm);
+}
+
+.editor-dossier-bar {
+  display: flex; align-items: center; justify-content: flex-start;
+  padding: 0.4rem 1rem;
+  background: var(--editor-topbar-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 20px;
+  margin-bottom: 8px;
 }
 </style>
