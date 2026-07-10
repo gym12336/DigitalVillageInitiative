@@ -6,6 +6,7 @@ export function createComponent(type, x, y, chartType) {
     case 'image':       return createImageComponent(x, y)
     case 'chart':       return createChartComponent(x, y, chartType)
     case 'timeline':    return createTimelineComponent(x, y)
+    case 'datatable':   return createDatatableComponent(x, y)
     case 'agri-sensor': return createSensorComponent(x, y)
     default:            throw new Error(`Unknown component type: ${type}`)
   }
@@ -86,6 +87,23 @@ export function createTimelineComponent(x, y) {
         { date: '2020-03', title: '事件标题', description: '事件描述' },
         { date: '2021-06', title: '事件标题', description: '事件描述' },
         { date: '2022-12', title: '事件标题', description: '事件描述' },
+      ],
+    },
+  }
+}
+
+export function createDatatableComponent(x, y) {
+  return {
+    type: 'datatable',
+    x, y,
+    width: 560,
+    height: 340,
+    props: {
+      title: '荣誉资质',
+      columns: ['荣誉名称', '颁发单位', '时间'],
+      rows: [
+        ['示例荣誉', '示例单位', '2024'],
+        ['示例荣誉', '示例单位', '2023'],
       ],
     },
   }
