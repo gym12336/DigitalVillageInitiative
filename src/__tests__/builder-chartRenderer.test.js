@@ -4,12 +4,14 @@ import {
   parseCSVMultiSeries,
   parseCSVDumbbell,
   parseCSVTrendBadge,
+  parseCSVRadar,
   renderBarChart,
   renderPieChart,
   renderLineChart,
   renderStackedBarChart,
   renderDumbbellChart,
   renderTrendBadge,
+  renderRadarChart,
   renderChartSvg,
 } from '../modules/builder/editor/chartRenderer.js'
 
@@ -141,5 +143,67 @@ describe('renderTrendBadge', () => {
     expect(svg).toContain('A')
     expect(svg).toContain('B')
     expect(svg).toContain('C')
+  })
+})
+
+describe('parseCSVRadar', () => {
+  it('parses multi-dimension CSV into labels, dimensions, and series', () => {
+    const csv = 'label,产业兴旺,生态宜居,乡风文明\n李家村,80,65,72\n全县平均,60,55,58'
+    const result = parseCSVRadar(csv)
+    expect(result.labels).toEqual(['李家村', '全县平均'])
+    expect(result.dimensions).toEqual(['产业兴旺', '生态宜居', '乡风文明'])
+    expect(result.series).toHaveLength(2)
+    expect(result.series[0].name).toBe('李家村')
+    expect(result.series[0].values).toEqual([80, 65, 72])
+    expect(result.series[1].name).toBe('全县平均')
+    expect(result.series[1].values).toEqual([60, 55, 58])
+  })
+
+  it('returns empty data for insufficient columns', () => {
+    const csv = 'label,onlyone\n李家村,80'
+    expect(parseCSVRadar(csv).dimensions).toEqual([])
+    expect(parseCSVRadar('').dimensions).toEqual([])
+  })
+
+  it('returns empty data when label column is missing', () => {
+    const csv = 'name,a,b\nA,10,20'
+    expect(parseCSVRadar(csv).dimensions).toEqual([])
+  })
+})
+
+describe('renderRadarChart', () => {
+  it('returns SVG with polygon and axis lines', () => {
+    const data = {
+      labels: ['李家村', '全县平均'],
+      dimensions: ['产业兴旺', '生态宜居', '乡风文明', '治理有效', '生活富裕'],
+      series: [
+        { name: '李家村', values: [80, 65, 72, 88, 70] },
+        { name: '全县平均', values: [60, 55, 58, 62, 50] },
+      ],
+    }
+    const svg = renderRadarChart(data, 520, 380, { title: '五维画像' })
+    expect(svg).toContain('<svg')
+    expect(svg).toContain('五维画像')
+    // Should have 2 polygons (one per series)
+    expect(svg.match(/<polygon/g).length).toBe(2)
+    // Should have 5 axis lines (one per dimension)
+    expect(svg.match(/<line/g).length).toBeGreaterThanOrEqual(5)
+    // Should have dimension labels
+    expect(svg).toContain('产业兴旺')
+    expect(svg).toContain('生态宜居')
+    // Should have legend
+    expect(svg).toContain('李家村')
+    expect(svg).toContain('全县平均')
+  })
+
+  it('handles single series', () => {
+    const data = {
+      labels: ['李家村'],
+      dimensions: ['A', 'B', 'C'],
+      series: [{ name: '李家村', values: [50, 60, 70] }],
+    }
+    const svg = renderRadarChart(data, 400, 300, {})
+    expect(svg).toContain('<svg')
+    expect(svg.match(/<polygon/g).length).toBe(1)
   })
 })

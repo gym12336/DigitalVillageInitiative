@@ -74,6 +74,32 @@ export function parseCSVTrendBadge(csvText) {
   })
 }
 
+export function parseCSVRadar(csvText) {
+  const lines = csvText.trim().split('\n').filter(Boolean)
+  if (lines.length < 2) return { labels: [], dimensions: [], series: [] }
+  const headers = lines[0].split(',').map(h => h.trim())
+  const labelIdx = headers.indexOf('label')
+  if (labelIdx === -1) return { labels: [], dimensions: [], series: [] }
+
+  const dimensions = headers.filter((_, i) => i !== labelIdx)
+  if (dimensions.length < 2) return { labels: [], dimensions: [], series: [] }
+
+  const labels = []
+  const series = []
+
+  for (let i = 1; i < lines.length; i++) {
+    const cols = lines[i].split(',').map(c => c.trim())
+    labels.push(cols[labelIdx] || '')
+    const values = dimensions.map((_, di) => {
+      const colIdx = headers.indexOf(dimensions[di])
+      return parseFloat(cols[colIdx]) || 0
+    })
+    series.push({ name: cols[labelIdx] || '', values })
+  }
+
+  return { labels, dimensions, series }
+}
+
 export function parseCSV(csvText) {
   const lines = csvText.trim().split('\n').filter(Boolean)
   if (lines.length < 2) return []
@@ -296,30 +322,44 @@ export function renderDumbbellChart(data, w, h, { title = '' } = {}) {
   const n = data.length
   const rowH = Math.min(60, (h - 80) / Math.max(n, 1))
   const startY = 55
-  const leftPad = 120
-  const rightPad = 80
+  // Responsive padding so the chart area doesn't vanish on narrow components
+  const leftPad = Math.max(72, Math.min(120, w * 0.22))
+  const rightPad = Math.max(52, Math.min(80, w * 0.16))
   const chartW = w - leftPad - rightPad
-
-  const allVals = data.flatMap(d => [d.start, d.end])
-  const minVal = Math.min(...allVals)
-  const maxVal = Math.max(...allVals)
-  const range = maxVal - minVal || 1
-
-  const toX = (val) => leftPad + ((val - minVal) / range) * chartW
 
   let rows = ''
   data.forEach((d, i) => {
     const cy = startY + i * rowH + rowH / 2
+
+    // Per-row independent scale so rows with disparate magnitudes all render legibly
+    const rowMin = Math.min(d.start, d.end)
+    const rowMax = Math.max(d.start, d.end)
+    const rowRange = rowMax - rowMin || 1
+    const padding = rowRange * 0.15
+    const scaleMin = rowMin - padding
+    const scaleMax = rowMax + padding
+
+    const toX = (val) =>
+      leftPad + ((val - scaleMin) / (scaleMax - scaleMin)) * chartW
+
     const x1 = toX(d.start)
     const x2 = toX(d.end)
-    const change = d.start !== 0 ? ((d.end - d.start) / d.start * 100) : 0
+
+    // Direction-aware line endpoints, each offset by its own circle's radius
+    const dir = x1 < x2 ? 1 : -1
+    const x1Edge = x1 + dir * 7   // start circle r=7
+    const x2Edge = x2 - dir * 9   // end circle r=9
+
+    const change = d.start !== 0
+      ? ((d.end - d.start) / Math.abs(d.start) * 100)
+      : 0
     const changeStr = (change >= 0 ? '+' : '') + change.toFixed(1) + '%'
     const changeColor = change >= 0 ? COLORS[2] : COLORS[5]
     const arrow = change >= 0 ? '▲' : '▼'
 
     rows += `<text x="${leftPad - 10}" y="${cy + 4}" text-anchor="end" font-size="12" fill="#627586">${d.label}</text>`
     rows += `<circle cx="${x1}" cy="${cy}" r="7" fill="${COLORS[1]}" stroke="#fff" stroke-width="2"/>`
-    rows += `<line x1="${x1 + 7}" y1="${cy}" x2="${x2 - 7}" y2="${cy}" stroke="rgba(101,126,152,0.35)" stroke-width="2.5" stroke-dasharray="4,3"/>`
+    rows += `<line x1="${x1Edge}" y1="${cy}" x2="${x2Edge}" y2="${cy}" stroke="rgba(101,126,152,0.35)" stroke-width="2.5" stroke-dasharray="4,3"/>`
     rows += `<circle cx="${x2}" cy="${cy}" r="9" fill="${COLORS[7]}" stroke="#fff" stroke-width="2"/>`
     rows += `<text x="${x1}" y="${cy - 12}" text-anchor="middle" font-size="10" fill="#687b8b">${d.start}</text>`
     rows += `<text x="${x2}" y="${cy - 14}" text-anchor="middle" font-size="12" fill="#1c2834" font-weight="600">${d.end}</text>`
@@ -382,6 +422,119 @@ export function renderTrendBadge(data, w, h, { title = '' } = {}) {
   </svg>`
 }
 
+export function renderRadarChart(data, w, h, { title = '' } = {}) {
+  const { dimensions, series } = data
+  const n = dimensions.length
+  if (n < 3) {
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+      <rect width="${w}" height="${h}" fill="#f8fbfd"/>
+      <text x="${w / 2}" y="${h / 2}" text-anchor="middle" font-size="14" fill="#687b8b">无数据</text>
+    </svg>`
+  }
+
+  const cx = w / 2
+  const cy = h / 2 + (title ? 14 : 0)
+  const r = Math.min(w, h) / 2 - 52
+  const innerR = r * 0.15
+  const dataR = r - innerR
+  const levels = 5
+  const labelR = r + 18
+
+  // 所有数据中的最大值，向上取整
+  const allVals = series.flatMap(s => s.values)
+  const maxVal = Math.max(...allVals, 1)
+  const ceilMax = maxVal <= 1 ? 1
+    : maxVal <= 10 ? Math.ceil(maxVal)
+    : Math.ceil(maxVal / Math.pow(10, Math.floor(Math.log10(maxVal)) - 1))
+      * Math.pow(10, Math.floor(Math.log10(maxVal)) - 1)
+
+  // 同心多边形环 (虚线)
+  let rings = ''
+  for (let level = 1; level <= levels; level++) {
+    const lr = innerR + (dataR * level) / levels
+    const pts = []
+    for (let i = 0; i < n; i++) {
+      const angle = -Math.PI / 2 + (2 * Math.PI * i) / n
+      pts.push(`${cx + lr * Math.cos(angle)},${cy + lr * Math.sin(angle)}`)
+    }
+    rings += `<path d="M${pts.join(' L')} Z" fill="none" stroke="rgba(101,126,152,0.1)" stroke-dasharray="3,3"/>`
+    // 刻度值——标在第一条轴左侧
+    const val = Math.round((ceilMax / levels) * level)
+    const labelAngle = -Math.PI / 2
+    const lx = cx + (lr + 2) * Math.cos(labelAngle)
+    const ly = cy + (lr + 2) * Math.sin(labelAngle)
+    rings += `<text x="${lx - 8}" y="${ly + 4}" text-anchor="end" font-size="9" fill="#687b8b">${val}</text>`
+  }
+
+  // 轴线 (从 innerR 到 r)
+  let axes = ''
+  for (let i = 0; i < n; i++) {
+    const angle = -Math.PI / 2 + (2 * Math.PI * i) / n
+    const x1 = cx + innerR * Math.cos(angle)
+    const y1 = cy + innerR * Math.sin(angle)
+    const x2 = cx + r * Math.cos(angle)
+    const y2 = cy + r * Math.sin(angle)
+    axes += `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="rgba(101,126,152,0.2)" stroke-width="1"/>`
+  }
+
+  // 维度标签
+  let dimLabels = ''
+  for (let i = 0; i < n; i++) {
+    const angle = -Math.PI / 2 + (2 * Math.PI * i) / n
+    const lx = cx + labelR * Math.cos(angle)
+    const ly = cy + labelR * Math.sin(angle)
+    const anchor = angle > Math.PI / 2 || angle < -Math.PI / 2 ? 'end' : 'start'
+    const fontSize = n >= 6 ? 10 : 12
+    dimLabels += `<text x="${lx}" y="${ly + 4}" text-anchor="${anchor}" font-size="${fontSize}" fill="#627586" font-weight="500">${dimensions[i]}</text>`
+  }
+
+  // 数据多边形 + 数据点
+  let polys = ''
+  series.forEach((s, si) => {
+    const color = COLORS[si % COLORS.length]
+    const pts = []
+    for (let i = 0; i < n; i++) {
+      const angle = -Math.PI / 2 + (2 * Math.PI * i) / n
+      const dist = innerR + (s.values[i] / ceilMax) * dataR
+      pts.push(`${cx + dist * Math.cos(angle)},${cy + dist * Math.sin(angle)}`)
+    }
+    // 填充多边形
+    polys += `<polygon points="${pts.join(' ')}" fill="${color}" fill-opacity="0.12" stroke="${color}" stroke-width="2" stroke-linejoin="round"/>`
+    // 数据点
+    for (let i = 0; i < n; i++) {
+      const angle = -Math.PI / 2 + (2 * Math.PI * i) / n
+      const dist = innerR + (s.values[i] / ceilMax) * dataR
+      polys += `<circle cx="${cx + dist * Math.cos(angle)}" cy="${cy + dist * Math.sin(angle)}" r="3.5" fill="${color}" stroke="#fff" stroke-width="1"/>`
+    }
+  })
+
+  // 图例 —— 底部居中
+  let legend = ''
+  const legendY = h - 14
+  const totalLegendW = series.length * 100 - 10
+  const legendStartX = cx - totalLegendW / 2
+  series.forEach((s, i) => {
+    const lx = legendStartX + i * 100
+    legend += `<rect x="${lx}" y="${legendY - 6}" width="10" height="10" rx="2" fill="${COLORS[i % COLORS.length]}"/>`
+    legend += `<text x="${lx + 14}" y="${legendY + 2}" font-size="10" fill="#627586">${s.name}</text>`
+  })
+
+  let titleSvg = ''
+  if (title) {
+    titleSvg = `<text x="${w / 2}" y="22" text-anchor="middle" font-size="14" font-weight="600" fill="#1c2834">${title}</text>`
+  }
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+    <rect width="${w}" height="${h}" fill="#fafdfe"/>
+    ${titleSvg}
+    ${rings}
+    ${axes}
+    ${dimLabels}
+    ${polys}
+    ${legend}
+  </svg>`
+}
+
 export function renderChartSvg(component) {
   const { props, width, height } = component
 
@@ -412,6 +565,10 @@ export function renderChartSvg(component) {
     case 'trend-badge': {
       const data = parseCSVTrendBadge(props.csvText)
       return data.length ? renderTrendBadge(data, width, height, opts) : emptySvg
+    }
+    case 'radar': {
+      const data = parseCSVRadar(props.csvText)
+      return data.dimensions.length ? renderRadarChart(data, width, height, opts) : emptySvg
     }
     case 'bar':
     default: {
