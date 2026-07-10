@@ -89,7 +89,7 @@ const COMPONENT_CATEGORIES = [
   {
     id: 'flow', icon: '🔀', name: '关系流向',
     items: [
-      { label: '桑基图', icon: '〰️', type: 'chart', chartType: 'bar' },
+      { label: '桑基图', icon: '〰️', type: 'chart', chartType: 'sankey' },
     ],
   },
   {
