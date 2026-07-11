@@ -1,6 +1,9 @@
 node_modules/
 dist/
 .vite/
+.conda-node/
+.npm-cache/
+.local-dev/
 
 server/data/
 .env
