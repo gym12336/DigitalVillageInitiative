@@ -75,7 +75,8 @@ describe('StageTrack 任务勾选块', () => {
       },
     })
     const w = mount(StageTrack, { props: { dossier } })
+    // 无 track 段时任务折叠块不渲染；重构后指标区改为右栏 Tab，断言其描述文案仍在。
     expect(w.text()).not.toContain('本阶段任务')
-    expect(w.text()).toContain('指标采集')
+    expect(w.text()).toContain('填入实地采集的前后值')
   })
 })

@@ -1,16 +1,10 @@
 <template>
   <section class="block">
-    <h2 class="block-title">材料清单</h2>
-    <p class="block-desc">上传实践材料（照片/音视频存储，文本档可交给 AI 解析）。也可只登记元数据。</p>
+    <h2 class="block-title">手动登记材料</h2>
+    <p class="block-desc">上传走上方「上传实践材料」。这里可手动登记暂无文件的材料，或给某条补传文件。</p>
 
-    <div class="upload-row">
-      <label class="btn tiny upload-btn">
-        📎 上传文件
-        <input type="file" class="file-input" :disabled="uploading" @change="onPick" />
-      </label>
-      <span v-if="uploading" class="up-hint">上传中…</span>
-      <span v-else-if="uploadMsg" class="up-hint" :class="uploadErr ? 'err' : 'ok'">{{ uploadMsg }}</span>
-      <span class="up-limit">音视频≤200MB · 图片≤20MB · 文本档≤10MB</span>
+    <div v-if="uploadMsg" class="upload-row">
+      <span class="up-hint" :class="uploadErr ? 'err' : 'ok'">{{ uploadMsg }}</span>
     </div>
 
     <div class="mat-list">
@@ -66,7 +60,6 @@ const emit = defineEmits(['change'])
 const materialTypes = ['照片', '视频', '音频', '访谈记录', '调研笔记', '文档', '表格', '其他']
 const preview = ref(null)
 const describing = ref(-1) // 正在 AI 识图的行下标，-1 表示无
-const uploading = ref(false)
 const uploadMsg = ref('')
 const uploadErr = ref(false)
 const rowUploading = ref(-1) // 正在上传的行下标，-1 表示无
@@ -74,47 +67,6 @@ const rowUploading = ref(-1) // 正在上传的行下标，-1 表示无
 const KIND_TO_TYPE = { image: '照片', av: '视频', doc: '文档', table: '表格', other: '其他' }
 const KIND_ICON = { image: '🖼', av: '🎬', doc: '📄', table: '📊', other: '📎' }
 function kindIcon(kind) { return KIND_ICON[kind] || '📎' }
-
-async function onPick(e) {
-  const file = e.target.files && e.target.files[0]
-  e.target.value = '' // 允许重复选同一文件
-  if (!file) return
-  uploading.value = true
-  uploadMsg.value = ''
-  uploadErr.value = false
-  try {
-    // 文本档走 extract-and-store：存盘同时拿解析全文，站内预览能读内容而非只下载。
-    if (PARSABLE_EXT.has(extOf(file.name))) {
-      const { media, text } = await extractAndStoreDoc(props.dossierId, file)
-      props.materials.push({
-        type: KIND_TO_TYPE[media.kind] || '文档',
-        name: media.name,
-        note: '',
-        url: media.url,
-        kind: media.kind,
-        ext: media.ext,
-        text: text || '',
-      })
-    } else {
-      const media = await uploadMedia(props.dossierId, file)
-      props.materials.push({
-        type: KIND_TO_TYPE[media.kind] || '其他',
-        name: media.name,
-        note: '',
-        url: media.url,
-        kind: media.kind,
-        ext: media.ext,
-      })
-    }
-    uploadMsg.value = '上传成功 ✓'
-    emit('change')
-  } catch (err) {
-    uploadErr.value = true
-    uploadMsg.value = err.message || '上传失败'
-  } finally {
-    uploading.value = false
-  }
-}
 
 // 行内选文件：给某条手动登记的材料补传真实文件，绑定到该行（保留已填的名称/备注）。
 async function onRowFile(i, e) {
@@ -199,6 +151,8 @@ function remove(i) {
 
 .upload-row { display: flex; align-items: center; gap: .8rem; flex-wrap: wrap; margin-bottom: 1rem; }
 .upload-btn { position: relative; overflow: hidden; cursor: pointer; }
+/* row-file 必须自身定位，否则内部 absolute 的 file-input 会逃逸铺满整片区域，点哪都弹上传。 */
+.row-file { position: relative; overflow: hidden; cursor: pointer; }
 .file-input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
 .up-hint { font-size: .82rem; }
 .up-hint.ok { color: var(--color-primary); }

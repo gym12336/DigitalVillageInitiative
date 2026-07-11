@@ -9,9 +9,11 @@ import { extractText, isParsable, kindOf } from '../lib/fileText.js'
 import { extractFromText } from '../services/practiceExtractService.js'
 import { summarize } from '../services/practiceSummaryService.js'
 import { describeImage } from '../services/imageDescribeService.js'
+import { importZip } from '../services/zipImportService.js'
 import { httpError } from '../lib/validate.js'
 
 const EXTRACT_TEXT_LIMIT = 20_000
+const ZIP_MAX = 100 * 1024 * 1024 // 压缩包硬顶 100MB
 
 // multer 把 originalname 按 latin1 解码，中文名会乱码。这里重新按 utf8 解回。
 // 仅在字符串确实是「latin1 化的 utf8」时生效；已是正常字符串则原样返回。
@@ -31,6 +33,12 @@ function fixName(name) {
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: SIZE_LIMITS.av },
+})
+
+// ZIP 导入专用：单独 100MB 硬顶（细分档在 zipImportService 内校验）。
+const uploadZip = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: ZIP_MAX },
 })
 
 /** 校验用户是 dossier 所属队成员。返回 dossier 行。 */
@@ -155,6 +163,21 @@ export function makeMediaRouter({ db, secret, uploadDir }) {
       }
       const result = await describeImage(req.file.buffer, req.file.originalname)
       res.json(result)
+    } catch (e) {
+      next(e)
+    }
+  })
+
+  // ZIP 整包导入：解压 + 归类 + 文本档自动抽取。用独立 multer 实例（100MB 硬顶）。
+  router.post('/import-zip', uploadZip.single('file'), async (req, res, next) => {
+    try {
+      const dossierId = req.body?.dossierId
+      if (!dossierId) throw httpError(400, '缺少 dossierId')
+      if (!req.file) throw httpError(400, '缺少上传文件')
+      assertDossierMember(db, req.user, dossierId)
+
+      const result = await importZip(req.file.buffer, { dossierId, baseDir: uploadDir })
+      res.status(201).json(result)
     } catch (e) {
       next(e)
     }

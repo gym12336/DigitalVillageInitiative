@@ -1,18 +1,113 @@
 <template>
   <div class="stage">
-    <!-- 进度看板 + 动态督进 -->
+    <!-- 进度看板 + 动态督进（通栏） -->
     <TrackProgress :dossier="dossierForAnalysis" />
 
-    <!-- ① 本阶段任务：只对 stage:'track' 的一段任务做勾选。 -->
-    <section v-if="hasTrackPhase" class="block">
-      <h2 class="block-title">① 本阶段任务</h2>
-      <p class="block-desc">对照实践前定的分阶段任务，勾掉已完成项，进度会自动更新。</p>
-      <div class="progress">
-        <div class="progress-bar">
-          <div class="progress-fill" :style="{ width: percent + '%' }" />
-        </div>
-        <span class="progress-text">{{ doneCount }}/{{ trackTasks.length }} 已完成</span>
+    <!-- 左右分栏工作台 -->
+    <div class="workbench">
+      <!-- 左栏：上传区 + AI 采集区 -->
+      <div class="col-left">
+        <!-- 上传文件：按类型分行 -->
+        <UploadPanel :dossier-id="dossier.id" @imported="onImported" />
+        <!-- AI 采集区：自然语言输入 + 综述（待审校已移到右栏各 Tab） -->
+        <TrackExtract
+          :dossier-id="dossier.id"
+          :people="state.people"
+          :metric-values="state.metricValues"
+          :materials="state.materials"
+          :collected="state"
+          :topic="dossier.plan?.topic || ''"
+          :village="dossier.village || dossier.plan?.targetVillage || ''"
+          @extracted="onExtracted"
+          @change="save"
+        />
+        <!-- 手动登记材料（补料） -->
+        <TrackMedia :materials="state.materials" :dossier-id="dossier.id" @change="save" />
       </div>
+
+      <!-- 右栏：采集成果（Tab 切换） -->
+      <div class="col-right">
+        <div class="tabs">
+          <button
+            v-for="t in tabs"
+            :key="t.key"
+            class="tab"
+            :class="{ active: activeTab === t.key }"
+            @click="activeTab = t.key"
+          >{{ t.label }} <span class="tab-n">{{ t.count }}</span><span v-if="t.pending" class="tab-pending">🕓{{ t.pending }}</span></button>
+        </div>
+
+        <!-- 指标 Tab -->
+        <section v-show="activeTab === 'metrics'" class="tab-panel">
+          <p class="block-desc">对照方案里「计划采集的指标」，填入实地采集的前后值。</p>
+          <div v-if="metricValues.length" class="metric-table">
+            <div class="mt-head">
+              <span>指标</span><span>帮扶前</span><span>帮扶后</span><span>单位</span>
+            </div>
+            <div v-for="(m, i) in metricValues" :key="i" class="mt-row">
+              <input v-model="m.name" class="cell name" placeholder="指标名" />
+              <input v-model="m.before" class="cell" placeholder="前值" inputmode="decimal" />
+              <input v-model="m.after" class="cell" placeholder="后值" inputmode="decimal" />
+              <input v-model="m.unit" class="cell unit" placeholder="单位" />
+              <button class="chip-x" aria-label="删除" @click="removeMetric(i)">×</button>
+            </div>
+          </div>
+          <p v-else class="hint">方案里还没有指标。可在这里直接添加，或回「实践前」生成方案。</p>
+          <button class="btn tiny ghost" @click="addMetric">+ 添加指标</button>
+          <DraftReview
+            kind="metrics"
+            :items="draft.metrics"
+            @adopt="adoptDraft('metrics', $event)"
+            @discard="draft.metrics.splice($event, 1)"
+            @adopt-all="adoptAll('metrics')"
+            @discard-all="discardAll('metrics')"
+          />
+        </section>
+
+        <!-- 材料 Tab：按类型分组 -->
+        <section v-show="activeTab === 'materials'" class="tab-panel">
+          <p class="block-desc">上传的材料按类型归类展示，点「查看」可站内预览。</p>
+          <MaterialGroups :materials="state.materials" @preview="preview = $event" />
+          <DraftReview
+            kind="materialHints"
+            :items="draft.materialHints"
+            @adopt="adoptDraft('materialHints', $event)"
+            @discard="draft.materialHints.splice($event, 1)"
+            @adopt-all="adoptAll('materialHints')"
+            @discard-all="discardAll('materialHints')"
+          />
+        </section>
+
+        <!-- 人物 Tab -->
+        <section v-show="activeTab === 'people'" class="tab-panel">
+          <p class="block-desc">记录访谈到的乡村人物，他们的话会进入成果的人物故事墙。</p>
+          <div class="people-list">
+            <div v-for="(p, i) in people" :key="i" class="person-row">
+              <input v-model="p.name" class="cell name" placeholder="姓名" />
+              <input v-model="p.role" class="cell" placeholder="身份 / 角色" />
+              <input v-model="p.quote" class="cell wide" placeholder="一句话记录" />
+              <button class="chip-x" aria-label="删除" @click="removePerson(i)">×</button>
+            </div>
+            <button class="btn tiny ghost" @click="addPerson">+ 添加人物</button>
+          </div>
+          <DraftReview
+            kind="people"
+            :items="draft.people"
+            @adopt="adoptDraft('people', $event)"
+            @discard="draft.people.splice($event, 1)"
+            @adopt-all="adoptAll('people')"
+            @discard-all="discardAll('people')"
+          />
+        </section>
+      </div>
+    </div>
+
+    <!-- ① 本阶段任务：折叠收纳在底部 -->
+    <details v-if="hasTrackPhase" class="task-fold">
+      <summary class="task-summary">
+        ① 本阶段任务 · {{ doneCount }}/{{ trackTasks.length }} 已完成
+        <span class="mini-bar"><span class="mini-fill" :style="{ width: percent + '%' }" /></span>
+      </summary>
       <ul class="task-list">
         <li v-for="(t, i) in trackTasks" :key="i" class="task-item" :class="{ done: t.done }">
           <label class="task-line">
@@ -22,62 +117,14 @@
           </label>
         </li>
       </ul>
-    </section>
-
-    <!-- ② AI 帮你理素材（提取审校） -->
-    <TrackExtract
-      :dossier-id="dossier.id"
-      :people="state.people"
-      :metric-values="state.metricValues"
-      :materials="state.materials"
-      :collected="state"
-      :topic="dossier.plan?.topic || ''"
-      :village="dossier.village || dossier.plan?.targetVillage || ''"
-      @change="save"
-    />
-
-    <!-- ③ 指标采集 + 前后值 -->
-    <section class="block">
-      <h2 class="block-title">③ 指标采集</h2>
-      <p class="block-desc">对照方案里「计划采集的指标」，填入实地采集的前后值。</p>
-      <div v-if="metricValues.length" class="metric-table">
-        <div class="mt-head">
-          <span>指标</span><span>帮扶前</span><span>帮扶后</span><span>单位</span>
-        </div>
-        <div v-for="(m, i) in metricValues" :key="i" class="mt-row">
-          <input v-model="m.name" class="cell name" placeholder="指标名" />
-          <input v-model="m.before" class="cell" placeholder="前值" inputmode="decimal" />
-          <input v-model="m.after" class="cell" placeholder="后值" inputmode="decimal" />
-          <input v-model="m.unit" class="cell unit" placeholder="单位" />
-          <button class="chip-x" aria-label="删除" @click="removeMetric(i)">×</button>
-        </div>
-      </div>
-      <p v-else class="hint">方案里还没有指标。可在这里直接添加，或回「实践前」生成方案。</p>
-      <button class="btn tiny ghost" @click="addMetric">+ 添加指标</button>
-    </section>
-
-    <!-- ④ 材料清单（上传 + 登记） -->
-    <TrackMedia :materials="state.materials" :dossier-id="dossier.id" @change="save" />
-
-    <!-- ⑤ 人物访谈 -->
-    <section class="block">
-      <h2 class="block-title">⑤ 人物访谈</h2>
-      <p class="block-desc">记录访谈到的乡村人物，他们的话会进入成果的人物故事墙。</p>
-      <div class="people-list">
-        <div v-for="(p, i) in people" :key="i" class="person-row">
-          <input v-model="p.name" class="cell name" placeholder="姓名" />
-          <input v-model="p.role" class="cell" placeholder="身份 / 角色" />
-          <input v-model="p.quote" class="cell wide" placeholder="一句话记录" />
-          <button class="chip-x" aria-label="删除" @click="removePerson(i)">×</button>
-        </div>
-        <button class="btn tiny ghost" @click="addPerson">+ 添加人物</button>
-      </div>
-    </section>
+    </details>
 
     <div class="save-bar">
       <button class="btn primary" @click="save">保存采集数据</button>
       <span v-if="justSaved" class="saved-hint">已保存 ✓</span>
     </div>
+
+    <MediaPreview :item="preview" @close="preview = null" />
   </div>
 </template>
 
@@ -86,11 +133,81 @@ import { reactive, ref, computed, watch } from 'vue'
 import TrackProgress from './TrackProgress.vue'
 import TrackMedia from './TrackMedia.vue'
 import TrackExtract from './TrackExtract.vue'
+import MaterialGroups from './MaterialGroups.vue'
+import MediaPreview from './MediaPreview.vue'
+import UploadPanel from './UploadPanel.vue'
+import DraftReview from './DraftReview.vue'
 
 const props = defineProps({
   dossier: { type: Object, required: true },
 })
 const emit = defineEmits(['update'])
+
+// 右栏 Tab 状态 + 站内预览目标。
+const activeTab = ref('metrics')
+const preview = ref(null)
+
+// —— 待审校区（提升到此，供右栏三 Tab 各自渲染）——
+const draft = reactive({ people: [], metrics: [], materialHints: [] })
+
+// 合并一次抽取结果（追加、去重），每条已带 sourceFile。返回新增条数。
+function mergeDraft(r) {
+  let added = 0
+  const key = (o, fs) => fs.map((f) => String(o?.[f] || '').trim()).join('|')
+  for (const p of r.people || []) {
+    if (key(p, ['name', 'quote']) === '|') continue
+    if (draft.people.some((x) => key(x, ['name', 'quote']) === key(p, ['name', 'quote']))) continue
+    draft.people.push({ ...p }); added++
+  }
+  for (const m of r.metrics || []) {
+    if (key(m, ['name', 'value']) === '|') continue
+    if (draft.metrics.some((x) => key(x, ['name', 'value']) === key(m, ['name', 'value']))) continue
+    draft.metrics.push({ ...m }); added++
+  }
+  for (const h of r.materialHints || []) {
+    if (key(h, ['name']) === '') continue
+    if (draft.materialHints.some((x) => key(x, ['name']) === key(h, ['name']))) continue
+    draft.materialHints.push({ ...h }); added++
+  }
+  return added
+}
+
+// TrackExtract 抽取完成回调：并入待审校。
+function onExtracted(r) { mergeDraft(r) }
+
+// UploadPanel 上传完成：材料入清单，抽取草稿并入待审校。
+function onImported({ materials, drafts } = {}) {
+  for (const m of materials || []) state.materials.push({ ...m })
+  if (drafts) mergeDraft(drafts)
+  save()
+}
+
+// 采纳单条：并入 state 对应数组（携带富字段），从 draft 移除，保存。
+function adoptDraft(kind, i) {
+  if (kind === 'people') {
+    const p = draft.people[i]
+    state.people.push({ name: p.name, role: p.role, quote: p.quote, story: p.story || '', highlight: p.highlight || '' })
+    draft.people.splice(i, 1)
+  } else if (kind === 'metrics') {
+    const m = draft.metrics[i]
+    state.metricValues.push({ name: m.name, before: '', after: m.value, unit: m.unit, insight: m.insight || '', isHighlight: !!m.isHighlight })
+    draft.metrics.splice(i, 1)
+  } else {
+    const h = draft.materialHints[i]
+    state.materials.push({ type: '其他', name: h.name, note: h.note, summary: h.summary || '', theme: h.theme || '' })
+    draft.materialHints.splice(i, 1)
+  }
+  save()
+}
+// 批量采纳/丢弃某类（从后往前采纳以保下标稳定）。
+function adoptAll(kind) {
+  const arr = kind === 'people' ? draft.people : kind === 'metrics' ? draft.metrics : draft.materialHints
+  for (let i = arr.length - 1; i >= 0; i--) adoptDraft(kind, i)
+}
+function discardAll(kind) {
+  const arr = kind === 'people' ? draft.people : kind === 'metrics' ? draft.metrics : draft.materialHints
+  arr.splice(0, arr.length)
+}
 
 function clone(d) {
   const c = d.collected || {}
@@ -107,6 +224,13 @@ const state = reactive(clone(props.dossier))
 const metricValues = computed(() => state.metricValues)
 const people = computed(() => state.people)
 const justSaved = ref(false)
+
+// 右栏 Tab 定义 + 计数徽标。
+const tabs = computed(() => [
+  { key: 'metrics', label: '指标', count: state.metricValues.length, pending: draft.metrics.length },
+  { key: 'materials', label: '材料', count: state.materials.length, pending: draft.materialHints.length },
+  { key: 'people', label: '人物', count: state.people.length, pending: draft.people.length },
+])
 
 // 传给 TrackProgress 的档案：并进当前编辑态，实时反映未保存的采集。
 const dossierForAnalysis = computed(() => ({ ...props.dossier, collected: { ...state } }))
@@ -184,6 +308,37 @@ function save() {
 .block-title { font-size: 1.15rem; color: var(--color-primary-dark); margin: 0 0 .4rem; }
 .block-desc { margin: 0 0 .9rem; font-size: .88rem; color: var(--color-text-secondary); }
 .hint { font-size: .85rem; color: var(--color-text-light); margin: 0 0 .6rem; }
+
+/* —— 左右分栏工作台 —— */
+.workbench { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1.4rem; align-items: start; }
+.col-left { display: flex; flex-direction: column; gap: 1.4rem; min-width: 0; }
+.col-right {
+  min-width: 0; padding: 1.2rem 1.3rem; background: var(--color-card);
+  border: 1px solid var(--color-border); border-radius: var(--radius); box-shadow: var(--shadow-card);
+}
+
+/* Tab 头 */
+.tabs { display: flex; gap: .4rem; margin-bottom: 1rem; border-bottom: 1px solid var(--color-border); }
+.tab {
+  border: none; background: transparent; cursor: pointer; padding: .5rem .9rem;
+  font-size: .9rem; font-weight: 600; color: var(--color-text-secondary);
+  border-bottom: 2px solid transparent; margin-bottom: -1px; transition: all var(--transition);
+}
+.tab:hover { color: var(--color-primary); }
+.tab.active { color: var(--color-primary-dark); border-bottom-color: var(--color-primary); }
+.tab-n { font-size: .72rem; color: var(--color-text-light); background: var(--color-bg); padding: 0 .4rem; border-radius: 50px; margin-left: .2rem; }
+.tab-panel { min-height: 120px; }
+
+/* 折叠任务 */
+.task-fold { border: 1px solid var(--color-border); border-radius: var(--radius); background: var(--color-card); padding: .4rem .9rem; }
+.task-summary { cursor: pointer; font-size: .92rem; font-weight: 600; color: var(--color-primary-dark); display: flex; align-items: center; gap: .8rem; padding: .5rem 0; }
+.mini-bar { flex: 1; max-width: 160px; height: 6px; background: var(--color-bg); border-radius: 50px; overflow: hidden; }
+.mini-fill { display: block; height: 100%; background: var(--color-primary); }
+.task-fold .task-list { margin-top: .6rem; padding-bottom: .5rem; }
+
+@media (max-width: 900px) {
+  .workbench { grid-template-columns: 1fr; }
+}
 
 .cell {
   padding: .5rem .7rem; font-size: .88rem; color: var(--color-text);

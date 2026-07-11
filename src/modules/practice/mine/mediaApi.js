@@ -76,3 +76,14 @@ export async function describeImage(dossierId, file) {
   fd.append('file', file)
   return postForm('/api/practice/media/describe-image', fd)
 }
+
+/**
+ * ZIP 整包导入：解压 + 归类 + 文本档自动 AI 抽取。
+ * @returns {Promise<{materials, drafts:{people,metrics,materialHints}, skipped, imported, total}>}
+ */
+export async function importZip(dossierId, file) {
+  const fd = new FormData()
+  fd.append('dossierId', dossierId)
+  fd.append('file', file)
+  return postForm('/api/practice/media/import-zip', fd)
+}
