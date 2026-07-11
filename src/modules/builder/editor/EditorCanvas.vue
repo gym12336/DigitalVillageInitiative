@@ -193,7 +193,7 @@ function renderComponentMarkup(c) {
     case 'image': {
       const p = c.props
       if (p.src) {
-        inner = `<img src="${esc(p.src)}" alt="${esc(p.alt)}" style="width:100%;height:100%;object-fit:${p.objectFit};border-radius:${p.borderRadius}px;"/>`
+        inner = `<img src="${esc(p.src)}" alt="${esc(p.alt)}" draggable="false" style="width:100%;height:100%;object-fit:${p.objectFit};border-radius:${p.borderRadius}px;"/>`
       } else {
         inner = `<div style="width:100%;height:100%;display:grid;place-items:center;background:#f2f6f8;color:#687b8b;font-size:13px;border:1px solid rgba(44,125,160,0.08);border-radius:${p.borderRadius}px;">🖼 图片占位</div>`
       }
