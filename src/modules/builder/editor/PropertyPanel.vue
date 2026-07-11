@@ -347,6 +347,14 @@
                 <input type="text" v-model="editingChild.props.src" placeholder="https://..." />
               </div>
               <div class="pp-field">
+                <label>或从实践选取</label>
+                <PracticeImagePicker
+                  :dossier-id="dossierId"
+                  v-model="editingChild.props.src"
+                  @select="(m) => { if (!editingChild.props.alt) editingChild.props.alt = m.name.replace(/\.[^.]+$/, '') }"
+                />
+              </div>
+              <div class="pp-field">
                 <label>填充模式</label>
                 <select v-model="editingChild.props.objectFit">
                   <option value="cover">Cover 裁剪</option>
