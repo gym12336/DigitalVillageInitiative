@@ -30,7 +30,6 @@
         <div class="list-bar">
           <span class="list-count">共 {{ dossiers.length }} 份实践</span>
           <div class="list-bar-actions">
-            <button class="btn ghost" @click="openStudio">🎨 成果作品</button>
             <button class="btn primary" @click="onNew">+ 新建实践</button>
           </div>
         </div>
@@ -239,10 +238,6 @@ function backToTeams() {
 function onNew() {
   router.push(`/practice/mine/team/${teamId.value}/new`)
 }
-function openStudio() {
-  router.push({ path: '/practice/studio', query: { team: teamId.value } })
-}
-
 async function onRemove(d) {
   if (!window.confirm(`确认删除实践「${d.title}」？此操作不可撤销。`)) return
   try {
