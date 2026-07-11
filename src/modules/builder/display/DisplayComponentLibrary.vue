@@ -137,6 +137,12 @@ const NATIVE_CATEGORIES = [
       { label: '视频嵌入', icon: '▶️', type: 'image' },
     ],
   },
+  {
+    id: 'group', icon: '📦', name: '组合',
+    items: [
+      { label: '多组件框', icon: '📦', type: 'layout-box' },
+    ],
+  },
 ]
 
 const search = ref('')
