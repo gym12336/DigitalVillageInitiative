@@ -12,6 +12,7 @@
         <button class="tb-btn" @click="addToCanvas('agri-sensor')">🌡 传感器</button>
         <button class="tb-btn" @click="addToCanvas('timeline')">⏱ 时间轴</button>
         <button class="tb-btn" @click="addToCanvas('datatable')">📋 数据表</button>
+        <button class="tb-btn" @click="addToCanvas('layout-box')">📦 多组件框</button>
       </div>
       <div class="ec-tb-center">
         <button class="tb-btn" @click="undo" :disabled="state.historyIndex <= 0" title="撤销">↩</button>
@@ -82,6 +83,7 @@ import { renderChartSvg } from './chartRenderer.js'
 import { renderSensorMarkup } from './sensorRenderer.js'
 import { renderTimelineMarkup } from './timelineRenderer.js'
 import { renderDatatableMarkup } from './datatableRenderer.js'
+import { createComponent } from './componentFactory.js'
 
 const router = useRouter()
 
@@ -105,6 +107,8 @@ const stageRef = ref(null)
 let dragState = null
 let resizeState = null
 let dragOrigComponents = null
+let dividerDrag = null
+// Shape: { containerId, layout, index, dir, startX, startY, origRatios }
 
 // Box select
 const boxSelect = ref({ active: false, x: 0, y: 0, w: 0, h: 0 })
@@ -125,6 +129,208 @@ const HANDLES = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w']
 
 function esc(s) {
   return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+}
+
+function renderLayoutBoxMarkup(comp) {
+  const p = comp.props
+  const layout = p.layout || 'horizontal'
+  const ratios = p.splitRatios || []
+  const slotCount = p.slotCount || 2
+  const children = p.children || []
+  const PAD = 12
+  const DIV = 4
+
+  const cw = comp.width
+  const ch = comp.height
+  const innerW = cw - PAD * 2
+  const innerH = ch - PAD * 2
+
+  // Compute slot rects { x, y, w, h }
+  const slots = []
+  const dividers = []
+
+  function computeSlots() {
+    switch (layout) {
+      case 'horizontal': {
+        const totalDiv = (slotCount - 1) * DIV
+        const availW = innerW - totalDiv
+        let cx = PAD
+        for (let i = 0; i < slotCount; i++) {
+          const sw = availW * (ratios[i] || (100 / slotCount)) / 100
+          slots.push({ x: cx, y: PAD, w: sw, h: innerH })
+          cx += sw
+          if (i < slotCount - 1) {
+            dividers.push({ x: cx, y: 0, w: DIV, h: ch, dir: 'h', index: i })
+            cx += DIV
+          }
+        }
+        break
+      }
+      case 'vertical': {
+        const totalDiv = (slotCount - 1) * DIV
+        const availH = innerH - totalDiv
+        let cy = PAD
+        for (let i = 0; i < slotCount; i++) {
+          const sh = availH * (ratios[i] || (100 / slotCount)) / 100
+          slots.push({ x: PAD, y: cy, w: innerW, h: sh })
+          cy += sh
+          if (i < slotCount - 1) {
+            dividers.push({ x: 0, y: cy, w: cw, h: DIV, dir: 'v', index: i })
+            cy += DIV
+          }
+        }
+        break
+      }
+      case 'grid-2x2': {
+        const availW = innerW - DIV
+        const availH = innerH - DIV
+        const leftW = availW * (ratios[0] || 50) / 100
+        const rightW = availW * (ratios[1] || 50) / 100
+        const topH = availH * (ratios[2] || 50) / 100
+        const bottomH = availH * (ratios[3] || 50) / 100
+        slots.push({ x: PAD, y: PAD, w: leftW, h: topH })
+        slots.push({ x: PAD + leftW + DIV, y: PAD, w: rightW, h: topH })
+        slots.push({ x: PAD, y: PAD + topH + DIV, w: leftW, h: bottomH })
+        slots.push({ x: PAD + leftW + DIV, y: PAD + topH + DIV, w: rightW, h: bottomH })
+        dividers.push({ x: PAD + leftW, y: 0, w: DIV, h: ch, dir: 'h', index: 0 })
+        dividers.push({ x: 0, y: PAD + topH, w: cw, h: DIV, dir: 'v', index: 1 })
+        break
+      }
+      case 'main-right': {
+        const leftW = innerW * (ratios[0] || 67) / 100
+        const rightW = innerW - DIV - leftW
+        slots.push({ x: PAD, y: PAD, w: leftW, h: innerH })
+        slots.push({ x: PAD + leftW + DIV, y: PAD, w: rightW, h: innerH })
+        dividers.push({ x: PAD + leftW, y: 0, w: DIV, h: ch, dir: 'h', index: 0 })
+        break
+      }
+      case 'main-left': {
+        const leftW = innerW * (ratios[0] || 33) / 100
+        const rightW = innerW - DIV - leftW
+        slots.push({ x: PAD, y: PAD, w: leftW, h: innerH })
+        slots.push({ x: PAD + leftW + DIV, y: PAD, w: rightW, h: innerH })
+        dividers.push({ x: PAD + leftW, y: 0, w: DIV, h: ch, dir: 'h', index: 0 })
+        break
+      }
+      case 'main-bottom': {
+        const topH = innerH * (ratios[0] || 67) / 100
+        const bottomH = innerH - DIV - topH
+        slots.push({ x: PAD, y: PAD, w: innerW, h: topH })
+        slots.push({ x: PAD, y: PAD + topH + DIV, w: innerW, h: bottomH })
+        dividers.push({ x: 0, y: PAD + topH, w: cw, h: DIV, dir: 'v', index: 0 })
+        break
+      }
+      case 'main-top': {
+        const topH = innerH * (ratios[0] || 33) / 100
+        const bottomH = innerH - DIV - topH
+        slots.push({ x: PAD, y: PAD, w: innerW, h: topH })
+        slots.push({ x: PAD, y: PAD + topH + DIV, w: innerW, h: bottomH })
+        dividers.push({ x: 0, y: PAD + topH, w: cw, h: DIV, dir: 'v', index: 0 })
+        break
+      }
+      case '1+2-right': {
+        const leftW = (innerW - DIV) * (ratios[0] || 50) / 100
+        const rightW = innerW - DIV - leftW
+        const rightTopH = (innerH - DIV) * (ratios[1] || 50) / 100
+        const rightBottomH = innerH - DIV - rightTopH
+        slots.push({ x: PAD, y: PAD, w: leftW, h: innerH })
+        slots.push({ x: PAD + leftW + DIV, y: PAD, w: rightW, h: rightTopH })
+        slots.push({ x: PAD + leftW + DIV, y: PAD + rightTopH + DIV, w: rightW, h: rightBottomH })
+        dividers.push({ x: PAD + leftW, y: 0, w: DIV, h: ch, dir: 'h', index: 0 })
+        dividers.push({ x: PAD + leftW + DIV, y: PAD + rightTopH, w: rightW, h: DIV, dir: 'v', index: 1 })
+        break
+      }
+      case '2+1-right': {
+        const rightW = (innerW - DIV) * (ratios[1] || 33) / 100
+        const leftW = innerW - DIV - rightW
+        const leftTopH = (innerH - DIV) * (ratios[0] || 50) / 100
+        const leftBottomH = innerH - DIV - leftTopH
+        slots.push({ x: PAD, y: PAD, w: leftW, h: leftTopH })
+        slots.push({ x: PAD, y: PAD + leftTopH + DIV, w: leftW, h: leftBottomH })
+        slots.push({ x: PAD + leftW + DIV, y: PAD, w: rightW, h: innerH })
+        dividers.push({ x: 0, y: PAD + leftTopH, w: leftW, h: DIV, dir: 'v', index: 0 })
+        dividers.push({ x: PAD + leftW, y: 0, w: DIV, h: ch, dir: 'h', index: 1 })
+        break
+      }
+      case '1+2-bottom': {
+        const topH = (innerH - DIV) * (ratios[0] || 50) / 100
+        const bottomH = innerH - DIV - topH
+        const bottomLeftW = (innerW - DIV) * (ratios[1] || 50) / 100
+        const bottomRightW = innerW - DIV - bottomLeftW
+        slots.push({ x: PAD, y: PAD, w: innerW, h: topH })
+        slots.push({ x: PAD, y: PAD + topH + DIV, w: bottomLeftW, h: bottomH })
+        slots.push({ x: PAD + bottomLeftW + DIV, y: PAD + topH + DIV, w: bottomRightW, h: bottomH })
+        dividers.push({ x: 0, y: PAD + topH, w: cw, h: DIV, dir: 'v', index: 0 })
+        dividers.push({ x: PAD + bottomLeftW, y: PAD + topH + DIV, w: DIV, h: bottomH, dir: 'h', index: 1 })
+        break
+      }
+      case '2+1-top': {
+        const topH = (innerH - DIV) * (ratios[1] || 50) / 100
+        const bottomH = innerH - DIV - topH
+        const topLeftW = (innerW - DIV) * (ratios[0] || 50) / 100
+        const topRightW = innerW - DIV - topLeftW
+        slots.push({ x: PAD, y: PAD, w: topLeftW, h: topH })
+        slots.push({ x: PAD + topLeftW + DIV, y: PAD, w: topRightW, h: topH })
+        slots.push({ x: PAD, y: PAD + topH + DIV, w: innerW, h: bottomH })
+        dividers.push({ x: PAD + topLeftW, y: PAD, w: DIV, h: topH, dir: 'h', index: 0 })
+        dividers.push({ x: 0, y: PAD + topH, w: cw, h: DIV, dir: 'v', index: 1 })
+        break
+      }
+      default: {
+        // Fallback to horizontal
+        const totalDiv = (slotCount - 1) * DIV
+        const availW = innerW - totalDiv
+        let cx = PAD
+        for (let i = 0; i < slotCount; i++) {
+          const sw = availW * (ratios[i] || (100 / slotCount)) / 100
+          slots.push({ x: cx, y: PAD, w: sw, h: innerH })
+          cx += sw
+          if (i < slotCount - 1) {
+            dividers.push({ x: cx, y: 0, w: DIV, h: ch, dir: 'h', index: i })
+            cx += DIV
+          }
+        }
+      }
+    }
+  }
+
+  computeSlots()
+
+  // Render slot cards
+  let slotHtml = ''
+  for (let i = 0; i < slots.length; i++) {
+    const s = slots[i]
+    const child = children[i] || null
+    const widthPx = Math.round(s.w)
+    const heightPx = Math.round(s.h)
+    const leftPx = Math.round(s.x)
+    const topPx = Math.round(s.y)
+    if (child) {
+      // Construct a temp component for the child and render its inner markup
+      const childComp = {
+        id: child.id,
+        type: child.type,
+        x: s.x + 4,
+        y: s.y + 4,
+        width: s.w - 8,
+        height: s.h - 8,
+        props: child.props,
+      }
+      const innerMarkup = renderComponentMarkup(childComp)
+      slotHtml += `<div style="position:absolute;left:${leftPx}px;top:${topPx}px;width:${widthPx}px;height:${heightPx}px;background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.06);overflow:hidden;">${innerMarkup}</div>`
+    } else {
+      slotHtml += `<div data-slot-index="${i}" style="position:absolute;left:${leftPx}px;top:${topPx}px;width:${widthPx}px;height:${heightPx}px;background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.06);overflow:hidden;border:2px dashed #d0dbe3;display:flex;align-items:center;justify-content:center;color:#8ea3b2;font-size:14px;">拖入组件</div>`
+    }
+  }
+
+  // Render dividers
+  let dividerHtml = ''
+  for (const d of dividers) {
+    const cursor = d.dir === 'h' ? 'col-resize' : 'row-resize'
+    dividerHtml += `<div data-divider data-divider-layout="${layout}" data-divider-index="${d.index}" data-divider-dir="${d.dir}" style="position:absolute;left:${Math.round(d.x)}px;top:${Math.round(d.y)}px;width:${Math.round(d.w)}px;height:${Math.round(d.h)}px;cursor:${cursor};background:#d0dbe3;" onmouseover="this.style.background='#2c7da0'" onmouseout="this.style.background='#d0dbe3'"></div>`
+  }
+
+  return `<div style="position:relative;width:100%;height:100%;border:1px solid #e8edf2;border-radius:16px;background:#fafdfe;overflow:hidden;" data-layout-box>${slotHtml}${dividerHtml}</div>`
 }
 
 function renderComponentMarkup(c) {
@@ -159,6 +365,9 @@ function renderComponentMarkup(c) {
       break
     case 'datatable':
       inner = renderDatatableMarkup(c)
+      break
+    case 'layout-box':
+      inner = renderLayoutBoxMarkup(c)
       break
   }
 
@@ -254,6 +463,29 @@ async function onDrop(e) {
     }
     pushHistory()
   } else {
+    // Check if dropping into a layout-box slot
+    const dropEl = document.elementFromPoint(e.clientX, e.clientY)
+    const slotEl = dropEl ? dropEl.closest('[data-slot-index]') : null
+    if (slotEl) {
+      const layoutBoxEl = slotEl.closest('[data-layout-box]')
+      const compEl = layoutBoxEl ? layoutBoxEl.closest('[data-component-id]') : null
+      if (compEl) {
+        const containerId = Number(compEl.dataset.componentId)
+        const container = state.components.find(c => c.id === containerId)
+        if (container && container.type === 'layout-box') {
+          const slotIndex = parseInt(slotEl.dataset.slotIndex, 10)
+          const child = createComponent(info.type, 0, 0, info.chartType)
+          child.id = state.nextId++
+          child.x = 0
+          child.y = 0
+          child.width = 0
+          child.height = 0
+          container.props.children[slotIndex] = child
+          pushHistory()
+          return
+        }
+      }
+    }
     addComponentAt(info.type, Math.round(x), Math.round(y), info.chartType)
   }
 }
@@ -271,6 +503,20 @@ function getCanvasCoords(e) {
 function findTarget(e) {
   const el = document.elementFromPoint(e.clientX, e.clientY)
   if (!el) return null
+  // Check for divider
+  const dividerEl = el.closest('[data-divider]')
+  if (dividerEl) {
+    const compEl = dividerEl.closest('[data-component-id]')
+    if (compEl) {
+      return {
+        type: 'divider',
+        containerId: Number(compEl.dataset.componentId),
+        layout: dividerEl.dataset.dividerLayout,
+        index: parseInt(dividerEl.dataset.dividerIndex, 10),
+        dir: dividerEl.dataset.dividerDir,
+      }
+    }
+  }
   // Check for resize handle
   const handleEl = el.closest('[data-handle]')
   if (handleEl) return { type: 'handle', handle: handleEl.dataset.handle }
@@ -287,7 +533,31 @@ function onStageMouseDown(e) {
   const target = findTarget(e)
   if (!target) return
 
-  if (target.type === 'handle') {
+  // Clear child selection on any layout-box when clicking elsewhere
+  const clearEl = document.elementFromPoint(e.clientX, e.clientY)
+  const insideLayoutBox = clearEl ? clearEl.closest('[data-layout-box]') : null
+  if (!insideLayoutBox) {
+    for (const comp of state.components) {
+      if (comp.type === 'layout-box' && comp._selectedChildIndex !== undefined) {
+        comp._selectedChildIndex = undefined
+      }
+    }
+  }
+
+  if (target.type === 'divider') {
+    const comp = state.components.find(c => c.id === target.containerId)
+    if (!comp || comp.type !== 'layout-box') return
+    dividerDrag = {
+      containerId: target.containerId,
+      layout: target.layout,
+      index: target.index,
+      dir: target.dir,
+      startX: e.clientX,
+      startY: e.clientY,
+      origRatios: [...comp.props.splitRatios],
+    }
+    selectComponent(target.containerId)
+  } else if (target.type === 'handle') {
     // Resize
     const id = Number(document.elementFromPoint(e.clientX, e.clientY).closest('[data-component-id]').dataset.componentId)
     const c = state.components.find(c => c.id === id)
@@ -295,6 +565,32 @@ function onStageMouseDown(e) {
     resizeState = { id, handle: target.handle, startX: e.clientX, startY: e.clientY, origW: c.width, origH: c.height, origX: c.x, origY: c.y }
     selectComponent(id)
   } else if (target.type === 'component') {
+    // Check if click is inside a layout-box child slot
+    const el = document.elementFromPoint(e.clientX, e.clientY)
+    const layoutBoxEl = el ? el.closest('[data-layout-box]') : null
+    if (layoutBoxEl) {
+      const containerCompEl = layoutBoxEl.closest('[data-component-id]')
+      if (containerCompEl) {
+        const containerId = Number(containerCompEl.dataset.componentId)
+        const container = state.components.find(c => c.id === containerId)
+        if (container && container.type === 'layout-box') {
+          // Determine which slot was clicked by walking up to slot card
+          // The slot card is a direct child of the layout-box div
+          const slotCard = el.closest('[data-layout-box] > div')
+          // Find which child index: iterate children to find matching slot
+          if (slotCard) {
+            const slotIndexEl = slotCard.getAttribute('data-slot-index')
+            if (slotIndexEl !== null) {
+              container._selectedChildIndex = parseInt(slotIndexEl, 10)
+            }
+          }
+          state.selectedId = containerId
+          // Close context menu
+          ctxMenu.value.show = false
+          return
+        }
+      }
+    }
     // Move
     const c = state.components.find(c => c.id === target.id)
     if (!c) return
@@ -344,6 +640,122 @@ function onStageMouseMove(e) {
     }
   }
 
+  if (dividerDrag) {
+    const comp = state.components.find(c => c.id === dividerDrag.containerId)
+    if (!comp || comp.type !== 'layout-box') { dividerDrag = null; return }
+    const PAD = 12
+    const DIV = 4
+    const MIN_SLOT = 120
+    const layout = dividerDrag.layout
+    const dir = dividerDrag.dir
+    const ratios = comp.props.splitRatios
+    const orig = dividerDrag.origRatios
+
+    if (dir === 'h') {
+      // Horizontal drag (col-resize) — adjusts left/right ratios
+      const rawDx = (e.clientX - dividerDrag.startX) / state.zoom
+      let availDim, idxA, idxB
+      switch (layout) {
+        case 'horizontal':
+        case 'main-right':
+        case 'main-left':
+          availDim = comp.width - PAD * 2 - (comp.props.slotCount - 1) * DIV
+          idxA = dividerDrag.index
+          idxB = dividerDrag.index + 1
+          break
+        case 'grid-2x2':
+          availDim = comp.width - PAD * 2 - DIV
+          idxA = 0; idxB = 1
+          break
+        case '1+2-right':
+          availDim = comp.width - PAD * 2 - DIV
+          idxA = 0; idxB = -1
+          break
+        case '2+1-right':
+          availDim = comp.width - PAD * 2 - DIV
+          idxA = 1; idxB = -1
+          break
+        case '1+2-bottom':
+          availDim = comp.width - PAD * 2 - DIV
+          idxA = 1; idxB = -1
+          break
+        case '2+1-top':
+          availDim = comp.width - PAD * 2 - DIV
+          idxA = 0; idxB = -1
+          break
+        default:
+          availDim = comp.width - PAD * 2
+          idxA = dividerDrag.index; idxB = dividerDrag.index + 1
+      }
+      if (availDim <= 0) return
+      const deltaRatio = rawDx / availDim * 100
+      const newVal = orig[idxA] + deltaRatio
+      const minRatio = MIN_SLOT / availDim * 100
+      if (idxB >= 0) {
+        // Paired ratio adjustment
+        const newValB = orig[idxB] - deltaRatio
+        if (newVal < minRatio || newValB < minRatio) return
+        ratios[idxA] = Math.round(newVal * 10) / 10
+        ratios[idxB] = Math.round(newValB * 10) / 10
+      } else {
+        // Single ratio adjustment (other side is remainder)
+        const maxRatio = 100 - minRatio
+        if (newVal < minRatio || newVal > maxRatio) return
+        ratios[idxA] = Math.round(newVal * 10) / 10
+      }
+    } else {
+      // dir === 'v': Vertical drag (row-resize) — adjusts top/bottom ratios
+      const rawDy = (e.clientY - dividerDrag.startY) / state.zoom
+      let availDim, idxA, idxB
+      switch (layout) {
+        case 'vertical':
+        case 'main-bottom':
+        case 'main-top':
+          availDim = comp.height - PAD * 2 - (comp.props.slotCount - 1) * DIV
+          idxA = dividerDrag.index
+          idxB = dividerDrag.index + 1
+          break
+        case 'grid-2x2':
+          availDim = comp.height - PAD * 2 - DIV
+          idxA = 2; idxB = 3
+          break
+        case '1+2-right':
+          availDim = comp.height - PAD * 2 - DIV
+          idxA = 1; idxB = -1
+          break
+        case '2+1-right':
+          availDim = comp.height - PAD * 2 - DIV
+          idxA = 0; idxB = -1
+          break
+        case '1+2-bottom':
+          availDim = comp.height - PAD * 2 - DIV
+          idxA = 0; idxB = -1
+          break
+        case '2+1-top':
+          availDim = comp.height - PAD * 2 - DIV
+          idxA = 1; idxB = -1
+          break
+        default:
+          availDim = comp.height - PAD * 2
+          idxA = dividerDrag.index; idxB = dividerDrag.index + 1
+      }
+      if (availDim <= 0) return
+      const deltaRatio = rawDy / availDim * 100
+      const newVal = orig[idxA] + deltaRatio
+      const minRatio = MIN_SLOT / availDim * 100
+      if (idxB >= 0) {
+        const newValB = orig[idxB] - deltaRatio
+        if (newVal < minRatio || newValB < minRatio) return
+        ratios[idxA] = Math.round(newVal * 10) / 10
+        ratios[idxB] = Math.round(newValB * 10) / 10
+      } else {
+        const maxRatio = 100 - minRatio
+        if (newVal < minRatio || newVal > maxRatio) return
+        ratios[idxA] = Math.round(newVal * 10) / 10
+      }
+    }
+  }
+
   if (boxSelect.value.active) {
     const coords = getCanvasCoords(e)
     if (coords) {
@@ -364,6 +776,10 @@ function onStageMouseUp(e) {
   if (resizeState) {
     pushHistory()
     resizeState = null
+  }
+  if (dividerDrag) {
+    pushHistory()
+    dividerDrag = null
   }
   if (boxSelect.value.active) {
     const b = boxSelect.value
