@@ -420,19 +420,18 @@ function onStageMouseDown(e) {
         const container = state.components.find(c => c.id === containerId)
         if (container && container.type === 'layout-box') {
           // Determine which slot was clicked by walking up to slot card
-          // The slot card is a direct child of the layout-box div
           const slotCard = el.closest('[data-layout-box] > div')
-          // Find which child index: iterate children to find matching slot
           if (slotCard) {
             const slotIndexEl = slotCard.getAttribute('data-slot-index')
             if (slotIndexEl !== null) {
               container._selectedChildIndex = parseInt(slotIndexEl, 10)
             }
+            state.selectedId = containerId
+            ctxMenu.value.show = false
+            return
           }
+          // Clicked on container padding/whitespace — fall through to drag logic
           state.selectedId = containerId
-          // Close context menu
-          ctxMenu.value.show = false
-          return
         }
       }
     }
