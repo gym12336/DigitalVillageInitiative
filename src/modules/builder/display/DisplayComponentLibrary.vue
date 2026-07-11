@@ -80,6 +80,7 @@ const NATIVE_CATEGORIES = [
     items: [
       { label: '饼图', icon: '🥧', type: 'chart', chartType: 'pie' },
       { label: '堆叠柱', icon: '📊', type: 'chart', chartType: 'stacked-bar' },
+      { label: '数据表', icon: '📋', type: 'datatable' },
     ],
   },
   {
@@ -96,9 +97,10 @@ const NATIVE_CATEGORIES = [
     ],
   },
   {
-    id: 'cover', icon: '🎬', name: '封面开场',
+    id: 'media', icon: '🖼️', name: '媒体图片',
     items: [
       { label: '封面大图', icon: '🖼️', type: 'image' },
+      { label: '图片', icon: '🖼️', type: 'image' },
     ],
   },
   {
@@ -123,18 +125,6 @@ const NATIVE_CATEGORIES = [
     id: 'compare', icon: '🔄', name: '交互对比',
     items: [
       { label: '前后对比', icon: '↔️', type: 'chart', chartType: 'bar' },
-    ],
-  },
-  {
-    id: 'honor', icon: '🏆', name: '荣誉佐证',
-    items: [
-      { label: '数据表', icon: '📋', type: 'datatable' },
-    ],
-  },
-  {
-    id: 'media', icon: '🎬', name: '媒体嵌入',
-    items: [
-      { label: '图片', icon: '🖼️', type: 'image' },
     ],
   },
   {
