@@ -100,6 +100,15 @@
           <label>图片 URL</label>
           <input type="text" v-model="comp.props.src" placeholder="https://..." />
         </div>
+        <!-- 新增：从实践选取 -->
+        <div class="pp-field">
+          <label>或从实践选取</label>
+          <PracticeImagePicker
+            :dossier-id="dossierId"
+            v-model="comp.props.src"
+            @select="onImagePicked"
+          />
+        </div>
         <div class="pp-field">
           <label>替代文本</label>
           <input type="text" v-model="comp.props.alt" placeholder="图片描述" />
@@ -355,14 +364,27 @@
 
 <script setup>
 import { computed } from 'vue'
+import { useRoute } from 'vue-router'
 import { state, getSelected, deleteComponent } from './stageEditor.js'
 import { createComponent } from './componentFactory.js'
+import PracticeImagePicker from './PracticeImagePicker.vue'
+
+const route = useRoute()
+const dossierId = computed(() => route.params.dossierId || '')
 
 const comp = computed(() => getSelected())
 
 function typeLabel(type) {
   const labels = { text: '📝 文本', image: '🖼 图片', chart: '📊 图表', 'agri-sensor': '🌡 传感器', 'timeline': '⏳ 时间轴', 'datatable': '📋 数据表', 'layout-box': '📦 多组件框' }
   return labels[type] || type
+}
+
+function onImagePicked(material) {
+  // 如果当前 alt 为空，自动填入图片名称（去掉扩展名）
+  if (comp.value && !comp.value.props.alt) {
+    const nameWithoutExt = material.name.replace(/\.[^.]+$/, '')
+    comp.value.props.alt = nameWithoutExt
+  }
 }
 
 // -- Layout-box helpers --

@@ -58,7 +58,10 @@ const error = ref(false)
 const images = ref([])
 
 async function fetchImages() {
-  if (!props.dossierId) return
+  if (!props.dossierId) {
+    images.value = []
+    return
+  }
   loading.value = true
   error.value = false
   images.value = []
