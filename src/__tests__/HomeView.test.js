@@ -17,6 +17,7 @@ vi.mock('@/modules.config.js', () => ({
   ],
 }))
 vi.mock('@/data/villages.json', () => ({ default: [] }))
+vi.mock('@/api/villages.js', () => ({ fetchAllVillages: vi.fn().mockResolvedValue([]) }))
 
 import HomeView from '@/views/HomeView.vue'
 

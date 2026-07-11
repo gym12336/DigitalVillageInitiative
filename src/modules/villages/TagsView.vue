@@ -1,14 +1,19 @@
 <template>
-  <section class="tags-page">
-    <div class="container">
-      <header class="page-head">
-        <p class="kicker">乡村百科</p>
-        <h1>分类浏览</h1>
-        <p class="desc">按六大类特色标签浏览名村。点击任一标签，筛选出带该标签的村庄。</p>
-      </header>
+  <section class="tags-page museum-public-page">
+    <MuseumPageHero
+      archive-no="ARCHIVE TAXONOMY · TAGS"
+      kicker="乡村百科 / 分类浏览"
+      title="用可检索的标签，连接村庄、人物与乡土资源"
+      description="按文化、自然、产业、人物等分类浏览乡村档案；标签来自当前演示数据，后续将由实践队审核维护。"
+      icon="tag"
+      :metric="categories.length"
+      metric-label="组档案分类"
+      demo
+    />
+    <div class="museum-content-shell">
 
       <!-- 标签云：按类别分区 -->
-      <div class="cloud">
+      <div v-if="!loading && !error" class="cloud">
         <div v-for="cat in categories" :key="cat.name" class="cat-block">
           <h3 class="cat-title">{{ cat.name }}</h3>
           <div class="cat-tags">
@@ -24,7 +29,7 @@
       </div>
 
       <!-- 筛选结果 -->
-      <div class="result">
+      <div v-if="!loading && !error" class="result">
         <p class="result-count">
           <template v-if="activeTag">带「{{ activeTag }}」标签的村庄：{{ matched.length }} 个</template>
           <template v-else>点击上方标签查看对应村庄</template>
@@ -33,22 +38,39 @@
           <VillageCard v-for="v in matched" :key="v.id" :village="v" />
         </div>
       </div>
+      <MuseumState v-else-if="error" type="error" title="分类载入失败" :description="`${error}，请刷新重试。`" />
+      <MuseumState v-else type="loading" title="正在整理档案标签" description="正在从村庄数据中归并分类信息。" />
     </div>
   </section>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import VillageCard from '@/components/VillageCard.vue'
-import villages from '@/data/encyclopedia-villages.json'
+import { fetchAllVillages } from '@/api/villages.js'
+import MuseumPageHero from '@/components/MuseumPageHero.vue'
+import MuseumState from '@/components/MuseumState.vue'
 
 const route = useRoute()
+const villages = ref([])
+const loading = ref(true)
+const error = ref('')
+
+onMounted(async () => {
+  try {
+    villages.value = await fetchAllVillages()
+  } catch (e) {
+    error.value = e.message || '加载失败'
+  } finally {
+    loading.value = false
+  }
+})
 
 // 收集六大类下的去重标签
 const categories = computed(() => {
   const map = {}
-  villages.forEach((v) => {
+  villages.value.forEach((v) => {
     if (!v.tags) return
     Object.entries(v.tags).forEach(([cat, items]) => {
       map[cat] = map[cat] || new Set()
@@ -65,26 +87,25 @@ function toggleTag(t) {
 
 const matched = computed(() => {
   if (!activeTag.value) return []
-  return villages.filter((v) =>
+  return villages.value.filter((v) =>
     v.tags && Object.values(v.tags).some((items) => items.includes(activeTag.value))
   )
 })
 </script>
 
 <style scoped>
-.tags-page { padding: 2.6rem 0 3rem; }
-.container { max-width: 1180px; margin: 0 auto; padding: 0 clamp(1rem, 4vw, 2rem); }
+.tags-page { padding: 0; }
 .page-head { margin-bottom: 1.6rem; }
 .kicker { font-size: 13px; font-weight: 700; color: var(--color-highlight); letter-spacing: .08em; margin: 0 0 .6rem; }
 .page-head h1 { font-size: clamp(28px, 4vw, 38px); font-weight: 700; color: var(--color-primary-dark); font-family: var(--sx-serif); }
 .desc { max-width: 640px; margin: .8rem 0 0; color: var(--color-text-secondary); }
 
 .cloud { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.2rem; margin-bottom: 2rem; }
-.cat-block { background: var(--color-card); border: 1px solid var(--color-border); border-radius: var(--radius); padding: 1.1rem 1.2rem; box-shadow: var(--shadow-sm); }
+.cat-block { background: var(--color-card); border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 1.1rem 1.2rem; box-shadow: var(--shadow-sm); }
 .cat-title { font-size: 1rem; color: var(--color-primary-dark); font-family: var(--sx-serif); margin: 0 0 .8rem; display: flex; align-items: center; gap: .5rem; }
 .cat-title::before { content: ''; width: 4px; height: 1.1em; background: var(--color-primary); border-radius: 2px; }
 .cat-tags { display: flex; flex-wrap: wrap; gap: .5rem; }
-.tag-chip { padding: .3rem .8rem; border: 1px solid var(--color-border); border-radius: 50px; background: var(--sx-paper-deep); color: var(--color-text-secondary); font-size: .8rem; cursor: pointer; transition: all var(--transition); }
+.tag-chip { padding: .3rem .8rem; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--sx-paper-deep); color: var(--color-text-secondary); font-size: .8rem; cursor: pointer; transition: all var(--transition); }
 .tag-chip:hover { border-color: var(--color-primary); color: var(--color-primary); }
 .tag-chip.active { background: var(--color-primary); border-color: var(--color-primary); color: #fff; }
 

@@ -1,30 +1,30 @@
 <template>
-  <section class="module-page">
-    <header class="mod-hero">
-      <div class="hero-copy">
-        <p class="kicker">乡村好物</p>
-        <h1>把村庄里的好产品，带到更多人面前</h1>
-        <p class="lead">
-          以电商平台的浏览体验承载乡村振兴主题：看见产品，也看见产地、手艺人和一份可持续的支持。
-        </p>
-        <div class="hero-badges" aria-label="好物主题">
-          <span>合作社直供</span>
-          <span>非遗手作</span>
-          <span>消费帮扶</span>
-        </div>
-      </div>
-
-      <aside class="hero-panel" aria-label="演示版数据概览">
-        <p class="panel-label">演示版好物库</p>
+  <section class="module-page museum-public-page">
+    <MuseumPageHero
+      archive-no="RURAL GOODS · COLLECTION"
+      kicker="乡村好物 / 产地档案"
+      title="把村庄里的好产品，带到更多人面前"
+      description="看见产品，也看见产地、守护人和背后的乡土工艺；当前内容用于演示未来的公益采购与产品溯源结构。"
+      icon="goods"
+      :metric="goodsData.length"
+      metric-label="件演示好物"
+      demo
+    >
+      <template #actions>
+        <a class="museum-action-primary" href="#goods-list"><AppIcon name="basket" :size="16" />浏览好物档案</a>
+      </template>
+      <template #aside>
+        <p class="panel-label">DEMO COLLECTION / 演示好物库</p>
         <div class="hero-metrics">
           <div v-for="item in heroMetrics" :key="item.label" class="metric">
-            <strong>{{ item.value }}</strong>
-            <span>{{ item.label }}</span>
+            <strong>{{ item.value }}</strong><span>{{ item.label }}</span>
           </div>
         </div>
-        <p class="panel-note">正式版本可接入合作社店铺、公益采购登记表与产品溯源信息。</p>
-      </aside>
-    </header>
+        <small>DEMO DATA · NOT FOR TRANSACTION</small>
+      </template>
+    </MuseumPageHero>
+
+    <div class="museum-content-shell goods-shell">
 
     <section class="support-strip" aria-label="消费帮扶链路">
       <div class="support-item">
@@ -156,7 +156,8 @@
         </div>
       </article>
     </div>
-    <p v-else class="empty">没有找到匹配的好物，试试换个关键词或清除筛选。</p>
+    <MuseumState v-else type="empty" title="没有匹配的乡村好物" description="试试换个关键词或清除筛选条件。" />
+    </div>
 
     <Teleport to="body">
       <transition name="modal-fade">
@@ -260,6 +261,9 @@
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import goodsData from './goods-data.json'
 import GoodsToast from './GoodsToast.vue'
+import AppIcon from '@/components/AppIcon.vue'
+import MuseumPageHero from '@/components/MuseumPageHero.vue'
+import MuseumState from '@/components/MuseumState.vue'
 
 const keyword = ref('')
 const sortBy = ref('newest')
@@ -408,11 +412,8 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.module-page {
-  max-width: 1120px;
-  margin: 0 auto;
-  padding: 2.4rem clamp(1rem, 4vw, 2rem) 3.4rem;
-}
+.module-page { padding: 0; }
+.goods-shell { max-width: 1180px; }
 
 .mod-hero {
   display: grid;
@@ -491,12 +492,12 @@ onBeforeUnmount(() => {
   text-align: center;
 }
 .metric strong {
-  color: var(--color-highlight);
+  color: var(--data-glow);
   font-size: 1.55rem;
   line-height: 1;
 }
 .metric span {
-  color: var(--color-text-secondary);
+  color: rgba(243, 238, 228, .62);
   font-size: 0.78rem;
 }
 .panel-note {
@@ -510,11 +511,11 @@ onBeforeUnmount(() => {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 0.8rem;
-  margin: 0 0 1.2rem;
+  margin: 0 0 1.8rem;
 }
 .support-item {
   border: 1px solid var(--color-border);
-  border-radius: 14px;
+  border-radius: var(--radius-sm);
   background: rgba(255, 255, 255, 0.72);
   padding: 1rem;
 }
@@ -539,7 +540,7 @@ onBeforeUnmount(() => {
 
 .goods-toolbar {
   border: 1px solid var(--color-border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-sm);
   background: var(--color-card);
   box-shadow: var(--shadow-card);
   padding: 1rem;
@@ -558,7 +559,7 @@ onBeforeUnmount(() => {
   gap: 0.6rem;
   background: var(--color-bg);
   border: 1px solid var(--color-border);
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   padding: 0.7rem 1rem;
 }
 .search-icon {
@@ -579,7 +580,7 @@ onBeforeUnmount(() => {
 .search-input::placeholder { color: var(--color-text-light); }
 .result-box {
   min-width: 104px;
-  border-radius: 14px;
+  border-radius: var(--radius-sm);
   background: rgba(107, 140, 92, 0.09);
   color: var(--color-primary-dark);
   padding: 0.54rem 0.8rem;
@@ -614,7 +615,7 @@ onBeforeUnmount(() => {
   border: 1px solid var(--color-border);
   background: #fff;
   color: var(--color-text-secondary);
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   padding: 0.4rem 0.9rem;
   font-size: 0.84rem;
   cursor: pointer;
@@ -685,7 +686,7 @@ onBeforeUnmount(() => {
   min-height: 100%;
   background: var(--color-card);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-sm);
   overflow: hidden;
   cursor: pointer;
   box-shadow: var(--shadow-card);
@@ -1104,7 +1105,7 @@ onBeforeUnmount(() => {
 }
 @media (max-width: 680px) {
   .module-page {
-    padding-top: 1.4rem;
+    padding-top: 0;
   }
   .support-strip,
   .goods-grid,

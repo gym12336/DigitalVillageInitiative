@@ -1,13 +1,17 @@
 <template>
   <header class="site-header" :class="{ scrolled: isScrolled }">
     <router-link to="/" class="brand" aria-label="数乡计划首页">
-      <span class="brand-mark">数</span>
-      <span class="brand-text">数乡计划</span>
+      <span class="brand-mark" aria-hidden="true">
+        <img src="/brand/shuxiang-logo-mark-v3.png" alt="" />
+      </span>
+      <span class="brand-copy">
+        <span class="brand-text">数乡计划</span>
+        <span class="brand-sub">DIGITAL FIELD ARCHIVE</span>
+      </span>
     </router-link>
 
-    <!-- 桌面导航 -->
     <nav class="site-nav" aria-label="主导航">
-      <router-link to="/" class="nav-item" exact-active-class="active">首页</router-link>
+      <router-link to="/" class="nav-item" exact-active-class="active">序厅</router-link>
       <div
         v-for="m in navModules"
         :key="m.id"
@@ -15,25 +19,13 @@
         @mouseenter="hoverMenu = m.id"
         @mouseleave="hoverMenu = null"
       >
-        <router-link
-          :to="m.path"
-          class="nav-item"
-          :class="{ active: isModuleActive(m) }"
-        >
+        <router-link :to="m.path" class="nav-item" :class="{ active: isModuleActive(m) }">
           {{ m.name }}
         </router-link>
-        <div
-          v-if="m.children?.length"
-          class="submenu"
-          :class="{ open: hoverMenu === m.id }"
-        >
+        <div v-if="m.children?.length" class="submenu" :class="{ open: hoverMenu === m.id }">
           <div class="submenu-bridge" />
-          <router-link
-            v-for="c in m.children"
-            :key="c.path"
-            :to="c.path"
-            class="submenu-item"
-          >
+          <p class="submenu-label">{{ m.name }} / INDEX</p>
+          <router-link v-for="c in m.children" :key="c.path" :to="c.path" class="submenu-item">
             <span class="submenu-name">{{ c.name }}</span>
             <span v-if="c.desc" class="submenu-desc">{{ c.desc }}</span>
           </router-link>
@@ -41,10 +33,15 @@
       </div>
     </nav>
 
-    <!-- 移动端汉堡按钮 -->
+    <router-link to="/practice/mine" class="practice-entry">
+      <AppIcon name="footprint" :size="17" />
+      <span>我的实践</span>
+    </router-link>
+
     <button
       class="hamburger"
       :class="{ open: mobileOpen }"
+      :aria-expanded="mobileOpen"
       aria-label="切换菜单"
       @click="mobileOpen = !mobileOpen"
     >
@@ -54,26 +51,24 @@
     </button>
   </header>
 
-  <!-- 移动端全屏菜单 -->
   <Teleport to="body">
     <Transition name="mobile-menu">
       <div v-if="mobileOpen" class="mobile-overlay" @click.self="mobileOpen = false">
         <nav class="mobile-nav" aria-label="移动端导航">
-          <router-link to="/" class="mobile-item" @click="mobileOpen = false">🏠 首页</router-link>
-          <template v-for="m in navModules" :key="m.id">
+          <p class="mobile-index">MUSEUM INDEX / 展厅目录</p>
+          <router-link to="/" class="mobile-item" @click="mobileOpen = false">
+            <AppIcon name="home" />
+            <span><small>00</small>序厅</span>
+          </router-link>
+          <template v-for="(m, index) in navModules" :key="m.id">
             <router-link :to="m.path" class="mobile-item" @click="mobileOpen = false">
-              {{ m.icon }} {{ m.name }}
-            </router-link>
-            <router-link
-              v-for="c in (m.children || [])"
-              :key="c.path"
-              :to="c.path"
-              class="mobile-sub"
-              @click="mobileOpen = false"
-            >
-              {{ c.name }}
+              <AppIcon :name="m.icon" />
+              <span><small>{{ String(index + 1).padStart(2, '0') }}</small>{{ m.name }}</span>
             </router-link>
           </template>
+          <router-link to="/practice/mine" class="mobile-practice" @click="mobileOpen = false">
+            进入我的实践 <AppIcon name="arrow-right" :size="18" />
+          </router-link>
         </nav>
       </div>
     </Transition>
@@ -81,32 +76,24 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute } from 'vue-router'
 import { modules } from '@/modules.config.js'
+import AppIcon from '@/components/AppIcon.vue'
 
 const route = useRoute()
 const navModules = modules.filter((m) => m.enabled)
-
-// 滚动感知
 const isScrolled = ref(false)
-function onScroll() { isScrolled.value = window.scrollY > 80 }
-
-// 悬浮子菜单（用 id 做状态，带短暂延迟防止误关）
 const hoverMenu = ref(null)
+const mobileOpen = ref(false)
 
-// 判断是否属于某模块（包括子路由）
+function onScroll() { isScrolled.value = window.scrollY > 48 }
 function isModuleActive(m) {
   const current = route.path
   if (current === m.path) return true
-  if (m.children?.some((c) => current === c.path || current.startsWith(c.path + '/'))) return true
-  return false
+  return !!m.children?.some((c) => current === c.path || current.startsWith(c.path + '/'))
 }
-
-// 移动端
-const mobileOpen = ref(false)
-function onRouteChange() { mobileOpen.value = false }
-function onResize() { if (window.innerWidth > 860) mobileOpen.value = false }
+function onResize() { if (window.innerWidth > 980) mobileOpen.value = false }
 
 onMounted(() => {
   window.addEventListener('scroll', onScroll, { passive: true })
@@ -120,254 +107,149 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-/* ===== 基础 ===== */
 .site-header {
   position: sticky;
   top: 0;
   z-index: 50;
-  display: flex;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
   align-items: center;
-  justify-content: space-between;
-  min-height: 72px;
-  padding: 0 clamp(1rem, 4vw, 48px);
-  color: var(--color-text);
-  background: var(--glass-bg-strong);
-  border-bottom: 1px solid transparent;
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
-  transition:
-    background var(--transition),
-    border-color var(--transition),
-    box-shadow var(--transition),
-    backdrop-filter var(--transition);
+  min-height: 68px;
+  padding: 0 clamp(1.1rem, 3.5vw, 3.5rem);
+  color: rgba(244, 240, 228, .78);
+  background: rgba(7, 17, 15, .96);
+  border-bottom: 1px solid var(--museum-line);
+  transition: min-height var(--transition), background var(--transition), box-shadow var(--transition);
 }
-
-/* 滚动后增强磨砂 */
+.site-header::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: -1px;
+  left: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--bronze), transparent);
+  opacity: .35;
+}
 .site-header.scrolled {
-  background: rgba(255, 255, 255, 0.85);
-  border-color: var(--color-border);
-  box-shadow: 0 4px 24px rgba(107, 140, 92, 0.06);
-  backdrop-filter: blur(var(--glass-blur-strong));
-  -webkit-backdrop-filter: blur(var(--glass-blur-strong));
+  min-height: 60px;
+  background: rgba(7, 17, 15, .88);
+  box-shadow: 0 14px 36px rgba(3, 10, 8, .2);
+  backdrop-filter: blur(20px);
 }
-
-/* ===== 品牌标识 ===== */
-.brand {
-  display: inline-flex;
-  align-items: center;
-  gap: 12px;
-  font-weight: 700;
-  flex-shrink: 0;
-}
+.brand { display: inline-flex; align-items: center; gap: 12px; min-width: 190px; color: inherit; }
+.brand:hover { color: #fff; }
 .brand-mark {
   display: grid;
   place-items: center;
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
-  color: #fff;
-  background: var(--gradient-hero);
-  box-shadow: 0 4px 12px rgba(107, 140, 92, 0.28);
-  font-family: var(--sx-serif);
-  font-size: 19px;
-  font-weight: 700;
+  width: 42px;
+  height: 42px;
+  filter: drop-shadow(0 4px 12px rgba(26, 198, 152, .18));
 }
-.brand-text {
-  font-family: var(--sx-serif);
-  font-size: 21px;
-  font-weight: 800;
-  letter-spacing: 1px;
-  color: var(--color-primary-dark);
-}
-
-/* ===== 桌面导航 ===== */
-.site-nav {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 15px;
-  font-weight: 600;
-}
-
+.brand-mark img { width: 100%; height: 100%; object-fit: contain; }
+.brand-copy { display: flex; flex-direction: column; line-height: 1.15; }
+.brand-text { color: #f6f0e2; font-family: var(--font-display); font-size: 18px; font-weight: 700; letter-spacing: .14em; }
+.brand-sub { margin-top: 4px; color: rgba(145, 187, 168, .66); font-family: var(--font-mono); font-size: 8px; letter-spacing: .12em; }
+.site-nav { display: flex; align-items: stretch; justify-content: center; gap: clamp(.1rem, .6vw, .55rem); height: 68px; }
+.nav-drop { position: relative; display: flex; align-items: stretch; }
 .nav-item {
   position: relative;
-  display: inline-block;
-  padding: 8px 15px;
-  border-radius: 10px;
-  color: var(--color-text);
-  transition: all var(--transition-fast);
+  display: flex;
+  align-items: center;
+  padding: 0 clamp(.55rem, 1vw, .85rem);
+  color: rgba(244, 240, 228, .7);
+  font-size: 13px;
+  letter-spacing: .04em;
   white-space: nowrap;
+  transition: color var(--transition-fast);
 }
-.nav-item:hover {
-  color: var(--color-primary-dark);
-  background: rgba(107, 140, 92, 0.07);
+.nav-item::after {
+  content: '';
+  position: absolute;
+  right: .65rem;
+  bottom: 0;
+  left: .65rem;
+  height: 2px;
+  background: var(--bronze);
+  transform: scaleX(0);
+  transition: transform var(--transition);
 }
-.nav-item.active {
-  color: #fff;
-  background: var(--color-primary);
-  box-shadow: 0 3px 12px rgba(107, 140, 92, 0.25);
-}
-
-/* ===== 下拉子菜单 ===== */
-.nav-drop { position: relative; }
-
+.nav-item:hover, .nav-item.active { color: #fff; }
+.nav-item:hover::after, .nav-item.active::after { transform: scaleX(1); }
 .submenu {
   position: absolute;
-  top: calc(100% + 2px);
+  top: calc(100% + 1px);
   left: 50%;
-  transform: translateX(-50%);
-  min-width: 220px;
-  padding: 8px;
-  background: rgba(255, 255, 255, 0.98);
-  border: 1px solid var(--color-border);
-  border-radius: 14px;
+  z-index: 100;
+  min-width: 238px;
+  padding: 10px;
+  color: var(--ink);
+  background: rgba(250, 247, 240, .98);
+  border: 1px solid rgba(185, 155, 97, .42);
   box-shadow: var(--shadow-lg);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
   opacity: 0;
   visibility: hidden;
-  transform: translateX(-50%) translateY(8px);
-  transition:
-    opacity 0.22s ease,
-    transform 0.22s ease,
-    visibility 0.22s;
-  z-index: 100;
+  transform: translate(-50%, 8px);
+  transition: opacity .2s ease, transform .2s ease, visibility .2s;
 }
-.submenu.open {
-  opacity: 1;
-  visibility: visible;
-  transform: translateX(-50%) translateY(0);
-}
-
-/* 顶部透明桥接区，防止鼠标移动时中断 */
-.submenu-bridge {
-  position: absolute;
-  top: -14px;
-  left: 0;
-  right: 0;
-  height: 14px;
-}
-
-.submenu-item {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  padding: 10px 14px;
-  border-radius: 10px;
-  transition: background 0.16s ease;
-}
-.submenu-item:hover {
-  background: rgba(107, 140, 92, 0.1);
-}
-.submenu-name {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--color-text);
-}
-.submenu-item:hover .submenu-name { color: var(--color-primary-dark); }
-.submenu-desc {
-  font-size: 12px;
-  font-weight: 400;
-  color: var(--color-text-light);
-  line-height: 1.4;
-}
-
-/* ===== 汉堡按钮（移动端） ===== */
-.hamburger {
-  display: none;
-  flex-direction: column;
+.submenu.open { opacity: 1; visibility: visible; transform: translate(-50%, 0); }
+.submenu-bridge { position: absolute; top: -14px; right: 0; left: 0; height: 14px; }
+.submenu-label { padding: 5px 12px 9px; color: var(--clay); font-family: var(--font-mono); font-size: 9px; letter-spacing: .14em; }
+.submenu-item { display: flex; flex-direction: column; gap: 2px; padding: 9px 12px; border-left: 1px solid transparent; }
+.submenu-item:hover { color: var(--jade-deep); background: rgba(95, 146, 125, .08); border-left-color: var(--jade); }
+.submenu-name { font-size: 14px; font-weight: 650; }
+.submenu-desc { color: var(--ink-faint); font-size: 11px; }
+.practice-entry {
+  display: inline-flex;
+  align-items: center;
   justify-content: center;
-  gap: 5px;
-  width: 40px;
-  height: 40px;
-  padding: 8px;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  z-index: 60;
+  gap: 8px;
+  min-height: 38px;
+  padding: 0 16px;
+  color: var(--museum-black);
+  background: var(--bronze-light);
+  border: 1px solid var(--bronze-light);
+  font-size: 13px;
+  font-weight: 700;
+  transition: background var(--transition-fast), color var(--transition-fast);
 }
-.hamburger-line {
-  display: block;
-  width: 100%;
-  height: 2.5px;
-  border-radius: 2px;
-  background: var(--color-primary-dark);
-  transition: all var(--transition-fast);
-  transform-origin: center;
-}
-.hamburger.open .hamburger-line:nth-child(1) {
-  transform: translateY(7.5px) rotate(45deg);
-}
-.hamburger.open .hamburger-line:nth-child(2) {
-  opacity: 0;
-  transform: scaleX(0);
-}
-.hamburger.open .hamburger-line:nth-child(3) {
-  transform: translateY(-7.5px) rotate(-45deg);
-}
+.practice-entry:hover { color: #fff; background: transparent; }
+.hamburger { display: none; width: 42px; height: 42px; padding: 10px; border: 0; color: #fff; background: transparent; }
+.hamburger-line { display: block; width: 22px; height: 1px; margin: 5px 0; background: currentColor; transition: transform var(--transition-fast), opacity var(--transition-fast); }
+.hamburger.open .hamburger-line:nth-child(1) { transform: translateY(6px) rotate(45deg); }
+.hamburger.open .hamburger-line:nth-child(2) { opacity: 0; }
+.hamburger.open .hamburger-line:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
 
-/* ===== 移动端全屏菜单 ===== */
-.mobile-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 45;
-  background: rgba(30, 30, 30, 0.35);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-}
+.mobile-overlay { position: fixed; inset: 0; z-index: 49; display: flex; justify-content: flex-end; padding-top: 68px; background: rgba(2, 9, 7, .66); backdrop-filter: blur(4px); }
 .mobile-nav {
-  position: fixed;
-  top: 72px;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  padding: 1.2rem 1.5rem;
-  background: var(--color-bg);
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+  width: min(88vw, 390px);
+  min-height: calc(100vh - 68px);
+  padding: 2rem 1.4rem;
+  color: #f6f0e2;
+  background: var(--museum-deep);
+  border-left: 1px solid var(--museum-line);
 }
-.mobile-item {
-  display: block;
-  padding: 14px 18px;
-  border-radius: 12px;
-  font-size: 17px;
-  font-weight: 600;
-  color: var(--color-text);
-  transition: background var(--transition-fast);
-}
-.mobile-item:hover {
-  background: rgba(107, 140, 92, 0.08);
-  color: var(--color-primary-dark);
-}
-.mobile-sub {
-  display: block;
-  padding: 10px 18px 10px 44px;
-  border-radius: 10px;
-  font-size: 15px;
-  font-weight: 400;
-  color: var(--color-text-secondary);
-  transition: background var(--transition-fast);
-}
-.mobile-sub:hover {
-  background: rgba(107, 140, 92, 0.05);
-  color: var(--color-primary);
-}
+.mobile-index { margin: 0 0 1.3rem; color: var(--bronze); font-family: var(--font-mono); font-size: 10px; letter-spacing: .18em; }
+.mobile-item { display: flex; align-items: center; gap: 14px; padding: 13px 4px; border-bottom: 1px solid var(--museum-line); color: rgba(246, 240, 226, .82); }
+.mobile-item:hover { color: var(--data-glow); }
+.mobile-item small { display: inline-block; width: 34px; color: var(--bronze); font-family: var(--font-mono); font-size: 10px; }
+.mobile-practice { display: flex; align-items: center; justify-content: space-between; margin-top: 1.8rem; padding: 13px 15px; color: var(--museum-black); background: var(--bronze-light); font-weight: 700; }
+.mobile-menu-enter-active, .mobile-menu-leave-active { transition: opacity .25s ease; }
+.mobile-menu-enter-from, .mobile-menu-leave-to { opacity: 0; }
 
-/* 移动端过渡 */
-.mobile-menu-enter-active,
-.mobile-menu-leave-active {
-  transition: opacity 0.25s ease;
+@media (max-width: 1100px) {
+  .site-header { grid-template-columns: auto 1fr auto; }
+  .site-nav { gap: 0; }
+  .nav-item { padding-inline: .5rem; font-size: 12px; }
+  .practice-entry { padding-inline: 11px; }
 }
-.mobile-menu-enter-from,
-.mobile-menu-leave-to {
-  opacity: 0;
+@media (max-width: 980px) {
+  .site-header { grid-template-columns: 1fr auto; }
+  .site-nav, .practice-entry { display: none; }
+  .hamburger { display: block; }
 }
-
-/* ===== 响应式 ===== */
-@media (max-width: 860px) {
-  .site-nav { display: none; }
-  .hamburger { display: flex; }
+@media (max-width: 440px) {
+  .brand-sub { display: none; }
+  .brand { min-width: 0; }
 }
 </style>

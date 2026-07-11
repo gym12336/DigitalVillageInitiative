@@ -6,6 +6,10 @@ vi.mock('@/modules/practice/mine/planGen.js', () => ({
   generatePlan: vi.fn(),
   localTemplatePlan: vi.fn(),
 }))
+// mock 检索源，隔离其内部对 /api/villages 的网络请求（jsdom 不接受相对 URL）。
+vi.mock('@/modules/practice/mine/sources.js', () => ({
+  getRetrievalSources: vi.fn().mockResolvedValue({ villages: [], results: [], demands: [], guide: {} }),
+}))
 
 import StagePlan from '@/modules/practice/mine/StagePlan.vue'
 import * as planGen from '@/modules/practice/mine/planGen.js'

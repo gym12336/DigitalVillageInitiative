@@ -1,25 +1,32 @@
 <template>
-  <section class="honors-page">
-    <div class="container">
-      <header class="page-head">
-        <p class="kicker">乡村百科</p>
-        <h1>荣誉榜单</h1>
-        <p class="desc">按浏览、收藏、实践热度为全国名村排名，并展示各村所获荣誉。</p>
-      </header>
+  <section class="honors-page museum-public-page">
+    <MuseumPageHero
+      archive-no="ARCHIVE INDEX · RANKING"
+      kicker="乡村百科 / 荣誉榜单"
+      title="在数据坐标中，观察乡村档案的公共关注"
+      description="按浏览、收藏与实践记录整理档案热度。当前数值用于展示交互结构，不代表官方评选。"
+      icon="chart"
+      :metric="ranked.length"
+      metric-label="个参与排序的村庄档案"
+      demo
+    />
+    <div class="museum-content-shell honors-shell">
 
       <!-- 维度切换 -->
+      <MuseumFilterBar title="RANKING DIMENSION / 排名维度">
       <div class="chips" role="tablist" aria-label="排名维度">
         <button
           v-for="d in dimensions"
           :key="d.value"
-          class="chip"
+          class="museum-chip"
           :class="{ active: dimension === d.value }"
           @click="dimension = d.value"
         >{{ d.label }}</button>
       </div>
+      </MuseumFilterBar>
 
       <!-- 榜单 -->
-      <ol class="rank-list">
+      <ol v-if="!loading && !error" class="rank-list">
         <li v-for="(v, i) in ranked" :key="v.id" class="rank-row">
           <span class="rank-no" :class="{ top: i < 3 }">{{ i + 1 }}</span>
           <div class="rank-main">
@@ -35,13 +42,32 @@
           </div>
         </li>
       </ol>
+      <MuseumState v-else-if="error" type="error" title="榜单载入失败" :description="`${error}，请刷新重试。`" />
+      <MuseumState v-else type="loading" title="正在整理榜单" description="正在读取乡村档案与统计信息。" />
     </div>
   </section>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-import villages from '@/data/encyclopedia-villages.json'
+import { ref, computed, onMounted } from 'vue'
+import { fetchAllVillages } from '@/api/villages.js'
+import MuseumPageHero from '@/components/MuseumPageHero.vue'
+import MuseumFilterBar from '@/components/MuseumFilterBar.vue'
+import MuseumState from '@/components/MuseumState.vue'
+
+const villages = ref([])
+const loading = ref(true)
+const error = ref('')
+
+onMounted(async () => {
+  try {
+    villages.value = await fetchAllVillages()
+  } catch (e) {
+    error.value = e.message || '加载失败'
+  } finally {
+    loading.value = false
+  }
+})
 
 const dimensions = [
   { value: 'views', label: '最热浏览', unit: ' 次' },
@@ -55,23 +81,23 @@ function metricValue(v) {
   return (v.stats && v.stats[dimension.value]) || 0
 }
 const ranked = computed(() =>
-  [...villages].sort((a, b) => metricValue(b) - metricValue(a))
+  [...villages.value].sort((a, b) => metricValue(b) - metricValue(a))
 )
-const maxValue = computed(() => Math.max(1, ...villages.map(metricValue)))
+const maxValue = computed(() => Math.max(1, ...villages.value.map(metricValue)))
 function barWidth(v) {
   return `${Math.round((metricValue(v) / maxValue.value) * 100)}%`
 }
 </script>
 
 <style scoped>
-.honors-page { padding: 2.6rem 0 3rem; }
-.container { max-width: 960px; margin: 0 auto; padding: 0 clamp(1rem, 4vw, 2rem); }
+.honors-page { padding: 0; }
+.honors-shell { max-width: 1040px; }
 .page-head { margin-bottom: 1.6rem; }
 .kicker { font-size: 13px; font-weight: 700; color: var(--color-highlight); letter-spacing: .08em; margin: 0 0 .6rem; }
 .page-head h1 { font-size: clamp(28px, 4vw, 38px); font-weight: 700; color: var(--color-primary-dark); font-family: var(--sx-serif); }
 .desc { max-width: 640px; margin: .8rem 0 0; color: var(--color-text-secondary); }
 
-.chips { display: flex; flex-wrap: wrap; gap: .6rem; margin-bottom: 1.6rem; }
+.chips { display: flex; flex-wrap: wrap; gap: .6rem; }
 .chip { padding: .45rem 1.1rem; border: 1px solid var(--color-border); border-radius: 50px; background: var(--color-card); color: var(--color-text-secondary); font-size: .88rem; cursor: pointer; transition: all var(--transition); }
 .chip:hover { border-color: var(--color-primary); color: var(--color-primary); }
 .chip.active { background: var(--color-primary); border-color: var(--color-primary); color: #fff; }
@@ -80,7 +106,7 @@ function barWidth(v) {
 .rank-row {
   display: flex; align-items: center; gap: 1.1rem;
   padding: 1rem 1.3rem; background: var(--color-card);
-  border: 1px solid var(--color-border); border-radius: var(--radius); box-shadow: var(--shadow-card);
+  border: 1px solid var(--color-border); border-radius: var(--radius-sm); box-shadow: var(--shadow-sm);
 }
 .rank-no {
   flex-shrink: 0; width: 2.2rem; text-align: center;

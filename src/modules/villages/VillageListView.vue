@@ -1,10 +1,23 @@
 ﻿<template>
   <section class="enc-page">
     <div class="container">
+      <header class="archive-hero museum-grid">
+        <div class="archive-copy">
+          <p class="archive-kicker">ARCHIVE INDEX / 乡村数字档案</p>
+          <h1>乡村百科 —— 一村一页，读懂中国乡村</h1>
+          <p>将地理坐标、历史沿革、人物口述、产业资源与实践成果编目归档，建立持续生长的数字村志。</p>
+        </div>
+        <div class="archive-counter">
+          <span>COLLECTION</span>
+          <strong>{{ String(villages.length).padStart(3, '0') }}</strong>
+          <small>当前收录档案</small>
+        </div>
+      </header>
+
       <!-- 头条推荐：多卡跑马灯 -->
-      <div class="hero-picks" @mouseenter="pauseAuto" @mouseleave="resumeAuto">
+      <div v-if="!loading && !loadError" class="hero-picks" @mouseenter="pauseAuto" @mouseleave="resumeAuto">
         <div class="picks-head">
-          <p class="hero-kicker">📌 精选乡村 · 本周推荐</p>
+          <p class="hero-kicker">CURATOR'S PICKS / 本周精选</p>
           <div class="picks-nav">
             <button class="pick-arrow" aria-label="上一组" @click="prevSlide">‹</button>
             <button class="pick-arrow" aria-label="下一组" @click="nextSlide">›</button>
@@ -44,13 +57,13 @@
         </div>
       </div>
 
-      <!-- 页面头部 -->
+      <!-- 档案目录说明 -->
       <header class="page-head">
-        <p class="kicker">乡村百科</p>
+        <p class="kicker">COLLECTION CATALOGUE</p>
         <div class="head-row">
           <div class="head-text">
-            <h1>乡村百科 —— 一村一页，读懂中国乡村</h1>
-            <p class="desc">收录全国传统村落、历史文化名村、特色乡村的完整档案。</p>
+            <h2>档案目录</h2>
+            <p class="desc">按地区、荣誉与资源标签检索传统村落、历史文化名村及特色乡村。</p>
             <p class="stat">共 {{ villages.length }} 个乡村</p>
           </div>
         </div>
@@ -58,11 +71,11 @@
 
       <!-- 窄屏筛选按钮 -->
       <button class="filter-toggle" aria-label="打开筛选" @click="filterOpen = true">
-        🔍 筛选 / 搜索<template v-if="hasActiveFilter"> · 已启用</template>
+        筛选 / 搜索<template v-if="hasActiveFilter"> · 已启用</template>
       </button>
 
       <!-- 左栏筛选 + 右结果 两栏布局 -->
-      <div class="enc-body">
+      <div v-if="!loading && !loadError" class="enc-body">
         <!-- 左侧筛选侧栏（窄屏为抽屉） -->
         <aside class="filter-sidebar" :class="{ open: filterOpen }" aria-label="筛选">
           <div class="sidebar-head">
@@ -72,7 +85,7 @@
 
           <!-- 搜索 -->
           <div class="search-bar">
-            <span class="search-ic">🔍</span>
+            <span class="search-ic">⌕</span>
             <input v-model="keyword" type="text" placeholder="搜索乡村名称、关键词、标签..." aria-label="搜索乡村" />
           </div>
 
@@ -191,6 +204,10 @@
           <p v-else class="empty">没有匹配的乡村，试试调整筛选或搜索关键词。</p>
         </div>
       </div>
+      <div v-else class="list-empty">
+        <p v-if="loadError" class="empty">{{ loadError }}，请刷新重试。</p>
+        <p v-else class="empty">正在连接乡村档案库…</p>
+      </div>
     </div>
   </section>
 </template>
@@ -199,16 +216,24 @@
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute } from 'vue-router'
 import VillageCard from '@/components/VillageCard.vue'
-import villages from '@/data/encyclopedia-villages.json'
+import { fetchAllVillages } from '@/api/villages.js'
 import { buildRegionTree, filterVillages, sortVillages, allHonors, allTagsByCategory } from '@/lib/encyclopedia.js'
 
 const route = useRoute()
+const villages = ref([])
+const loading = ref(true)
+const loadError = ref('')
 
 // —— 头条推荐：多卡跑马灯（取前 6 村） ——
-const highlights = villages.slice(0, 6)
-const perView = 3
+const highlights = computed(() => villages.value.slice(0, 6))
+const perView = ref(3)
 const startIndex = ref(0)
-const maxStart = computed(() => Math.max(0, highlights.length - perView))
+const maxStart = computed(() => Math.max(0, highlights.value.length - perView.value))
+function updatePerView() {
+  const width = typeof window === 'undefined' ? 1200 : window.innerWidth
+  perView.value = width <= 640 ? 1 : width <= 960 ? 2 : 3
+  if (startIndex.value > maxStart.value) startIndex.value = maxStart.value
+}
 function goSlide(i) { startIndex.value = Math.min(Math.max(0, i), maxStart.value) }
 function nextSlide() { startIndex.value = startIndex.value >= maxStart.value ? 0 : startIndex.value + 1 }
 function prevSlide() { startIndex.value = startIndex.value <= 0 ? maxStart.value : startIndex.value - 1 }
@@ -251,12 +276,12 @@ const sortOptions = [
 const sortLabel = computed(() => sortOptions.find((o) => o.value === sortBy.value)?.label ?? '')
 
 // —— 行政树 ——
-const regionTree = buildRegionTree(villages)
-const provinceOptions = computed(() => Object.keys(regionTree))
-const cityOptions = computed(() => (province.value === '全部' ? [] : Object.keys(regionTree[province.value] || {})))
+const regionTree = computed(() => buildRegionTree(villages.value))
+const provinceOptions = computed(() => Object.keys(regionTree.value))
+const cityOptions = computed(() => (province.value === '全部' ? [] : Object.keys(regionTree.value[province.value] || {})))
 const districtOptions = computed(() => {
   if (province.value === '全部' || city.value === '全部') return []
-  return Object.keys((regionTree[province.value] || {})[city.value] || {})
+  return Object.keys((regionTree.value[province.value] || {})[city.value] || {})
 })
 function onProvinceChange() { city.value = '全部'; district.value = '全部' }
 function onCityChange() { district.value = '全部' }
@@ -266,10 +291,10 @@ const regionPath = computed(() => {
 })
 
 // —— 荣誉墙 ——
-const honorList = allHonors(villages)
+const honorList = computed(() => allHonors(villages.value))
 
 // —— 标签分类（六大类） ——
-const tagCategories = allTagsByCategory(villages)
+const tagCategories = computed(() => allTagsByCategory(villages.value))
 
 // 当前筛选参数（不含排序，供结果与计数复用）
 const filterArgs = computed(() => ({
@@ -278,17 +303,17 @@ const filterArgs = computed(() => ({
 }))
 
 // —— 结果 ——
-const visibleVillages = computed(() => sortVillages(filterVillages(villages, filterArgs.value), sortBy.value))
+const visibleVillages = computed(() => sortVillages(filterVillages(villages.value, filterArgs.value), sortBy.value))
 
 // 荣誉计数：除荣誉外其他条件生效后，各荣誉还剩多少村
 function honorCount(h) {
-  const base = filterVillages(villages, { ...filterArgs.value, honor: '全部' })
+  const base = filterVillages(villages.value, { ...filterArgs.value, honor: '全部' })
   return h === '全部' ? base.length : base.filter((v) => (v.honors || []).includes(h)).length
 }
 // 标签计数：除该标签外其他条件生效后，加上该标签还剩多少村
 function tagCount(t) {
   const others = selectedTags.value.filter((x) => x !== t)
-  return filterVillages(villages, { ...filterArgs.value, tags: [...others, t] }).length
+  return filterVillages(villages.value, { ...filterArgs.value, tags: [...others, t] }).length
 }
 
 // 面包屑：当前激活的可删除筛选项
@@ -318,21 +343,66 @@ function clearFilters() {
 // —— 首页搜索带入 ?q= ——
 watch(() => route.query.q, (q) => { if (q) keyword.value = String(q) }, { immediate: true })
 
-onMounted(startAuto)
-onBeforeUnmount(stopAuto)
+onMounted(async () => {
+  updatePerView()
+  window.addEventListener('resize', updatePerView)
+  try {
+    villages.value = await fetchAllVillages()
+    startAuto()
+  } catch (error) {
+    loadError.value = error.message || '加载失败'
+  } finally {
+    loading.value = false
+  }
+})
+onBeforeUnmount(() => {
+  stopAuto()
+  window.removeEventListener('resize', updatePerView)
+})
 </script>
 
 <style scoped>
 .enc-page { padding: 2.6rem 0 3rem; }
-.container { max-width: none; margin: 0; padding: 0 clamp(1rem, 4vw, 2.5rem); }
+.container { width: 100%; max-width: none; margin: 0; padding: 0 clamp(1rem, 4vw, 2.5rem); }
+
+/* —— 数字档案页序言 —— */
+.archive-hero {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 190px;
+  align-items: end;
+  gap: 3rem;
+  margin: -2.6rem calc(-1 * clamp(1rem, 4vw, 2.5rem)) 3rem;
+  padding: clamp(4.5rem, 8vw, 7rem) clamp(1rem, 4vw, 3.5rem) 3.2rem;
+  overflow: hidden;
+  color: #f5efe2;
+  background-color: var(--museum-deep);
+}
+.archive-hero::before {
+  content: 'ARCHIVE';
+  position: absolute;
+  right: -1.5rem;
+  bottom: -2.4rem;
+  color: rgba(145,187,168,.045);
+  font-family: var(--font-mono);
+  font-size: clamp(5rem, 15vw, 13rem);
+  line-height: 1;
+  letter-spacing: -.08em;
+}
+.archive-copy, .archive-counter { position: relative; z-index: 1; }
+.archive-copy h1 { max-width: 900px; color: #f5efe2; font-size: clamp(2.2rem, 5vw, 4.5rem); font-weight: 600; }
+.archive-copy > p:last-child { max-width: 680px; margin-top: 1.2rem; color: rgba(243,238,228,.52); font-size: .9rem; line-height: 1.9; }
+.archive-counter { padding: 1.2rem 0 0 1.4rem; border-top: 1px solid var(--museum-line-bright); border-left: 1px solid var(--museum-line-bright); }
+.archive-counter span, .archive-counter small { display: block; color: rgba(243,238,228,.4); font-family: var(--font-mono); font-size: 8px; letter-spacing: .13em; }
+.archive-counter strong { display: block; margin: .35rem 0; color: var(--data-glow); font-family: var(--font-mono); font-size: clamp(2.8rem, 6vw, 5rem); font-weight: 400; line-height: 1; }
 
 /* —— 头条推荐：3 卡并排 —— */
-.hero-picks { margin-bottom: 2.4rem; }
+.hero-picks { width: min(100%, 1240px); margin: 0 auto 4rem; }
 .picks-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: .8rem; }
-.hero-kicker { font-size: 14px; font-weight: 700; color: var(--color-highlight); margin: 0; }
+.hero-kicker { color: var(--clay); font-family: var(--font-mono); font-size: 9px; font-weight: 700; letter-spacing: .14em; margin: 0; }
 .picks-nav { display: flex; gap: .5rem; }
 .pick-arrow {
-  width: 36px; height: 36px; border-radius: 50%; cursor: pointer;
+  width: 36px; height: 36px; border-radius: 0; cursor: pointer;
   border: 1px solid var(--color-border); background: var(--color-card); color: var(--color-primary-dark);
   font-size: 1.5rem; line-height: 1; display: flex; align-items: center; justify-content: center; transition: all var(--transition);
 }
@@ -346,12 +416,12 @@ onBeforeUnmount(stopAuto)
 .pick-card {
   display: flex; flex-direction: column; overflow: hidden; cursor: pointer;
   background: var(--color-card); border: 1px solid var(--color-border);
-  border-radius: var(--radius); box-shadow: var(--shadow-card);
-  transition: transform var(--transition), box-shadow var(--transition);
+  border-radius: 0; box-shadow: none;
+  transition: border-color var(--transition), box-shadow var(--transition);
 }
-.pick-card:hover, .pick-card:focus-visible { transform: translateY(-4px); box-shadow: var(--shadow-card-hover); outline: none; }
+.pick-card:hover, .pick-card:focus-visible { border-color: var(--bronze); box-shadow: var(--shadow-card-hover); outline: none; }
 .pick-cover { position: relative; aspect-ratio: 16 / 10; background-size: cover; background-position: center; background-color: var(--color-primary); }
-.pick-tag { position: absolute; left: .8rem; top: .8rem; padding: .25rem .8rem; border-radius: 50px; background: var(--color-accent); color: var(--color-primary-dark); font-size: .76rem; font-weight: 600; }
+.pick-tag { position: absolute; left: .8rem; top: .8rem; padding: .25rem .6rem; border-radius: 0; background: var(--bronze-light); color: var(--museum-black); font-size: .66rem; font-weight: 700; }
 .pick-body { padding: 1.1rem 1.3rem 1.3rem; display: flex; flex-direction: column; gap: .4rem; }
 .pick-title { font-size: 1.25rem; font-weight: 700; color: var(--color-primary-dark); font-family: var(--sx-serif); }
 .pick-loc { font-size: .85rem; color: var(--color-primary); font-weight: 600; }
@@ -363,21 +433,21 @@ onBeforeUnmount(stopAuto)
 .slide-prev-leave-to { opacity: 0; transform: translateX(24px); }
 
 /* —— 头部 —— */
-.page-head { margin-bottom: 1.6rem; }
-.kicker { font-size: 13px; font-weight: 700; color: var(--color-highlight); letter-spacing: .08em; margin: 0 0 .6rem; }
-.head-text h1 { font-size: clamp(28px, 4vw, 38px); font-weight: 700; color: var(--color-primary-dark); }
+.page-head { width: min(100%, 1240px); margin: 0 auto 1.6rem; }
+.kicker { font-family: var(--font-mono); font-size: 9px; font-weight: 700; color: var(--clay); letter-spacing: .14em; margin: 0 0 .6rem; }
+.head-text h2 { font-size: clamp(28px, 4vw, 38px); font-weight: 700; color: var(--jade-deep); }
 .desc { max-width: 720px; margin: .8rem 0 0; color: var(--color-text-secondary); font-size: 1rem; }
 .stat { margin: .7rem 0 0; font-size: 14px; color: var(--color-text-light); }
 
 /* —— 两栏布局 —— */
-.enc-body { display: grid; grid-template-columns: 260px 1fr; gap: 1.8rem; align-items: start; }
+.enc-body { display: grid; grid-template-columns: 280px 1fr; gap: 1.8rem; align-items: start; width: min(100%, 1240px); margin: 0 auto; }
 
 /* —— 左侧筛选侧栏 —— */
 .filter-sidebar {
   position: sticky; top: 88px;
   display: flex; flex-direction: column; gap: 1.2rem;
   background: var(--color-card); border: 1px solid var(--color-border);
-  border-radius: var(--radius); padding: 1.2rem 1.2rem 1.4rem; box-shadow: var(--shadow-sm);
+  border-radius: 0; padding: 1.2rem 1.2rem 1.4rem; box-shadow: none;
 }
 .sidebar-head { display: none; align-items: center; justify-content: space-between; }
 .sidebar-title { font-weight: 700; color: var(--color-primary-dark); font-size: 1.1rem; }
@@ -387,18 +457,18 @@ onBeforeUnmount(stopAuto)
 .fgroup-title { margin: 0; font-size: .82rem; font-weight: 700; color: var(--color-text-secondary); letter-spacing: .04em; }
 
 /* 搜索 */
-.search-bar { display: flex; align-items: center; gap: .5rem; padding: .2rem .9rem; background: var(--sx-paper-deep); border: 1px solid var(--color-border); border-radius: 50px; }
+.search-bar { display: flex; align-items: center; gap: .5rem; padding: .2rem .9rem; background: var(--sx-paper-deep); border: 1px solid var(--color-border); border-radius: 0; }
 .search-bar input { flex: 1; min-width: 0; border: none; outline: none; background: transparent; padding: .55rem 0; font-size: .9rem; color: var(--color-text); }
 
 /* 排序（竖向单选） */
 .sort-list { display: flex; flex-direction: column; gap: .4rem; }
-.sort-item { text-align: left; padding: .45rem .8rem; border: 1px solid var(--color-border); border-radius: 8px; background: var(--color-card); color: var(--color-text-secondary); font-size: .86rem; cursor: pointer; transition: all var(--transition); }
+.sort-item { text-align: left; padding: .45rem .8rem; border: 1px solid var(--color-border); border-radius: 0; background: var(--color-card); color: var(--color-text-secondary); font-size: .86rem; cursor: pointer; transition: all var(--transition); }
 .sort-item:hover { border-color: var(--color-primary); color: var(--color-primary); }
 .sort-item.active { background: var(--color-primary); border-color: var(--color-primary); color: #fff; }
 
 /* 地区（竖向级联） */
 .region-col { display: flex; flex-direction: column; gap: .5rem; }
-.region-select { width: 100%; padding: .5rem .8rem; border: 1px solid var(--color-border); border-radius: 8px; background: var(--color-card); color: var(--color-text); font-size: .86rem; cursor: pointer; }
+.region-select { width: 100%; padding: .5rem .8rem; border: 1px solid var(--color-border); border-radius: 0; background: var(--color-card); color: var(--color-text); font-size: .86rem; cursor: pointer; }
 .region-select:disabled { opacity: .5; cursor: not-allowed; }
 
 /* 荣誉（竖向胶囊换行） */
@@ -427,7 +497,7 @@ onBeforeUnmount(stopAuto)
 .view-btn:hover { border-color: var(--color-primary); color: var(--color-primary); }
 .view-btn.active { background: var(--color-primary); border-color: var(--color-primary); color: #fff; }
 
-.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1.4rem; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 1rem; }
 
 /* 列表视图 */
 .list { display: flex; flex-direction: column; gap: .9rem; }
@@ -460,7 +530,7 @@ onBeforeUnmount(stopAuto)
 }
 
 /* —— 窄屏筛选按钮 + 抽屉 —— */
-.filter-toggle { display: none; width: 100%; margin-bottom: 1rem; padding: .7rem 1rem; border: 1px solid var(--color-border); border-radius: 50px; background: var(--color-card); color: var(--color-primary-dark); font-size: .9rem; font-weight: 600; cursor: pointer; box-shadow: var(--shadow-sm); }
+.filter-toggle { display: none; width: min(100%,1240px); margin: 0 auto 1rem; padding: .7rem 1rem; border: 1px solid var(--color-border); border-radius: 0; background: var(--color-card); color: var(--color-primary-dark); font-size: .9rem; font-weight: 600; cursor: pointer; box-shadow: none; }
 .filter-backdrop { display: none; }
 
 @media (max-width: 960px) {
@@ -477,9 +547,9 @@ onBeforeUnmount(stopAuto)
 }
 
 @media (max-width: 760px) {
+  .archive-hero { grid-template-columns: 1fr; gap: 2rem; }
+  .archive-counter { width: 180px; }
   .hero-card { grid-template-columns: 1fr; }
   .hero-cover { min-height: 180px; }
 }
 </style>
-
-

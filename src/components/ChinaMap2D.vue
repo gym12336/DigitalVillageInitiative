@@ -24,11 +24,11 @@
         @mouseenter="panelHover = true"
         @mouseleave="panelHover = false"
       >
-        <button class="panel-toggle" title="搜索村庄 / 地区" @click="panelPinned = !panelPinned">🔍</button>
+        <button class="panel-toggle" title="搜索村庄 / 地区" aria-label="搜索村庄或地区" @click="panelPinned = !panelPinned"><AppIcon name="search" :size="17" /></button>
 
         <div class="panel-body">
           <div class="search-box">
-            <span class="search-ic">🔍</span>
+            <span class="search-ic"><AppIcon name="search" :size="15" /></span>
             <input
               v-model="searchKeyword"
               type="text"
@@ -49,7 +49,7 @@
               class="result-item"
               @click="onResult(r)"
             >
-              <span class="result-ic">{{ r.kind === 'village' ? '📍' : '🗺️' }}</span>
+              <span class="result-ic"><AppIcon :name="r.kind === 'village' ? 'map-pin' : 'archive'" :size="15" /></span>
               <span class="result-name">{{ r.name }}</span>
               <span class="result-tag">{{ r.kind === 'village' ? '村庄' : nextLevelLabel }}</span>
             </button>
@@ -80,19 +80,20 @@ import * as echarts from 'echarts'
 import { createDrill, drillDown, drillUp, goToDepth as _goToDepth, current, breadcrumb, canDrill } from '@/lib/mapDrill.js'
 import { createGeoLoader } from '@/lib/geoLoader.js'
 import { toScatterPoints, filterByRegion } from '@/lib/villages.js'
+import AppIcon from '@/components/AppIcon.vue'
 
-// 暖绿品牌配色（对齐《设计风格与配色》文档）
+// 数字展厅地图配色（对齐 docs/visual-system.md）
 const C = {
-  land: '#e9e2d6',                       // 未点亮省份底色（浅麦纸）
-  landBorder: '#d9cdb8',                 // 省界
-  emphasis: '#6b8c5c',                   // hover 高亮（橄榄绿）
-  emphasisBorder: '#4d6b3e',
-  scatter: '#e07a5f',                    // 村庄散点（珊瑚橘）
-  scatterActive: '#c25c42',
-  scatterLabel: '#4d6b3e',
-  tooltipBg: 'rgba(255,255,255,.96)',
-  tooltipBorder: '#ede8e0',
-  tooltipText: '#1e1e1e',
+  land: '#132b25',
+  landBorder: '#386052',
+  emphasis: '#23483d',
+  emphasisBorder: '#76d8bc',
+  scatter: '#c5a66a',
+  scatterActive: '#76d8bc',
+  scatterLabel: '#d9c894',
+  tooltipBg: 'rgba(7,17,15,.96)',
+  tooltipBorder: '#386052',
+  tooltipText: '#f3eee4',
 }
 
 const props = defineProps({
@@ -215,7 +216,7 @@ async function renderMap() {
       borderWidth: 1,
       textStyle: { color: C.tooltipText },
       extraCssText: 'border-radius:12px;box-shadow:0 8px 40px rgba(0,0,0,.08);',
-      formatter: (p) => (p.seriesType === 'scatter' ? `📍 ${p.data.name}` : p.name),
+      formatter: (p) => (p.seriesType === 'scatter' ? `POINT · ${p.data.name}` : p.name),
     },
     geo: {
       map: mapName,

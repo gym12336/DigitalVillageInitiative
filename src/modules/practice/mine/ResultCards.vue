@@ -2,7 +2,7 @@
   <div class="result-cards">
     <!-- 帮扶前后对比 -->
     <section v-if="comparable.length" class="card">
-      <h3 class="card-title">📊 帮扶前后对比</h3>
+      <h3 class="card-title"><AppIcon name="chart" :size="17" />帮扶前后对比</h3>
       <div class="cmp-list">
         <div v-for="m in comparable" :key="m.name" class="cmp-row">
           <div class="cmp-head">
@@ -29,7 +29,7 @@
 
     <!-- KPI 卡组 -->
     <section v-if="kpis.length" class="card">
-      <h3 class="card-title">🎯 关键指标</h3>
+      <h3 class="card-title"><AppIcon name="chart" :size="17" />关键指标</h3>
       <div class="kpi-grid">
         <div v-for="k in kpis" :key="k.name" class="kpi">
           <span class="kpi-num">{{ k.value }}<i class="kpi-unit">{{ k.unit }}</i></span>
@@ -40,7 +40,7 @@
 
     <!-- 足迹时间线 -->
     <section v-if="timeline.length" class="card">
-      <h3 class="card-title">🧭 实践足迹</h3>
+      <h3 class="card-title"><AppIcon name="practice" :size="17" />实践足迹</h3>
       <ol class="timeline">
         <li v-for="(t, i) in timeline" :key="i" class="tl-item">
           <span class="tl-dot" />
@@ -55,7 +55,7 @@
 
     <!-- 人物故事墙 -->
     <section v-if="people.length" class="card">
-      <h3 class="card-title">👥 人物故事墙</h3>
+      <h3 class="card-title"><AppIcon name="users" :size="17" />人物故事墙</h3>
       <div class="people-wall">
         <article v-for="(p, i) in people" :key="i" class="person">
           <div class="person-avatar" :style="{ background: avatarColor(i) }">{{ initial(p.name) }}</div>
@@ -74,6 +74,7 @@
 
 <script setup>
 import { computed } from 'vue'
+import AppIcon from '@/components/AppIcon.vue'
 
 const props = defineProps({
   dossier: { type: Object, required: true },
@@ -146,7 +147,7 @@ function initial(name) {
   padding: 1.4rem 1.5rem; background: var(--color-card);
   border: 1px solid var(--color-border); border-radius: var(--radius); box-shadow: var(--shadow-card);
 }
-.card-title { margin: 0 0 1rem; font-size: 1.05rem; color: var(--color-primary-dark); }
+.card-title { display: flex; align-items: center; gap: .45rem; margin: 0 0 1rem; font-size: 1.05rem; color: var(--color-primary-dark); }
 
 /* 对比条 */
 .cmp-list { display: flex; flex-direction: column; gap: 1rem; }

@@ -120,3 +120,28 @@ export function validateDossier(dossier) {
   const title = typeof dossier.title === 'string' ? dossier.title : ''
   return { id: dossier.id, title, stage, payload }
 }
+
+/**
+ * 校验一份成果作品对象。用于 POST/PUT（upsert）。
+ * 与 validateDossier 同构：字符串 id、payload 可序列化且不超上限；
+ * 抽取 title 供冗余列，sourceDossier 记录数据源档案 id（可空）。
+ */
+export function validateWorkRecord(work) {
+  if (!work || typeof work !== 'object')
+    throw httpError(400, '作品必须是对象')
+  if (typeof work.id !== 'string' || !work.id.trim())
+    throw httpError(400, '作品缺少合法 id')
+
+  let payload
+  try {
+    payload = JSON.stringify(work)
+  } catch {
+    throw httpError(400, '作品无法序列化（可能存在循环引用）')
+  }
+  if (Buffer.byteLength(payload, 'utf8') > PAYLOAD_MAX_BYTES)
+    throw httpError(400, `单份作品超过 ${PAYLOAD_MAX_BYTES / 1024}KB 上限`)
+
+  const title = typeof work.title === 'string' ? work.title : ''
+  const sourceDossier = typeof work.source === 'string' ? work.source : ''
+  return { id: work.id, title, sourceDossier, payload }
+}

@@ -4,7 +4,7 @@
 
 <script setup>
 // 滚动到视口时从 0 递增到目标值的计数动画（Intersection Observer 触发，1.5s ease-out）。
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
 
 const props = defineProps({
   value: { type: Number, required: true },
@@ -37,5 +37,12 @@ onMounted(() => {
   }, { threshold: 0.3 })
   obs.observe(el.value)
 })
+
+// 首页统计值来自异步接口。若元素进入视口后数据才返回，确保最终数字
+// 会同步为最新值，而不会停留在首次渲染时的 0。
+watch(() => props.value, (value) => {
+  if (started) display.value = value
+})
+
 onBeforeUnmount(() => { if (obs) obs.disconnect() })
 </script>

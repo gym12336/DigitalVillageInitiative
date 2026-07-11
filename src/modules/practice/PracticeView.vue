@@ -1,6 +1,22 @@
 ﻿<template>
-  <section class="practice-page">
-    <div class="container">
+  <section class="practice-page museum-public-page">
+    <MuseumPageHero
+      archive-no="PRACTICE ARCHIVE · OUTCOMES"
+      kicker="乡村实践 / 成果档案"
+      title="乡村实践 —— 用脚步丈量，用实践记录"
+      description="汇聚实践中的人物、影像与成果，让每一次青年行动都有清晰来源、过程和可继续复用的经验。"
+      icon="practice"
+      :metric="results.length"
+      metric-label="份当前演示成果"
+      demo
+    >
+      <template #actions>
+        <button class="museum-action-primary" type="button" @click="onUpload">
+          <AppIcon name="upload" :size="16" />上传我的成果
+        </button>
+      </template>
+    </MuseumPageHero>
+    <div class="museum-content-shell">
       <!-- 头条轮播 -->
       <div
         class="hero-carousel"
@@ -8,9 +24,9 @@
         @mouseleave="resumeAuto"
         aria-roledescription="carousel"
       >
-        <p class="hero-kicker">🔥 精选成果 · 本周热门</p>
+        <p class="hero-kicker"><span>CURATOR'S PICKS</span>精选成果 · 本周热门</p>
         <div class="hero-stage">
-          <button class="hero-arrow left" aria-label="上一张" @click="prevSlide">‹</button>
+          <button class="hero-arrow left" aria-label="上一张" @click="prevSlide"><AppIcon name="chevron-left" :size="19" /></button>
           <transition :name="slideDir" mode="out-in">
             <article
               :key="activeHighlight.id"
@@ -29,7 +45,7 @@
               </div>
             </article>
           </transition>
-          <button class="hero-arrow right" aria-label="下一张" @click="nextSlide">›</button>
+          <button class="hero-arrow right" aria-label="下一张" @click="nextSlide"><AppIcon name="chevron-right" :size="19" /></button>
         </div>
         <div class="hero-dots">
           <button
@@ -43,20 +59,10 @@
         </div>
       </div>
 
-      <!-- 页面头部 -->
-      <header class="page-head">
-        <p class="kicker">乡村实践</p>
-        <div class="head-row">
-          <div class="head-text">
-            <h1>乡村实践 —— 用脚步丈量，用实践记录</h1>
-            <p class="desc">汇聚全国三下乡团队的完整实践成果，用数据、人物与影像记录乡村的改变。</p>
-            <p class="stat">共 423 份成果 ｜ 覆盖 156 个乡村</p>
-          </div>
-          <button class="btn-publish" @click="onUpload">上传我的成果</button>
-        </div>
-      </header>
-
       <!-- 模块一：实践概况 --><section class="overview section-alt">
+        <MuseumSectionHeader index="01" kicker="DEMO IMPACT OVERVIEW" title="实践概况" icon="chart">
+          <p>以下统计均为演示数据，用于验证数据看板和档案组织方式。</p>
+        </MuseumSectionHeader>
         <div class="ov-grid">
           <div class="ov-card"><span class="ov-num"><CountUp :value="overview.days" /></span><span class="ov-label">总实践天数</span></div>
           <div class="ov-card"><span class="ov-num"><CountUp :value="overview.teams" /></span><span class="ov-label">参与团队</span></div>
@@ -68,8 +74,9 @@
 
       <!-- 模块二：乡村人物 -->
       <section class="people">
-        <h2 class="sec-title">👤 乡村人物 · 实践中的遇见</h2>
-        <p class="sec-desc">那些在实践过程中遇到的乡村守护人，听听他们的故事。</p>
+        <MuseumSectionHeader index="02" kicker="ORAL HISTORY" title="乡村人物 · 实践中的遇见" icon="user">
+          <p>那些在实践过程中遇到的乡村守护人，听听他们的故事。</p>
+        </MuseumSectionHeader>
         <div class="chips" role="tablist" aria-label="人物标签筛选">
           <button
             v-for="t in peopleTags"
@@ -92,7 +99,7 @@
             <div class="avatar" :style="{ background: p.avatarColor }">{{ p.name.charAt(0) }}</div>
             <h3 class="person-name">{{ p.name }}</h3>
             <p class="person-role">{{ p.role }}</p>
-            <p class="person-village">📍 {{ p.village }}</p>
+            <p class="person-village"><AppIcon name="map-pin" :size="13" />{{ p.village }}</p>
             <div class="person-tags">
               <span v-for="t in p.tags" :key="t" class="mini-tag">{{ t }}</span>
             </div>
@@ -104,8 +111,9 @@
       </section>
 
       <!-- 模块三：乡土视频 --><section class="videos section-alt">
-        <h2 class="sec-title">🎬 乡土视频 · 镜头下的乡村</h2>
-        <p class="sec-desc">用影像记录乡村的点点滴滴。</p>
+        <MuseumSectionHeader index="03" kicker="FIELD VIDEO" title="乡土视频 · 镜头下的乡村" icon="play">
+          <p>用影像记录乡村的点点滴滴；当前封面与视频内容均为演示素材。</p>
+        </MuseumSectionHeader>
         <div class="video-grid">
           <article
             v-for="v in videos"
@@ -118,7 +126,7 @@
           >
             <div class="video-cover">
               <img :src="v.cover" :alt="v.title" loading="lazy" />
-              <span class="play-badge">▶</span>
+              <span class="play-badge"><AppIcon name="play" :size="22" /></span>
               <span class="video-dur">{{ v.duration }}</span>
             </div>
             <h3 class="video-title">{{ v.title }}</h3>
@@ -129,10 +137,12 @@
 
       <!-- 模块四：成果列表 -->
       <section ref="resultsSection" class="results">
-        <h2 class="sec-title">📁 实践成果</h2>
+        <MuseumSectionHeader index="04" kicker="PRACTICE COLLECTION" title="实践成果" icon="folder">
+          <p>按类型、形式和年份检索当前演示成果档案。</p>
+        </MuseumSectionHeader>
       <div class="filter-panel">
         <div class="search-bar">
-          <span class="search-ic">🔍</span>
+          <AppIcon class="search-ic" name="search" :size="16" />
           <input v-model="keyword" type="text" placeholder="搜索成果标题、团队名称、关键词..." aria-label="搜索成果" />
         </div>
         <div class="chips" role="tablist" aria-label="排序方式">
@@ -170,14 +180,14 @@
             <div class="result-body">
               <h3 class="result-title">{{ r.title }}</h3>
               <p class="result-school">{{ r.school }}</p>
-              <p class="result-team">{{ r.team }} · 📍{{ r.village }}·{{ r.province }}</p>
+              <p class="result-team">{{ r.team }} · <AppIcon name="map-pin" :size="13" />{{ r.village }}·{{ r.province }}</p>
               <div class="result-tags"><span class="mini-tag">{{ r.type }}</span><span class="mini-tag">{{ r.form }}</span></div>
               <span class="cert-badge">✓ {{ r.cert }}</span>
-              <div class="result-stats"><span>👁 {{ r.views }}</span><span>👍 {{ r.likes }}</span><span>⬇ {{ r.downloads }}</span></div>
+              <div class="result-stats"><span><AppIcon name="eye" :size="13" />{{ r.views }}</span><span><AppIcon name="heart" :size="13" />{{ r.likes }}</span><span><AppIcon name="download" :size="13" />{{ r.downloads }}</span></div>
             </div>
           </article>
         </div>
-        <p v-else class="empty">没有匹配的成果，试试调整筛选或搜索关键词。</p>
+        <MuseumState v-else type="empty" title="没有匹配的成果" description="试试调整筛选条件或搜索关键词。" />
       </section>
     </div>
 
@@ -191,7 +201,7 @@
               <div class="avatar lg" :style="{ background: activePerson.avatarColor }">{{ activePerson.name.charAt(0) }}</div>
               <div>
                 <h2 class="modal-title">{{ activePerson.name }}</h2>
-                <p class="modal-sub">{{ activePerson.role }}　·　📍 {{ activePerson.village }}</p>
+                <p class="modal-sub"><AppIcon name="map-pin" :size="13" />{{ activePerson.role }} · {{ activePerson.village }}</p>
                 <div class="person-tags"><span v-for="t in activePerson.tags" :key="t" class="mini-tag">{{ t }}</span></div>
               </div>
             </div>
@@ -199,8 +209,8 @@
             <p v-for="(para, i) in personStoryParas" :key="i" class="modal-desc story-para">{{ para }}</p>
             <div class="modal-actions">
               <div class="modal-counts">
-                <button class="count-btn" @click="toggleLike(activePerson)">{{ likedIds.has(activePerson.id) ? '❤️' : '🤍' }} 点赞</button>
-                <button class="count-btn" @click="toggleFav(activePerson)">{{ favIds.has(activePerson.id) ? '⭐' : '☆' }} 收藏</button>
+                <button class="count-btn" @click="toggleLike(activePerson)"><AppIcon name="heart" :size="14" />{{ likedIds.has(activePerson.id) ? '已点赞' : '点赞' }}</button>
+                <button class="count-btn" @click="toggleFav(activePerson)"><AppIcon name="star" :size="14" />{{ favIds.has(activePerson.id) ? '已收藏' : '收藏' }}</button>
               </div>
             </div>
           </div>
@@ -215,7 +225,7 @@
           <div class="modal" role="dialog" aria-modal="true" :aria-label="activeVideo.title">
             <button class="modal-close" aria-label="关闭" @click="closeVideo">×</button>
             <div class="video-player" :style="{ backgroundImage: `url(${activeVideo.cover})` }">
-              <span class="play-badge lg">▶</span>
+              <span class="play-badge lg"><AppIcon name="play" :size="28" /></span>
               <p class="player-hint">视频播放占位（示例数据，暂无真实视频源）</p>
             </div>
             <h2 class="modal-title">{{ activeVideo.title }}</h2>
@@ -233,6 +243,10 @@
 import { ref, reactive, computed, onMounted, onBeforeUnmount } from 'vue'
 import CountUp from '@/components/CountUp.vue'
 import AppToast from '@/components/AppToast.vue'
+import AppIcon from '@/components/AppIcon.vue'
+import MuseumPageHero from '@/components/MuseumPageHero.vue'
+import MuseumSectionHeader from '@/components/MuseumSectionHeader.vue'
+import MuseumState from '@/components/MuseumState.vue'
 import data from './practice-data.json'
 import { filterPeople, filterResults, sortResults } from './practice-filters'
 
@@ -343,19 +357,35 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.practice-page { padding: 2.6rem 0 3rem; }
-.container { max-width: 1180px; margin: 0 auto; padding: 0 clamp(1rem, 4vw, 2rem); }
+.practice-page { padding: 0; }
 
 /* —— 头条轮播 —— */
-.hero-carousel { margin-bottom: 2.4rem; }
-.hero-kicker { font-size: 14px; font-weight: 700; color: var(--color-highlight); margin: 0 0 .8rem; }
+.hero-carousel { margin-bottom: 3rem; }
+.hero-kicker { display: flex; align-items: center; gap: .8rem; font-size: 14px; font-weight: 700; color: var(--color-highlight); margin: 0 0 .8rem; }
+.hero-kicker span { color: var(--jade-deep); font-family: var(--font-mono); font-size: 9px; letter-spacing: .12em; }
 .hero-stage { display: flex; align-items: center; gap: .6rem; }
 .hero-card {
-  flex: 1; display: grid; grid-template-columns: 1.1fr 1fr; gap: 0; overflow: hidden;
+  position: relative; flex: 1; display: grid; grid-template-columns: 1.1fr 1fr; gap: 0; overflow: hidden;
   background: var(--color-card); border: 1px solid var(--color-border);
-  border-radius: var(--radius); box-shadow: var(--shadow-card); cursor: pointer;
+  border-radius: var(--radius-sm); box-shadow: var(--shadow-sm); cursor: pointer;
   transition: transform var(--transition), box-shadow var(--transition);
 }
+.hero-card::after,
+.video-cover::after,
+.result-cover::after {
+  content: 'DEMO IMAGE';
+  position: absolute;
+  z-index: 2;
+  right: .55rem;
+  bottom: .55rem;
+  padding: .15rem .45rem;
+  color: rgba(255,255,255,.9);
+  background: rgba(7,17,15,.62);
+  font-family: var(--font-mono);
+  font-size: 8px;
+  letter-spacing: .08em;
+}
+.hero-card::after { top: .55rem; right: auto; bottom: auto; left: .55rem; }
 .hero-card:hover, .hero-card:focus-visible { transform: translateY(-3px); box-shadow: var(--shadow-card-hover); outline: none; }
 .hero-cover { width: 100%; height: 100%; min-height: 240px; aspect-ratio: 16/9; object-fit: cover; }
 .hero-body { padding: 1.6rem 1.8rem; display: flex; flex-direction: column; justify-content: center; }
@@ -367,7 +397,7 @@ onBeforeUnmount(() => {
 .hero-school { margin: .7rem 0 .5rem; font-size: .9rem; color: var(--color-primary); font-weight: 600; }
 .hero-oneline { font-size: .95rem; color: var(--color-text-secondary); font-style: italic; }
 .hero-arrow {
-  flex-shrink: 0; width: 40px; height: 40px; border-radius: 50%; cursor: pointer;
+  flex-shrink: 0; width: 40px; height: 40px; border-radius: var(--radius-sm); cursor: pointer;
   border: 1px solid var(--color-border); background: var(--color-card); color: var(--color-primary-dark);
   font-size: 1.6rem; line-height: 1; display: flex; align-items: center; justify-content: center;
   transition: all var(--transition);
@@ -411,7 +441,7 @@ onBeforeUnmount(() => {
 .ov-card {
   display: flex; flex-direction: column; align-items: center; gap: .4rem; text-align: center;
   padding: 1.6rem 1rem; background: var(--color-card);
-  border: 1px solid var(--color-border); border-radius: var(--radius); box-shadow: var(--shadow-card);
+  border: 1px solid var(--color-border); border-radius: var(--radius-sm); box-shadow: var(--shadow-sm);
 }
 .ov-num { font-size: 3.2rem; font-weight: 700; color: var(--color-primary); line-height: 1; }
 .ov-label { font-size: 14px; color: var(--color-text-secondary); }
@@ -420,7 +450,7 @@ onBeforeUnmount(() => {
 /* —— 胶囊 / 标签 / 搜索（同 voice） —— */
 .chips { display: flex; flex-wrap: wrap; gap: .6rem; margin-bottom: 1.2rem; }
 .chip {
-  padding: .45rem 1.1rem; border: 1px solid var(--color-border); border-radius: 50px;
+  padding: .45rem 1.1rem; border: 1px solid var(--color-border); border-radius: var(--radius-sm);
   background: var(--color-card); color: var(--color-text-secondary); font-size: .88rem; cursor: pointer;
   transition: all var(--transition);
 }
@@ -430,9 +460,9 @@ onBeforeUnmount(() => {
   display: flex; align-items: center; gap: .6rem;
   padding: .3rem 1.2rem; margin-bottom: 1.2rem;
   background: var(--color-card); border: 1px solid var(--color-border);
-  border-radius: 50px; box-shadow: var(--shadow-card);
+  border-radius: var(--radius-sm); box-shadow: var(--shadow-sm);
 }
-.search-ic { font-size: 1rem; }
+.search-ic { color: var(--jade); }
 .search-bar input { flex: 1; border: none; outline: none; background: transparent; padding: .6rem 0; font-size: .95rem; color: var(--color-text); }
 .filters { display: flex; flex-direction: column; gap: .9rem; margin-bottom: 1rem; }
 .filter-group { display: flex; align-items: baseline; gap: .8rem; flex-wrap: wrap; }
@@ -526,6 +556,7 @@ onBeforeUnmount(() => {
 .avatar.lg { width: 80px; height: 80px; font-size: 2rem; margin: 0; flex-shrink: 0; }
 .person-name { font-size: 1.1rem; font-weight: 700; color: var(--color-text); }
 .person-role { font-size: .85rem; color: var(--color-primary); font-weight: 600; }
+.person-village, .result-team, .result-stats span, .modal-sub, .count-btn { display: inline-flex; align-items: center; gap: .35rem; }
 .person-village { font-size: .82rem; color: var(--color-text-light); }
 .person-tags { display: flex; flex-wrap: wrap; justify-content: center; gap: .4rem; margin: .3rem 0; }
 .person-oneline { font-size: .88rem; color: var(--color-text-secondary); font-style: italic; line-height: 1.6; }
@@ -549,7 +580,7 @@ onBeforeUnmount(() => {
 }
 .play-badge.lg { position: static; transform: none; width: 60px; height: 60px; font-size: 1.5rem; margin-bottom: .8rem; }
 .video-dur {
-  position: absolute; right: .6rem; bottom: .6rem; padding: .1rem .5rem; border-radius: 50px;
+  position: absolute; left: .6rem; bottom: .6rem; padding: .1rem .5rem; border-radius: 50px;
   background: rgba(0, 0, 0, .65); color: #fff; font-size: .72rem;
 }
 .video-title { padding: .9rem 1rem 0; font-size: 1rem; font-weight: 600; color: var(--color-text); }
@@ -631,7 +662,3 @@ onBeforeUnmount(() => {
   .hero-cover { min-height: 180px; }
 }
 </style>
-
-
-
-

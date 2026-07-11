@@ -1,6 +1,6 @@
 <template>
   <AuthGate>
-  <section class="teams-page">
+  <section class="teams-page tool-interface">
     <div class="container">
       <header class="page-head">
         <p class="kicker">乡村实践 · 我的实践</p>
@@ -21,7 +21,7 @@
 
       <!-- 空态引导 -->
       <div v-if="!teams.length && loaded" class="onboard">
-        <p class="onboard-emoji">🚩</p>
+        <div class="onboard-icon"><AppIcon name="users" :size="32" /></div>
         <h2>创建你的第一个实践队</h2>
         <p>建队后会拿到一个邀请码，分享给队友即可一起协作实践。也可以用别人的邀请码加入现有队。</p>
         <div class="onboard-actions">
@@ -48,8 +48,8 @@
             </span>
           </div>
           <div class="tc-stats">
-            <span>👥 {{ t.memberCount }} 名队员</span>
-            <span>📄 我建了 {{ t.myDossierCount }} 份</span>
+            <span><AppIcon name="users" :size="13" />{{ t.memberCount }} 名队员</span>
+            <span><AppIcon name="document" :size="13" />我建了 {{ t.myDossierCount }} 份</span>
           </div>
           <div class="tc-foot">进入工作台 →</div>
         </article>
@@ -117,6 +117,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import AppToast from '@/components/AppToast.vue'
+import AppIcon from '@/components/AppIcon.vue'
 import AuthGate from './AuthGate.vue'
 import { currentUser, loadMyTeams, createTeam, joinTeam } from './auth.js'
 import { hasPendingMigration, migrateLegacyDossiers, readLegacyDossiers } from './dossier.js'
@@ -243,7 +244,7 @@ function enterTeam(teamId) {
 .btn.ghost:hover { border-color: var(--color-primary); color: var(--color-primary); }
 
 .onboard { text-align: center; padding: 3.5rem 1rem; background: var(--color-card); border: 1px dashed var(--color-border); border-radius: var(--radius); }
-.onboard-emoji { font-size: 2.6rem; margin: 0; }
+.onboard-icon { display: grid; place-items: center; width: 64px; height: 64px; margin: 0 auto; color: var(--jade); border: 1px solid var(--color-border); background: var(--paper-light); }
 .onboard h2 { margin: .6rem 0 .4rem; color: var(--color-primary-dark); }
 .onboard p { margin: 0 auto 1.4rem; max-width: 460px; color: var(--color-text-secondary); line-height: 1.6; }
 .onboard-actions { display: flex; gap: .8rem; justify-content: center; }
@@ -261,6 +262,7 @@ function enterTeam(teamId) {
 .tc-role { font-size: .74rem; font-weight: 600; padding: .16rem .7rem; border-radius: 50px; background: var(--color-bg); color: var(--color-text-secondary); white-space: nowrap; }
 .tc-role.owner { background: var(--color-accent); color: var(--color-primary-dark); }
 .tc-stats { display: flex; flex-direction: column; gap: .3rem; font-size: .84rem; color: var(--color-text-secondary); }
+.tc-stats span { display: inline-flex; align-items: center; gap: .35rem; }
 .tc-foot { margin-top: .2rem; font-size: .84rem; font-weight: 600; color: var(--color-primary); }
 
 /* 弹层 */

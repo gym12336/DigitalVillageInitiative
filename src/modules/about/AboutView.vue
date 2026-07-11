@@ -1,11 +1,22 @@
 <template>
-  <section class="about">
-    <div class="container">
-      <!-- 页面头部 -->
-      <header class="about-head">
-        <p class="kicker">关于我们</p>
-        <h1>关于数乡计划 —— 用数字技术，架起青年与乡村的桥梁</h1>
-      </header>
+  <section class="about museum-public-page">
+    <MuseumPageHero
+      archive-no="PROJECT ARCHIVE · ABOUT"
+      kicker="关于数乡计划"
+      title="用数字技术，架起青年与乡村的桥梁"
+      description="我们把分散的田野记录整理为可阅读、可参与、可持续生长的公共数字档案。"
+      icon="about"
+      :metric="data.team.length"
+      metric-label="位演示团队成员"
+      demo
+    >
+      <template #aside>
+        <img class="project-logo" src="/brand/shuxiang-logo-transparent-v3.png" alt="数乡计划·乡村数字资源库" />
+        <small>PROJECT-OWNED BRAND ASSET</small>
+      </template>
+    </MuseumPageHero>
+
+    <div class="museum-content-shell">
 
       <!-- 项目介绍：居中，max-width 800px -->
       <div class="intro">
@@ -13,7 +24,9 @@
       </div>
 
       <!-- 我们的团队 -->
-      <h2 class="block-title">我们的团队</h2>
+      <MuseumSectionHeader index="01" kicker="YOUTH FIELD TEAM" title="我们的团队" icon="users">
+        <p>以产品、调研、影像和技术协作，让每一份田野材料都有清晰归属。</p>
+      </MuseumSectionHeader>
       <ul class="team">
         <li
           v-for="member in data.team"
@@ -36,7 +49,9 @@
       </ul>
 
       <!-- 合作单位 Logo 墙 -->
-      <h2 class="block-title">合作单位</h2>
+      <MuseumSectionHeader index="02" kicker="CO-CREATION NETWORK" title="合作单位" icon="university">
+        <p>当前内容为演示信息，正式合作单位将在获得确认后更新。</p>
+      </MuseumSectionHeader>
       <ul class="partners">
         <li v-for="p in data.partners" :key="p" class="partner">{{ p }}</li>
       </ul>
@@ -77,6 +92,8 @@
 // 数据统一放在 about-data.json，便于队员维护。
 import { ref, onMounted, onUnmounted } from 'vue'
 import data from './about-data.json'
+import MuseumPageHero from '@/components/MuseumPageHero.vue'
+import MuseumSectionHeader from '@/components/MuseumSectionHeader.vue'
 
 // 头像暖色映射
 const avatarColors = {"张明": "hsl(15, 60%, 55%)", "李婷": "hsl(35, 60%, 55%)", "王浩": "hsl(55, 60%, 55%)", "陈雪": "hsl(80, 60%, 55%)", "刘洋": "hsl(105, 60%, 55%)", "林芳": "hsl(130, 60%, 55%)"}
@@ -107,8 +124,9 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
 </script>
 
 <style scoped>
-.about { padding: 2.6rem 0 3rem; }
-.container { max-width: 1180px; margin: 0 auto; padding: 0 clamp(1rem, 4vw, 2rem); }
+.about { padding: 0; }
+.project-logo { width: min(100%, 280px); max-height: 155px; margin: auto; padding: 12px 18px; object-fit: contain; background: rgba(250,247,240,.94); }
+.museum-signal-panel small { margin-top: 1rem; color: var(--bronze); font-family: var(--font-mono); font-size: 8px; letter-spacing: .12em; text-align: center; }
 
 /* —— 页面头部 —— */
 .about-head { text-align: center; margin-bottom: 2.4rem; }
@@ -123,21 +141,19 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
 
 /* —— 项目介绍 —— */
 .intro {
-  max-width: 800px; margin: 0 auto;
+  max-width: 880px; margin: 0 auto 4rem;
   background: var(--color-card); border: 1px solid var(--color-border);
-  border-radius: var(--radius); box-shadow: var(--shadow-card);
+  border-radius: var(--radius-sm); box-shadow: var(--shadow-sm);
   padding: clamp(1.4rem, 4vw, 2.4rem);
 }
+.intro::before { content: 'PROJECT STATEMENT / 项目说明'; display: block; margin-bottom: 1rem; color: var(--clay); font-family: var(--font-mono); font-size: 9px; letter-spacing: .13em; }
 .intro p {
   margin: 0; font-size: 15px; line-height: 1.8;
   color: var(--color-text-secondary); text-indent: 2em;
 }
 
 /* —— 区块标题 —— */
-.block-title {
-  font-size: 1.3rem; font-weight: 600; color: var(--color-primary-dark);
-  text-align: center; margin: 3rem 0 1.6rem;
-}
+.museum-section-head { margin-top: 4rem; }
 
 /* —— 团队 —— */
 .team {
@@ -146,14 +162,14 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
 }
 .member { width: 120px; text-align: center; }
 .avatar {
-  width: 80px; height: 80px; border-radius: 50%;
+  width: 80px; height: 80px; border-radius: var(--radius-sm);
   color: #fff;
   font-size: 32px; font-weight: 700; font-family: var(--sx-serif);
   border: none; cursor: pointer; display: flex; align-items: center; justify-content: center;
   margin: 0 auto; box-shadow: var(--shadow-card);
   transition: transform var(--transition), box-shadow var(--transition);
 }
-.avatar:hover { transform: scale(1.05); box-shadow: var(--shadow-card-hover); }
+.avatar:hover { transform: translateY(-2px); box-shadow: var(--shadow-card-hover); }
 .avatar:focus-visible { outline: 3px solid var(--color-accent); outline-offset: 2px; }
 .m-name { margin: 8px 0 0; font-size: 15px; font-weight: 600; color: var(--color-text); }
 .m-role { margin: 2px 0 0; font-size: 13px; color: var(--color-text-light); }
@@ -164,7 +180,7 @@ onUnmounted(() => window.removeEventListener('keydown', onKeydown))
   display: flex; flex-wrap: wrap; gap: 20px; justify-content: center;
 }
 .partner {
-  background: var(--color-bg); padding: 16px 28px; border-radius: 12px;
+  background: rgba(250,247,240,.76); padding: 16px 28px; border-radius: var(--radius-sm);
   border: 1px solid var(--color-border); font-size: 14px; color: var(--color-text-secondary);
 }
 

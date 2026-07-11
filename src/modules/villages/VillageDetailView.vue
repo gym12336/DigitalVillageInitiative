@@ -8,6 +8,20 @@
           <img class="g-probe" :src="gallery[galleryIndex]" alt="" @error="onImgError" />
         </div>
       </transition>
+      <div class="gallery-overlay">
+        <div class="archive-label">
+          <span>DIGITAL VILLAGE CHRONICLE</span>
+          <strong>{{ archiveNo }}</strong>
+        </div>
+        <div class="cover-title">
+          <p>{{ village.province }} · {{ village.city }}</p>
+          <div class="cover-name">{{ village.name }}</div>
+        </div>
+        <div v-if="village.coord?.length" class="cover-coord">
+          <span>{{ village.coord[1] }}° N</span>
+          <span>{{ village.coord[0] }}° E</span>
+        </div>
+      </div>
       <button v-if="gallery.length > 1" class="g-arrow right" aria-label="下一张" @click="nextImg">›</button>
       <div v-if="gallery.length > 1" class="g-dots">
         <button v-for="(g, i) in gallery" :key="i" class="dot" :class="{ active: i === galleryIndex }" @click="galleryIndex = i" />
@@ -19,6 +33,7 @@
 
       <!-- ▍感受：基本信息 + 荣誉 -->
       <header class="head">
+        <p class="head-kicker">ARCHIVE METADATA / 档案信息</p>
         <h1>{{ village.name }}</h1>
         <p class="loc">{{ village.province }} · {{ village.city }} · {{ village.district }}<template v-if="village.town"> · {{ village.town }}</template></p>
         <div class="honors">
@@ -26,7 +41,7 @@
         </div>
         <div class="info-bar">
           <span class="cert" :class="certClass">✓ {{ village.certLabel }}</span>
-          <span v-if="village.manager" class="manager">
+          <span v-if="village.manager && village.manager.name" class="manager">
             <span class="m-avatar">{{ village.manager.name.charAt(0) }}</span>
             <span class="m-text">{{ village.manager.name }} · {{ village.manager.role }}</span>
           </span>
@@ -39,27 +54,27 @@
       <!-- ▍感受：速览信息卡 facts -->
       <section v-if="village.facts" class="facts-strip">
         <div class="fact-card">
-          <span class="fact-icon">🏔️</span>
+          <span class="fact-icon">01</span>
           <span class="fact-label">海拔</span>
           <span class="fact-value">{{ village.facts.elevation }}</span>
         </div>
         <div class="fact-card">
-          <span class="fact-icon">🏛️</span>
+          <span class="fact-icon">02</span>
           <span class="fact-label">建村年代</span>
           <span class="fact-value">{{ village.facts.founded }}</span>
         </div>
         <div class="fact-card">
-          <span class="fact-icon">🏘️</span>
+          <span class="fact-icon">03</span>
           <span class="fact-label">村落规模</span>
           <span class="fact-value">{{ village.facts.scale }}</span>
         </div>
         <div class="fact-card">
-          <span class="fact-icon">🌸</span>
+          <span class="fact-icon">04</span>
           <span class="fact-label">最佳季节</span>
           <span class="fact-value">{{ village.facts.bestSeason }}</span>
         </div>
         <div class="fact-card">
-          <span class="fact-icon">🚗</span>
+          <span class="fact-icon">05</span>
           <span class="fact-label">到达方式</span>
           <span class="fact-value">{{ village.facts.access }}</span>
         </div>
@@ -177,34 +192,66 @@
 
       <!-- ▍关联：工具条 -->
       <section class="block actions">
-        <button class="act-btn" @click="soon">🗺️ 生成导览地图</button>
-        <button class="act-btn" @click="soon">📤 分享本页</button>
-        <button class="act-btn" @click="soon">🎨 生成海报</button>
+        <button class="act-btn" @click="soon">生成导览地图</button>
+        <button class="act-btn" @click="soon">分享本页</button>
+        <button class="act-btn" @click="soon">生成海报</button>
       </section>
     </div>
 
     <!-- 浮动：点赞 + 收藏 -->
     <div class="float-actions">
-      <button class="fa-btn" :class="{ on: liked }" @click="liked = !liked">{{ liked ? '❤️' : '🤍' }}<span>点赞</span></button>
-      <button class="fa-btn" :class="{ on: faved }" @click="faved = !faved">{{ faved ? '⭐' : '☆' }}<span>收藏</span></button>
+      <button class="fa-btn" :class="{ on: liked }" @click="liked = !liked">{{ liked ? '已赞' : '赞' }}<span>点赞</span></button>
+      <button class="fa-btn" :class="{ on: faved }" @click="faved = !faved">{{ faved ? '已藏' : '藏' }}<span>收藏</span></button>
     </div>
 
     <AppToast ref="toastRef" />
   </section>
+  <section v-else-if="error" class="vd empty-page">
+    <p>{{ error }}。<router-link to="/villages">返回乡村列表</router-link></p>
+  </section>
   <section v-else class="vd empty-page">
-    <p>未找到该村庄。<router-link to="/villages">返回乡村列表</router-link></p>
+    <div class="skeleton" aria-label="正在加载乡村档案">
+      <div class="sk-banner" />
+      <div class="sk-container">
+        <div class="sk-line sk-title" />
+        <div class="sk-line sk-sub" />
+        <div class="sk-line sk-sub short" />
+        <div class="sk-row"><div class="sk-card" /><div class="sk-card" /><div class="sk-card" /></div>
+        <div class="sk-line sk-text" />
+        <div class="sk-line sk-text" />
+        <div class="sk-line sk-text short" />
+      </div>
+    </div>
   </section>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import AppToast from '@/components/AppToast.vue'
-import villages from '@/data/encyclopedia-villages.json'
+import { fetchVillage } from '@/api/villages.js'
 import practiceData from '@/modules/practice/practice-data.json'
 
 const route = useRoute()
-const village = computed(() => villages.find((v) => v.id === route.params.id) || null)
+const village = ref(null)
+const loading = ref(true)
+const error = ref('')
+const archiveNo = computed(() => `CN-${String(village.value?.id || '000').toUpperCase().slice(0, 12)}`)
+
+async function loadVillage(id) {
+  loading.value = true
+  error.value = ''
+  village.value = null
+  galleryIndex.value = 0
+  try {
+    village.value = await fetchVillage(id)
+    if (!village.value) error.value = '未找到该村庄'
+  } catch (reason) {
+    error.value = reason.message || '加载失败'
+  } finally {
+    loading.value = false
+  }
+}
 
 const toastRef = ref(null)
 const soon = () => toastRef.value?.show('功能即将上线')
@@ -233,12 +280,12 @@ const certClass = computed(() => {
 
 /* ---- 社交平台 ---- */
 const SOCIAL_META = [
-  { key: 'wechat', icon: '💬', label: '微信视频号' },
-  { key: 'douyin', icon: '🎵', label: '抖音' },
-  { key: 'kuaishou', icon: '⚡', label: '快手' },
-  { key: 'xiaohongshu', icon: '📕', label: '小红书' },
-  { key: 'bilibili', icon: '📺', label: 'B站' },
-  { key: 'gzh', icon: '📰', label: '微信公众号' },
+  { key: 'wechat', icon: '视', label: '微信视频号' },
+  { key: 'douyin', icon: '抖', label: '抖音' },
+  { key: 'kuaishou', icon: '快', label: '快手' },
+  { key: 'xiaohongshu', icon: '书', label: '小红书' },
+  { key: 'bilibili', icon: 'B', label: 'B站' },
+  { key: 'gzh', icon: '微', label: '微信公众号' },
 ]
 const socialList = computed(() => SOCIAL_META.map((s) => ({ ...s, on: !!(village.value?.socials && village.value.socials[s.key]) })))
 
@@ -257,7 +304,15 @@ function goPractice() { window.location.hash = '#/practice' }
 const liked = ref(false)
 const faved = ref(false)
 
-onMounted(startAuto)
+onMounted(async () => {
+  await loadVillage(route.params.id)
+  startAuto()
+})
+watch(() => route.params.id, async (id) => {
+  stopAuto()
+  await loadVillage(id)
+  startAuto()
+})
 onBeforeUnmount(stopAuto)
 </script>
 
@@ -268,6 +323,19 @@ onBeforeUnmount(stopAuto)
 .back { display: inline-block; margin: 1.6rem 0 .4rem; color: var(--color-primary); font-size: .9rem; }
 .back:hover { color: var(--color-primary-dark); }
 .empty-page { text-align: center; padding: 4rem 1rem; color: var(--color-text-light); }
+
+/* 骨架屏 */
+.skeleton { width: 100%; text-align: left; }
+.sk-banner, .sk-line, .sk-card {
+  background: linear-gradient(90deg, var(--paper-deep) 25%, var(--paper-light) 50%, var(--paper-deep) 75%);
+  background-size: 200% 100%;
+  animation: sk-shimmer 1.5s infinite;
+}
+.sk-banner { width: 100%; height: 280px; }
+.sk-container { max-width: 1120px; margin: 1.5rem auto; padding: 0 clamp(1.5rem,4vw,3rem); display: flex; flex-direction: column; gap: .8rem; }
+.sk-line { height: 14px; }.sk-title { width: 40%; height: 38px; }.sk-sub { width: 60%; }.sk-sub.short { width: 30%; }.sk-text { width: 100%; }.sk-text.short { width: 70%; }
+.sk-row { display: flex; gap: 1px; margin: .7rem 0; background: var(--color-border); }.sk-card { flex: 1; height: 100px; }
+@keyframes sk-shimmer { from { background-position: -200% 0; } to { background-position: 200% 0; } }
 
 /* ===== 通用 block ===== */
 .block { margin-top: 2rem; padding-top: 1.8rem; border-top: 1px solid var(--color-border); }
@@ -516,4 +584,55 @@ onBeforeUnmount(stopAuto)
 .fa-btn span { font-size: .64rem; }
 .fa-btn:hover { transform: scale(1.08); }
 .fa-btn.on { border-color: var(--color-highlight); color: var(--color-highlight); }
+
+/* ===== 数字村志视觉覆盖 ===== */
+.gallery { background: var(--museum-black); }
+.gallery::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    linear-gradient(rgba(151,196,177,.11) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(151,196,177,.11) 1px,transparent 1px),
+    linear-gradient(180deg,rgba(7,17,15,.08),rgba(7,17,15,.78));
+  background-size: 48px 48px,48px 48px,auto;
+}
+.g-stage { min-height: 440px; filter: saturate(.72) contrast(1.08); }
+.gallery-overlay { position: absolute; inset: 0; z-index: 2; display: grid; grid-template-columns: 1fr auto; grid-template-rows: auto 1fr auto; padding: clamp(1.2rem,4vw,3.5rem); color: #f5efe2; pointer-events: none; }
+.archive-label { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; color: var(--data-glow); font-family: var(--font-mono); font-size: 8px; letter-spacing: .14em; }
+.archive-label strong { color: var(--bronze-light); font-size: 11px; font-weight: 500; }
+.cover-title { align-self: end; grid-column: 1; grid-row: 3; }
+.cover-title p { margin-bottom: .5rem; color: var(--bronze-light); font-family: var(--font-mono); font-size: 9px; letter-spacing: .16em; }
+.cover-name { color: #fff; font-family: var(--font-display); font-size: clamp(3.2rem,8vw,7rem); font-weight: 500; line-height: 1.2; text-shadow: 0 8px 32px rgba(0,0,0,.35); }
+.cover-coord { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; color: rgba(243,238,228,.6); font-family: var(--font-mono); font-size: 9px; letter-spacing: .13em; }
+.g-arrow, .g-dots { z-index: 3; }.g-arrow { border-radius: 0; border: 1px solid rgba(255,255,255,.32); background: rgba(7,17,15,.54); }
+.g-dots .dot, .g-dots .dot.active { width: 24px; height: 2px; border: 0; border-radius: 0; background: rgba(255,255,255,.34); }.g-dots .dot.active { background: var(--data-glow); }
+.container { max-width: 1120px; }
+.back { margin-top: 2.2rem; color: var(--clay); font-family: var(--font-mono); font-size: 9px; letter-spacing: .1em; }
+.head { padding: 2rem 0 1.4rem; border-bottom: 1px solid var(--color-border); }
+.head-kicker { margin-bottom: .6rem; color: var(--clay); font-family: var(--font-mono); font-size: 9px; letter-spacing: .14em; }
+.head h1 { color: var(--jade-deep); font-size: clamp(2.1rem,4.5vw,3.8rem); font-weight: 600; }
+.honor-badge, .cert, .mini-tag, .tl-year, .fe-time { border-radius: 0; }
+.info-bar { padding-top: 1rem; border-top: 1px solid var(--color-border-light); }
+.social, .m-avatar { border-radius: 0; }.social { color: var(--jade-deep); border: 1px solid var(--color-border); background: transparent; font-size: 10px; font-weight: 700; }
+.facts-strip { gap: 1px; background: var(--color-border); border: 1px solid var(--color-border); }
+.fact-card { align-items: flex-start; padding: 1rem; text-align: left; border: 0; border-radius: 0; box-shadow: none; }.fact-card:hover { transform: none; box-shadow: none; background: var(--paper-deep); }
+.fact-icon { color: var(--bronze); font-family: var(--font-mono); font-size: 9px; letter-spacing: .1em; }
+.fact-label { margin-top: .45rem; }.fact-value { margin-top: .2rem; color: var(--ink); font-family: var(--font-display); font-size: .94rem; }
+.block { margin-top: 3rem; padding-top: 2.4rem; }.b-title { font-size: clamp(1.35rem,2.5vw,1.8rem); }.b-title::before { width: 28px; height: 1px; border-radius: 0; background: var(--bronze); }
+.section-alt { margin-inline: 0; padding: 2rem; border: 1px solid var(--color-border); border-radius: 0; }
+.sec-part, .tag-card, .sp-card, .fe-card, .tl-card, .person-card, .people-empty, .res-card { border-radius: 0; box-shadow: none; }
+.sec-part:hover, .sp-card:hover, .fe-card:hover, .res-card:hover { transform: none; border-color: var(--bronze); box-shadow: none; }
+.actions { padding: 1.4rem; background: var(--museum-deep); border: 1px solid var(--museum-line); }
+.act-btn { color: rgba(243,238,228,.78); background: transparent; border-color: var(--museum-line-bright); border-radius: 0; }.act-btn:hover { color: var(--data-glow); background: transparent; border-color: var(--data-glow); }
+.float-actions { right: .9rem; }.fa-btn { width: 48px; height: 48px; color: var(--jade-deep); background: var(--paper-light); border-radius: 0; font-family: var(--font-display); font-size: 12px; }.fa-btn:hover { transform: none; border-color: var(--bronze); }
+@media (max-width: 600px) {
+  .g-stage { min-height: 360px; }
+  .gallery-overlay { padding-bottom: 3.5rem; }
+  .cover-name { font-size: 3.5rem; }
+  .cover-coord { display: none; }
+  .float-actions { display: none; }
+}
 </style>

@@ -1,35 +1,56 @@
-# 数乡计划 · 乡村数字资源库平台
+# 数乡计划 · 乡村数字资源库
 
-Vue3 + Vite + ECharts-GL。首页为模块化导航中枢，含 3D 全国地图下钻（全国→省→市→区县），点击村庄散点进入村庄主页。
+“数乡计划”是一个面向乡村调研、青年实践与数字成果归档的平台原型。当前视觉方向为 **数字田野博物馆**：深色数字展厅负责地图、数据与入口，暖色田野档案负责内容阅读与工作记录。
 
-## 开发
+## 最简单的本地检查方式（macOS）
 
-- `npm install`
-- `npm run dev` — 本地开发（地图 geoJSON 需联网，数据源：DataV.GeoAtlas）
-- `npm test` — 单元测试（Vitest）
-- `npm run build` — 生产构建
+1. 在 Finder 中打开本仓库；
+2. 双击 `启动数乡计划.command`；
+3. 系统会自动启动数据服务、打开网站，并在 5173 被占用时选择其他端口；
+4. 检查结束后关闭启动终端，或按 `Control + C`。
 
-## 新增功能模块（3 步，老代码零改动）
+首次运行前需要安装依赖：
 
-1. 复制 `src/modules/_template/` 改名为 `src/modules/<你的模块id>/`
-2. 在 `src/modules.config.js` 增加一条记录（id/name/icon/path/enabled/desc）
-3. 在该模块 `routes.js` 定义路由 —— 首页入口卡与路由自动生效
+```bash
+npm install
+```
 
-## 数据
+如果 macOS 首次阻止打开 `.command` 文件，可在 Finder 中右键该文件，选择“打开”，再确认一次。
 
-- 村庄数据：`src/data/villages.json`（核心字段 + `extra` 扩展区）。实地采集后替换示例数据。
-- 设计文档：仓库外层 `docs/superpowers/specs/2026-07-02-shuxiang-platform-design.md`
+## 开发命令
 
-## 目录
+```bash
+npm run dev:all   # 同时启动前后端并自动打开网站
+npm run dev       # 只启动 Vite 前端
+npm run server    # 只启动 Express 后端（需要 JWT_SECRET）
+npm test          # 运行 Vitest 测试
+npm run build     # 生成生产构建
+npm run preview   # 预览生产构建（不包含独立 API 服务）
+```
 
-- `src/views/HomeView.vue` — 首页中枢（3D 地图 + 模块入口卡）
-- `src/components/ChinaMap3D.vue` — 3D 下钻地图核心组件
-- `src/lib/mapDrill.js` — 递归分级下钻状态机（纯函数）
-- `src/lib/geoLoader.js` — geoJSON 按需加载 + 缓存 + 容错
-- `src/lib/villages.js` — 村庄数据校验 / 散点映射 / 按区域过滤
-- `src/modules/villages/` — 村庄列表 + 村庄主页模板
-- `src/assets/theme/` — 大地金主题（JS 变量喂 ECharts + CSS 变量喂页面）
+开发期前端会把 `/api` 请求代理到 `http://localhost:3001`。后端使用 Express 与 SQLite，提供乡村档案、乡村需求、实践队、实践档案和成果作品等接口。
 
-## 旧静态站点
+## 主要目录
 
-原静态框架保留在 `legacy-static/`（index.html / styles.css / script.js），作为内容与视觉参考，不再运行。
+- `src/views/HomeView.vue`：数字博物馆序厅；
+- `src/modules/`：乡村百科、乡村实践、乡村之声、攻略、好物与关于页面；
+- `src/components/`：导航、地图、展厅页首、档案状态和基础组件；
+- `server/`：Express API、SQLite 数据与服务层；
+- `docs/visual-system.md`：视觉语言与设计令牌；
+- `docs/asset-licensing.md`：素材登记与发布门槛；
+- `src/data/assets-manifest.json`：当前素材版权台账。
+
+## 演示数据与素材
+
+页面中的部分村庄、成果、需求、团队和好物为演示内容，只用于验证信息架构与交互，不代表真实运营规模。平台级演示统计集中在 `src/data/demo-metadata.js`。
+
+项目 Logo 为团队自有资产。现有 Unsplash、Pexels、Wikimedia Commons 图片和 DataV 地图数据均登记为 `demo-only`；正式公开前必须逐项完成许可核验，或替换为已获得公开传播授权的团队素材。
+
+完整说明见 `THIRD_PARTY_NOTICES.md`。
+
+## 技术栈
+
+- Vue 3 + Vue Router + Vite
+- ECharts / ECharts-GL
+- Express 5 + SQLite
+- Vitest

@@ -1,6 +1,6 @@
 <template>
   <AuthGate>
-  <section class="new-page">
+  <section class="new-page tool-interface">
     <div class="container">
       <header class="page-head">
         <p class="kicker">乡村实践 · 我的实践</p>
@@ -12,7 +12,7 @@
         <!-- 归属队（只读，进队后建档，不放选队下拉）-->
         <div class="field">
           <span class="field-label">归属实践队</span>
-          <div class="team-chip">🚩 {{ teamName || '当前队' }}</div>
+          <div class="team-chip"><AppIcon name="users" :size="15" />{{ teamName || '当前队' }}</div>
         </div>
 
         <!-- 目标地 -->
@@ -79,6 +79,7 @@
 import { reactive, ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppToast from '@/components/AppToast.vue'
+import AppIcon from '@/components/AppIcon.vue'
 import AuthGate from './AuthGate.vue'
 import { addDossier } from './dossier.js'
 import { apiGetTeam } from './api.js'

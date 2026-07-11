@@ -30,28 +30,39 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
-import villages from '@/data/villages.json'
+import { fetchAllVillages } from '@/api/villages.js'
+
+const villages = ref([])
+const loading = ref(true)
+
+onMounted(async () => {
+  try {
+    villages.value = await fetchAllVillages()
+  } catch (e) {
+    console.error('加载村庄数据失败:', e)
+  } finally {
+    loading.value = false
+  }
+})
 
 const route = useRoute()
 const scopedVillage = computed(() =>
-  route.query.village ? villages.find((v) => v.id === route.query.village) || null : null
+  route.query.village ? villages.value.find((v) => v.id === route.query.village) || null : null
 )
 
 // 方案栏目：驻村的声音 / 乡村青年志 / 干部的一天
 const columns = ['驻村的声音', '乡村青年志', '干部的一天', '手艺人']
 
-// 从各村 extra.people 聚合人物（scoped 时只取该村）
+// 从各村 manager 聚合人物（scoped 时只取该村）
 const people = computed(() => {
-  const source = scopedVillage.value ? [scopedVillage.value] : villages
-  return source.flatMap((v) =>
-    (v.extra?.people || []).map((p) =>
-      typeof p === 'string'
-        ? { name: p, villageId: v.id, villageName: v.name }
-        : { ...p, villageId: v.id, villageName: v.name }
-    )
-  )
+  const source = scopedVillage.value ? [scopedVillage.value] : villages.value
+  return source.flatMap((v) => {
+    const mgr = v.manager
+    if (!mgr || !mgr.name) return []
+    return [{ name: mgr.name, role: mgr.role || '乡村人物', villageId: v.id, villageName: v.name }]
+  })
 })
 </script>
 

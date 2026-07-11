@@ -1,6 +1,6 @@
 <template>
   <AuthGate>
-  <section class="wb-page">
+  <section class="wb-page tool-interface">
     <div class="container">
       <button class="btn back" @click="backToTeams">← 我的实践队</button>
 
@@ -29,11 +29,14 @@
       <template v-if="!openedId">
         <div class="list-bar">
           <span class="list-count">共 {{ dossiers.length }} 份实践</span>
-          <button class="btn primary" @click="onNew">+ 新建实践</button>
+          <div class="list-bar-actions">
+            <button class="btn ghost icon-btn" @click="openStudio"><AppIcon name="chart" :size="15" />成果作品</button>
+            <button class="btn primary" @click="onNew">+ 新建实践</button>
+          </div>
         </div>
 
         <div v-if="!dossiers.length" class="onboard">
-          <p class="onboard-emoji">🌱</p>
+          <div class="onboard-icon"><AppIcon name="seedling" :size="32" /></div>
           <h2>开始这支队的第一次实践</h2>
           <p>新建一份实践档案，把「实践前 → 实践中 → 实践后」串成一条线。</p>
           <button class="btn primary" @click="onNew">+ 新建实践</button>
@@ -56,11 +59,11 @@
                 class="dc-del"
                 aria-label="删除实践"
                 @click.stop="onRemove(d)"
-              >🗑</button>
+              ><AppIcon name="close" :size="14" /></button>
             </div>
             <h3 class="dc-title">{{ d.title }}</h3>
             <p class="dc-meta">
-              <span v-if="d.plan?.targetVillage || d.village">📍 {{ d.plan?.targetVillage || d.village }}</span>
+              <span v-if="d.plan?.targetVillage || d.village"><AppIcon name="map-pin" :size="13" />{{ d.plan?.targetVillage || d.village }}</span>
               <span v-if="d.plan?.topic">· {{ d.plan.topic }}</span>
             </p>
             <p class="dc-idea">{{ d.idea || '还没有填写 idea' }}</p>
@@ -128,6 +131,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppToast from '@/components/AppToast.vue'
+import AppIcon from '@/components/AppIcon.vue'
 import AuthGate from './AuthGate.vue'
 import TeamMembers from './TeamMembers.vue'
 import StagePlan from './StagePlan.vue'
@@ -236,6 +240,9 @@ function backToTeams() {
 function onNew() {
   router.push(`/practice/mine/team/${teamId.value}/new`)
 }
+function openStudio() {
+  router.push({ path: '/practice/studio', query: { team: teamId.value } })
+}
 
 async function onRemove(d) {
   if (!window.confirm(`确认删除实践「${d.title}」？此操作不可撤销。`)) return
@@ -310,10 +317,12 @@ async function copyCode(code) {
 .members-panel { margin-bottom: 1.6rem; }
 
 .list-bar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1.4rem; }
+.list-bar-actions { display: flex; gap: .6rem; }
 .list-count { font-size: .9rem; color: var(--color-text-light); }
 
 .onboard { text-align: center; padding: 3.5rem 1rem; background: var(--color-card); border: 1px dashed var(--color-border); border-radius: var(--radius); }
-.onboard-emoji { font-size: 2.6rem; margin: 0; }
+.onboard-icon { display: grid; place-items: center; width: 64px; height: 64px; margin: 0 auto; color: var(--jade); border: 1px solid var(--color-border); background: var(--paper-light); }
+.icon-btn { display: inline-flex; align-items: center; gap: .4rem; }
 .onboard h2 { margin: .6rem 0 .4rem; color: var(--color-primary-dark); }
 .onboard p { margin: 0 0 1.4rem; color: var(--color-text-secondary); }
 
@@ -333,7 +342,7 @@ async function copyCode(code) {
 .dc-del { border: none; background: transparent; cursor: pointer; font-size: .95rem; opacity: .5; transition: opacity var(--transition); }
 .dc-del:hover { opacity: 1; }
 .dc-title { margin: .1rem 0 0; font-size: 1.1rem; color: var(--color-text); }
-.dc-meta { margin: 0; font-size: .82rem; color: var(--color-text-secondary); display: flex; flex-wrap: wrap; gap: .3rem; }
+.dc-meta, .dc-meta span { margin: 0; font-size: .82rem; color: var(--color-text-secondary); display: flex; align-items: center; flex-wrap: wrap; gap: .3rem; }
 .dc-idea {
   margin: .2rem 0 0; font-size: .86rem; color: var(--color-text-light); line-height: 1.5; flex: 1;
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;

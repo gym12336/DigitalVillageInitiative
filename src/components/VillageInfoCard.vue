@@ -2,11 +2,11 @@
   <aside class="info-card">
     <div v-if="!village" class="empty">
       <div class="empty-head">
-        <div class="empty-icon">🗺️</div>
-        <p class="empty-tip">点击地图上的<b>珊瑚橘圆点</b>查看村庄，<br />或从下方推荐开始探索</p>
+        <div class="empty-icon"><AppIcon name="map-pin" :size="30" /></div>
+        <p class="empty-tip">点击地图上的<b>铜金点位</b>查看村庄，<br />或从下方推荐开始探索</p>
       </div>
       <div v-if="recommended.length" class="recommend">
-        <p class="rec-title">✨ 推荐村庄</p>
+        <p class="rec-title">CURATOR'S PICKS / 推荐村庄</p>
         <button
           v-for="v in recommended"
           :key="v.id"
@@ -33,19 +33,19 @@
 
       <ul class="res-list">
         <router-link class="res-row" :to="`/ranking?village=${village.id}`">
-          <span class="res-ico">🏆</span>
+          <span class="res-ico">01</span>
           <span class="res-label">特色资源</span>
           <span class="res-count">{{ s.resources }} 项</span>
           <span class="res-arrow">→</span>
         </router-link>
         <router-link class="res-row" :to="`/people?village=${village.id}`">
-          <span class="res-ico">👤</span>
+          <span class="res-ico">02</span>
           <span class="res-label">人物故事</span>
           <span class="res-count">{{ s.people }} 位</span>
           <span class="res-arrow">→</span>
         </router-link>
         <router-link class="res-row" :to="`/media?village=${village.id}`">
-          <span class="res-ico">🎬</span>
+          <span class="res-ico">03</span>
           <span class="res-label">影像素材</span>
           <span class="res-count">{{ s.photos }} 图 / {{ s.videos }} 视频</span>
           <span class="res-arrow">→</span>
@@ -60,6 +60,7 @@
 <script setup>
 import { computed } from 'vue'
 import { summarize, recommendVillages } from '@/lib/villageResources.js'
+import AppIcon from '@/components/AppIcon.vue'
 
 const props = defineProps({
   village: { type: Object, default: null },
@@ -78,14 +79,14 @@ const recommended = computed(() => recommendVillages(props.villages, 4))
 }
 .empty { height: 100%; display: flex; flex-direction: column; gap: 1.2rem; }
 .empty-head { text-align: center; color: var(--color-text-light); padding-top: 1.5rem; }
-.empty-icon { font-size: 2.4rem; margin-bottom: .6rem; opacity: .7; }
+.empty-icon { display: grid; place-items: center; width: 52px; height: 52px; margin: 0 auto .8rem; color: var(--color-primary-dark); border: 1px solid var(--color-border); }
 .empty-tip { font-size: .85rem; line-height: 1.6; }
 .empty-tip b { color: var(--color-highlight); }
 .recommend { display: flex; flex-direction: column; gap: .5rem; }
-.rec-title { font-size: .82rem; font-weight: 600; color: var(--color-primary-dark); margin: 0 0 .2rem; }
+.rec-title { font-family: var(--font-mono); font-size: .58rem; font-weight: 600; letter-spacing: .1em; color: var(--color-primary-dark); margin: 0 0 .2rem; }
 .rec-item {
   display: flex; align-items: center; gap: .5rem; width: 100%; text-align: left; cursor: pointer;
-  padding: .6rem .7rem; border-radius: 10px;
+  padding: .6rem .7rem; border-radius: 0;
   background: var(--color-bg); border: 1px solid var(--color-border);
   color: var(--color-text); transition: all .15s; font-family: inherit;
 }
@@ -102,18 +103,18 @@ const recommended = computed(() => recommendVillages(props.villages, 4))
 .res-list { list-style: none; padding: 0; margin: 1rem 0; display: flex; flex-direction: column; gap: .5rem; }
 .res-row {
   display: flex; align-items: center; gap: .6rem;
-  padding: .6rem .7rem; border-radius: 10px;
+  padding: .6rem .7rem; border-radius: 0;
   background: var(--color-bg); border: 1px solid var(--color-border);
   color: var(--color-text); transition: all .15s;
 }
 .res-row:hover { background: #f0ebe4; border-color: var(--color-primary); }
-.res-ico { font-size: 1.1rem; }
+.res-ico { color: var(--color-secondary); font-family: var(--font-mono); font-size: .62rem; }
 .res-label { flex: 1; font-size: .9rem; }
 .res-count { font-size: .8rem; color: var(--color-text-light); }
 .res-arrow { color: var(--color-primary); }
 .enter-btn {
   display: block; text-align: center; padding: .6rem;
-  border-radius: 50px; color: #fff;
+  border-radius: 0; color: #fff;
   background: var(--color-highlight); transition: all .15s; font-weight: 500;
 }
 .enter-btn:hover { filter: brightness(.94); }

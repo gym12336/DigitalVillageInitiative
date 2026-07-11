@@ -80,14 +80,14 @@
 
     <!-- 缺口分析 -->
     <section class="block gap-block">
-      <h2 class="block-title">🔍 还缺什么</h2>
+      <h2 class="block-title"><AppIcon name="search" :size="17" />还缺什么</h2>
       <div v-if="analysis.gaps.length" class="gap-list">
         <div v-for="(g, i) in analysis.gaps" :key="i" class="gap-item" :class="g.level">
-          <span class="gap-ic">{{ g.level === 'warn' ? '⚠️' : '💡' }}</span>
+          <AppIcon class="gap-ic" :name="g.level === 'warn' ? 'alert' : 'lightbulb'" :size="17" />
           <span>{{ g.message }}</span>
         </div>
       </div>
-      <p v-else class="gap-ok">✅ 数据齐整，随时可以去「实践后」生成成果卡。</p>
+      <p v-else class="gap-ok">数据齐整，随时可以去「实践后」生成成果卡。</p>
     </section>
   </div>
 </template>
@@ -95,6 +95,7 @@
 <script setup>
 import { reactive, ref, computed, watch } from 'vue'
 import { analyzeGaps } from './gapAnalysis.js'
+import AppIcon from '@/components/AppIcon.vue'
 
 const props = defineProps({
   dossier: { type: Object, required: true },
@@ -193,7 +194,7 @@ function save() {
 
 <style scoped>
 .stage { display: flex; flex-direction: column; gap: 1.6rem; }
-.block-title { font-size: 1.15rem; color: var(--color-primary-dark); margin: 0 0 .4rem; }
+.block-title { display: flex; align-items: center; gap: .45rem; font-size: 1.15rem; color: var(--color-primary-dark); margin: 0 0 .4rem; }
 .block-desc { margin: 0 0 .9rem; font-size: .88rem; color: var(--color-text-secondary); }
 .hint { font-size: .85rem; color: var(--color-text-light); margin: 0 0 .6rem; }
 

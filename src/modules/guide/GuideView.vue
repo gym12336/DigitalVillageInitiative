@@ -1,15 +1,20 @@
 <template>
-  <section class="guide">
-    <div class="container">
-      <!-- 页面头部：标题 + 搜索栏 -->
-      <header class="guide-head">
-        <p class="kicker">实践攻略</p>
-        <h1 class="guide-title">实践攻略 —— 从行前到成果，一本通关</h1>
-        <p class="guide-desc">
-          行前准备、调研工具、报告模板、安全保障，为青年实践提供全流程资源支持。
-        </p>
+  <section class="guide museum-public-page">
+    <MuseumPageHero
+      archive-no="FIELD MANUAL · GUIDE"
+      kicker="实践攻略 / 田野工具箱"
+      title="从行前准备到成果归档，一本通关"
+      description="把调研方法、采访规范、素材整理和成果提交标准变成可直接执行的任务说明书。"
+      icon="guide"
+      :metric="resourceCount"
+      metric-label="项演示攻略资源"
+      demo
+    />
+
+    <div class="museum-content-shell">
+      <MuseumFilterBar title="RESOURCE SEARCH / 攻略检索">
         <div class="search-bar">
-          <span class="search-ic" aria-hidden="true">🔍</span>
+          <AppIcon class="search-ic" name="search" :size="17" />
           <input
             v-model.trim="keyword"
             class="search-input"
@@ -18,109 +23,92 @@
             aria-label="搜索攻略"
           />
         </div>
-      </header>
+      </MuseumFilterBar>
 
-      <!-- 头条模块：3 个热门攻略卡片（搜索时隐藏，聚焦结果） -->
       <section v-if="!keyword" class="featured">
-        <h2 class="featured-title">📖 热门攻略 · 大家都在看</h2>
+        <MuseumSectionHeader index="01" kicker="CURATOR'S PICKS" title="热门攻略" icon="book">
+          <p>优先阅读实践前最容易遗漏、也最影响成果质量的准备内容。</p>
+        </MuseumSectionHeader>
         <div class="featured-grid">
-          <article
-            v-for="(f, i) in data.featured"
-            :key="i"
-            class="featured-card"
-          >
-            <span class="featured-tag">{{ f.tag }}</span>
-            <h3 class="featured-name">{{ f.title }}</h3>
-            <p class="featured-desc">{{ f.desc }}</p>
+          <article v-for="(item, index) in data.featured" :key="index" class="featured-card museum-card">
+            <span class="featured-tag">{{ item.tag }}</span>
+            <h3>{{ item.title }}</h3>
+            <p>{{ item.desc }}</p>
           </article>
         </div>
       </section>
 
-      <!-- 四大分类折叠面板 -->
-      <div class="panels">
-        <div
-          v-for="cat in filteredCategories"
-          :key="cat.id"
-          class="panel"
-        >
-          <!-- 标题区：点击展开/收起 -->
-          <button
-            class="panel-head"
-            type="button"
-            :aria-expanded="isOpen(cat.id)"
-            @click="toggle(cat.id)"
-          >
-            <span class="panel-label">
-              <span class="panel-ic" aria-hidden="true">{{ cat.icon }}</span>
-              <span class="panel-name">{{ cat.name }}</span>
-              <span class="panel-count">{{ cat.items.length }} 项</span>
-            </span>
-            <span class="panel-arrow" aria-hidden="true">
-              {{ isOpen(cat.id) ? '▲' : '▼' }}
-            </span>
-          </button>
+      <section class="resource-section">
+        <MuseumSectionHeader index="02" kicker="FIELD RESOURCE INDEX" title="全流程资源" icon="folder">
+          <p>按阶段展开查看模板与说明；当前下载按钮为功能占位。</p>
+        </MuseumSectionHeader>
 
-          <!-- 内容区：max-height 过渡实现折叠动画 -->
-          <div
-            class="panel-body-wrap"
-            :style="{ maxHeight: isOpen(cat.id) ? bodyMaxHeight(cat) : '0px' }"
-          >
-            <div class="panel-body">
-              <div
-                v-for="(item, idx) in cat.items"
-                :key="idx"
-                class="res-item"
-              >
-                <div class="res-info">
-                  <span class="res-icon" aria-hidden="true">{{ itemIcon(item.name) }}</span>
-                  <p class="res-name">{{ item.name }}</p>
-                  <p class="res-desc">{{ item.desc }}</p>
+        <div class="panels">
+          <article v-for="category in filteredCategories" :key="category.id" class="panel archive-panel">
+            <button
+              class="panel-head"
+              type="button"
+              :aria-expanded="isOpen(category.id)"
+              @click="toggle(category.id)"
+            >
+              <span class="panel-label">
+                <AppIcon :name="categoryIcon(category.id)" :size="20" />
+                <span class="panel-name">{{ category.name }}</span>
+                <span class="panel-count">{{ category.items.length }} 项</span>
+              </span>
+              <AppIcon class="panel-arrow" :class="{ open: isOpen(category.id) }" name="chevron-down" :size="18" />
+            </button>
+
+            <div class="panel-body-wrap" :style="{ maxHeight: isOpen(category.id) ? bodyMaxHeight(category) : '0px' }">
+              <div class="panel-body">
+                <div v-for="(item, index) in category.items" :key="index" class="res-item">
+                  <AppIcon class="res-icon" :name="itemIcon(item.name)" :size="20" />
+                  <div class="res-info">
+                    <p class="res-name">{{ item.name }}</p>
+                    <p class="res-desc">{{ item.desc }}</p>
+                  </div>
+                  <button class="res-btn" type="button" @click="onDownload">
+                    <AppIcon name="download" :size="15" />下载
+                  </button>
                 </div>
-                <button
-                  class="res-btn"
-                  type="button"
-                  @click="onDownload"
-                >
-                  下载
-                </button>
               </div>
             </div>
-          </div>
-        </div>
+          </article>
 
-        <!-- 搜索无结果提示 -->
-        <p v-if="keyword && filteredCategories.length === 0" class="empty">
-          没有找到与「{{ keyword }}」相关的资源，换个关键词试试。
-        </p>
-      </div>
+          <MuseumState
+            v-if="keyword && filteredCategories.length === 0"
+            type="empty"
+            title="没有匹配的攻略资源"
+            :description="`没有找到与「${keyword}」相关的资源，换个关键词试试。`"
+          />
+        </div>
+      </section>
     </div>
 
-    <!-- 模块内 Toast -->
     <GuideToast ref="toastRef" />
   </section>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { computed, ref } from 'vue'
 import rawData from './guide-data.json'
 import GuideToast from './GuideToast.vue'
+import AppIcon from '@/components/AppIcon.vue'
+import MuseumPageHero from '@/components/MuseumPageHero.vue'
+import MuseumFilterBar from '@/components/MuseumFilterBar.vue'
+import MuseumSectionHeader from '@/components/MuseumSectionHeader.vue'
+import MuseumState from '@/components/MuseumState.vue'
 
-// 攻略数据（头条 + 四大分类）
 const data = rawData
-
-// 搜索关键词
+const resourceCount = data.categories.reduce((sum, category) => sum + category.items.length, 0)
 const keyword = ref('')
-
-// 展开中的分类 id 集合，默认展开第一个分类
 const openIds = ref(new Set([data.categories[0]?.id]))
+const toastRef = ref(null)
 
 function isOpen(id) {
-  // 搜索态下命中的分类一律展开，方便直接查看结果
-  if (keyword.value) return true
-  return openIds.value.has(id)
+  return keyword.value ? true : openIds.value.has(id)
 }
 
-// 点击标题：展开/收起该分类
 function toggle(id) {
   const next = new Set(openIds.value)
   if (next.has(id)) next.delete(id)
@@ -128,261 +116,73 @@ function toggle(id) {
   openIds.value = next
 }
 
-// 根据关键词过滤：匹配资源项的名称或描述，保留命中项
 const filteredCategories = computed(() => {
-  const kw = keyword.value.toLowerCase()
-  if (!kw) return data.categories
+  const value = keyword.value.toLowerCase()
+  if (!value) return data.categories
   return data.categories
-    .map((cat) => {
-      const items = cat.items.filter(
-        (it) =>
-          it.name.toLowerCase().includes(kw) ||
-          it.desc.toLowerCase().includes(kw),
-      )
-      return { ...cat, items }
-    })
-    .filter((cat) => cat.items.length > 0)
+    .map((category) => ({
+      ...category,
+      items: category.items.filter((item) =>
+        `${item.name} ${item.desc}`.toLowerCase().includes(value)
+      ),
+    }))
+    .filter((category) => category.items.length)
 })
 
-// 折叠动画高度：按资源项数量估算，给足高度以完整展开
-function bodyMaxHeight(cat) {
-  return cat.items.length * 80 + 40 + 'px'
+function bodyMaxHeight(category) {
+  return `${category.items.length * 92 + 40}px`
 }
 
-// Toast 引用
-const toastRef = ref(null)
+function categoryIcon(id) {
+  return { prepare: 'folder', research: 'search', report: 'document', safety: 'alert' }[id] || 'guide'
+}
 
-// 资源项文件类型图标
 function itemIcon(name) {
-  const n = name.toLowerCase()
-  if (n.endsWith('.pdf') || n.includes('pdf') || n.includes('文档')) return '📄'
-  if (n.endsWith('.doc') || n.endsWith('.docx') || n.includes('word')) return '📝'
-  if (n.endsWith('.xls') || n.endsWith('.xlsx') || n.includes('excel') || n.includes('表格')) return '📊'
-  if (n.endsWith('.ppt') || n.endsWith('.pptx') || n.includes('ppt') || n.includes('演示')) return '📽️'
-  if (n.endsWith('.zip') || n.endsWith('.rar') || n.includes('压缩')) return '📦'
-  if (n.includes('视频') || n.includes('video') || n.endsWith('.mp4')) return '🎬'
-  if (n.includes('图片') || n.includes('image') || n.includes('海报')) return '🖼️'
-  if (n.includes('模板')) return '📋'
-  if (n.includes('清单') || n.includes('checklist')) return '✅'
-  return '📎'
+  const value = name.toLowerCase()
+  if (value.includes('表格') || value.includes('excel') || value.endsWith('.xlsx')) return 'chart'
+  if (value.includes('视频') || value.includes('video') || value.endsWith('.mp4')) return 'play'
+  if (value.includes('图片') || value.includes('海报') || value.includes('image')) return 'image'
+  return 'document'
 }
 
-// 点击下载：提示功能开发中
 function onDownload() {
-  toastRef.value?.show('📄 资源下载功能开发中')
+  toastRef.value?.show('资源下载功能开发中')
 }
 </script>
 
 <style scoped>
-.guide { padding: 2.6rem 0 3rem; }
-.container {
-  max-width: 1180px;
-  margin: 0 auto;
-  padding: 0 clamp(1rem, 4vw, 2rem);
-}
-
-/* —— 页面头部 —— */
-.guide-head { margin-bottom: 2rem; }
-.kicker {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--color-highlight);
-  letter-spacing: 0.08em;
-  margin: 0 0 0.6rem;
-}
-.guide-title {
-  font-size: 2.4rem;
-  font-weight: 700;
-  color: var(--color-primary-dark);
-  margin: 0;
-  line-height: 1.2;
-}
-.guide-desc {
-  max-width: 720px;
-  margin: 0.8rem 0 0;
-  color: var(--color-text-secondary);
-  font-size: 1rem;
-}
-.search-bar {
-  position: relative;
-  margin-top: 1.4rem;
-  width: 100%;
-}
-.search-ic {
-  position: absolute;
-  left: 20px;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 15px;
-  opacity: 0.7;
-}
-.search-input {
-  width: 100%;
-  padding: 14px 20px 14px 48px;
-  font-size: 15px;
-  color: var(--color-text);
-  background: var(--color-card);
-  border: 1px solid var(--color-border);
-  border-radius: 50px;
-  outline: none;
-  transition: border-color var(--transition), box-shadow var(--transition);
-}
-.search-input:focus {
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(107, 140, 92, 0.12);
-}
-
-/* —— 头条模块 —— */
-.featured { margin-bottom: 2rem; }
-.featured-title {
-  font-size: 1.2rem;
-  color: var(--color-primary-dark);
-  margin: 0 0 1rem;
-}
-.featured-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 1rem;
-}
-.featured-card {
-  position: relative;
-  padding: 1.4rem 1.5rem;
-  background: var(--color-card);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-card);
-  transition: transform var(--transition), box-shadow var(--transition);
-}
-.featured-card:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--shadow-card-hover);
-}
-.featured-tag {
-  display: inline-block;
-  font-size: 0.72rem;
-  padding: 0.15rem 0.6rem;
-  border-radius: 50px;
-  color: var(--color-primary-dark);
-  background: var(--color-accent);
-}
-.featured-name {
-  font-size: 1.1rem;
-  color: var(--color-text);
-  margin: 0.8rem 0 0.4rem;
-}
-.featured-desc {
-  margin: 0;
-  font-size: 0.9rem;
-  color: var(--color-text-secondary);
-}
-
-/* —— 折叠面板 —— */
-.panels { margin-top: 0.5rem; }
-.panel {
-  border: 1px solid var(--color-border);
-  border-radius: 12px;
-  margin-bottom: 12px;
-  overflow: hidden;
-  background: var(--color-card);
-}
-.panel-head {
-  width: 100%;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 1rem;
-  padding: 16px 20px;
-  background: var(--color-bg);
-  border: none;
-  cursor: pointer;
-  text-align: left;
-  transition: background var(--transition);
-}
-.panel-head:hover { background: #f0ebe4; }
-.panel-label {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-}
-.panel-ic { font-size: 18px; line-height: 1; }
-.panel-name {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--color-text);
-}
-.panel-count {
-  font-size: 12px;
-  color: var(--color-text-light);
-}
-.panel-arrow {
-  font-size: 12px;
-  color: var(--color-primary);
-  display: inline-block;
-  transition: transform var(--transition);
-}
-.panel-head[aria-expanded="true"] .panel-arrow {
-  transform: rotate(180deg);
-}
-
-/* max-height 过渡实现展开/收起动画 */
-.panel-body-wrap {
-  max-height: 0;
-  overflow: hidden;
-  transition: max-height 0.3s ease;
-}
-.panel-body {
-  padding: 16px 20px;
-  background: var(--color-card);
-}
-.res-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 1rem;
-  padding: 10px 0;
-  border-bottom: 1px solid #f0ebe4;
-}
-.res-icon {
-  font-size: 1.15rem;
-  flex-shrink: 0;
-  margin-right: 0.15rem;
-}
-.res-item:last-child { border-bottom: none; }
-.res-info { min-width: 0; }
-.res-name {
-  font-size: 14px;
-  color: var(--color-text);
-  margin: 0;
-}
-.res-desc {
-  font-size: 13px;
-  color: var(--color-text-light);
-  margin: 0.25rem 0 0;
-}
-.res-btn {
-  flex-shrink: 0;
-  padding: 7px 18px;
-  font-size: 13px;
-  color: #fff;
-  background: var(--color-primary);
-  border: none;
-  border-radius: 50px;
-  cursor: pointer;
-  transition: background var(--transition), transform var(--transition);
-}
-.res-btn:hover {
-  background: var(--color-primary-dark);
-  transform: translateY(-1px);
-}
-
-.empty {
-  margin-top: 1.5rem;
-  text-align: center;
-  font-size: 14px;
-  color: var(--color-text-light);
-}
-
-@media (max-width: 600px) {
-  .guide-title { font-size: 1.8rem; }
-}
+.guide { padding: 0; }
+.search-bar { position: relative; }
+.search-ic { position: absolute; top: 50%; left: 16px; z-index: 1; color: var(--jade); transform: translateY(-50%); }
+.search-input { width: 100%; min-height: 46px; padding: 11px 16px 11px 48px; color: var(--ink); border: 1px solid var(--color-border); border-radius: var(--radius-sm); outline: none; background: var(--paper-light); }
+.search-input:focus { border-color: var(--jade); box-shadow: 0 0 0 3px rgba(95,146,125,.12); }
+.featured { margin-top: 4rem; }
+.featured-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 1rem; }
+.featured-card { position: relative; min-height: 180px; padding: 1.4rem; }
+.featured-card::after { content: attr(data-index); }
+.featured-tag { display: inline-block; padding: .2rem .6rem; color: var(--clay); border: 1px solid rgba(165,87,62,.24); font-family: var(--font-mono); font-size: 9px; letter-spacing: .08em; }
+.featured-card h3 { margin-top: 1rem; color: var(--jade-deep); font-size: 1.12rem; }
+.featured-card p { margin-top: .6rem; color: var(--ink-soft); font-size: 13px; line-height: 1.7; }
+.resource-section { margin-top: 4.5rem; }
+.panels { display: grid; gap: .8rem; }
+.panel { overflow: hidden; }
+.panel-head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; width: 100%; padding: 1rem 1.2rem; color: var(--ink); border: 0; background: var(--paper-light); cursor: pointer; text-align: left; }
+.panel-head:hover { background: var(--paper-deep); }
+.panel-label { display: flex; align-items: center; gap: .7rem; }
+.panel-label > .app-icon { color: var(--jade); }
+.panel-name { font-weight: 700; }
+.panel-count { color: var(--ink-faint); font-family: var(--font-mono); font-size: 10px; }
+.panel-arrow { color: var(--jade); transition: transform var(--transition-fast); }
+.panel-arrow.open { transform: rotate(180deg); }
+.panel-body-wrap { max-height: 0; overflow: hidden; transition: max-height var(--transition); }
+.panel-body { padding: .4rem 1.2rem 1rem; border-top: 1px solid var(--color-border-light); }
+.res-item { display: grid; grid-template-columns: auto minmax(0,1fr) auto; gap: .9rem; align-items: center; padding: .9rem 0; border-bottom: 1px solid var(--color-border-light); }
+.res-item:last-child { border-bottom: 0; }
+.res-icon { color: var(--bronze); }
+.res-name { color: var(--ink); font-size: 14px; font-weight: 700; }
+.res-desc { margin-top: .25rem; color: var(--ink-faint); font-size: 12px; }
+.res-btn { display: inline-flex; align-items: center; gap: .4rem; padding: .45rem .75rem; color: var(--jade-deep); border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: transparent; cursor: pointer; font-size: 12px; }
+.res-btn:hover { border-color: var(--jade); }
+@media (max-width: 780px) { .featured-grid { grid-template-columns: 1fr; } }
+@media (max-width: 520px) { .res-item { grid-template-columns: auto minmax(0,1fr); } .res-btn { grid-column: 2; justify-self: start; } }
 </style>
