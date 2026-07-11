@@ -16,7 +16,8 @@
       </div>
 
       <div v-else-if="error" class="pip-status pip-status--error">
-        加载失败，请重试
+        <span>加载失败</span>
+        <button class="pip-retry" type="button" @click="fetchImages">重试</button>
       </div>
 
       <div v-else-if="images.length === 0" class="pip-status">
@@ -41,7 +42,7 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, onBeforeUnmount } from 'vue'
 import { apiGetDossier } from '../../practice/mine/api.js'
 
 const props = defineProps({
@@ -100,6 +101,10 @@ watch(open, (val) => {
   } else {
     document.removeEventListener('click', onDocClick, true)
   }
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', onDocClick, true)
 })
 </script>
 
@@ -183,6 +188,21 @@ watch(open, (val) => {
 }
 .pip-status--error {
   color: #c0392b;
+}
+.pip-retry {
+  margin-top: 0.3rem;
+  padding: 0.25rem 0.75rem;
+  border: 1px solid #c0392b;
+  border-radius: 8px;
+  background: transparent;
+  color: #c0392b;
+  font-size: 0.76rem;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+.pip-retry:hover {
+  background: #c0392b;
+  color: #fff;
 }
 .pip-empty-icon {
   font-size: 2rem;
