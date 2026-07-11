@@ -1,5 +1,6 @@
 # 「实践中」采集页面重设 + 上传误触 bug 修复 设计
 
+- 作者：gym
 - 日期：2026-07-11
 - 栏目：乡村实践 · 我的实践 · 实践中（采集阶段 StageTrack）
 - 关联：[[shuxiang-practice-track]]；上游 spec `2026-07-10-practice-track-ai-collection-design.md`、`2026-07-10-ai-rich-data-for-studio-design.md`

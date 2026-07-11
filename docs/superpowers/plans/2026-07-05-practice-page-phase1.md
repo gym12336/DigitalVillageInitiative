@@ -1,5 +1,7 @@
 # 乡村实践页（期一）实现计划
 
+- 作者：gym
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 把 `乡村实践` 栏目从 PageScaffold 占位建成完整内容页：头条轮播 + 页面头部 + 实践概况 + 乡村人物 + 乡土视频 + 成果列表，沿用乡村之声（voice）模块的交互与样式。

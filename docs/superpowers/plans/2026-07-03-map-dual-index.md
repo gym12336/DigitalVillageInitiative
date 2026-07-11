@@ -1,5 +1,7 @@
 # 地图大屏双索引 实施计划
 
+- 作者：gym
+
 > **For agentic workers:** 每个 Task 派 subagent 实现，不做 review（用户要求先做出来看效果）。工作目录 `d:/UserFolders/Desktop/shuxiang/DigitalVillageInitiative/`，git 分支 `feat/vue3-platform`。
 
 **Goal:** 把首页地图区做成科技蓝大屏（左右侧栏 + 中央 3D 地图），点村庄散点在右侧栏展示该村资源简述并可跳到各模块（索引 A：地图→村→资源）；三个模块保留按资源类型看各村（索引 B）。两种索引共用 villages.json 一份数据。

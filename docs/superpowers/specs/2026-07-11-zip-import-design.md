@@ -1,5 +1,6 @@
 # ZIP 整包导入 · 自动解压归类抽取 设计
 
+- 作者：gym
 - 日期：2026-07-11
 - 栏目：乡村实践 · 我的实践 · 实践中（采集阶段）
 - 关联：[[shuxiang-practice-track]]；上游 spec `2026-07-10-upload-ai-structuring-design.md`、`2026-07-11-practice-track-layout-redesign-design.md`

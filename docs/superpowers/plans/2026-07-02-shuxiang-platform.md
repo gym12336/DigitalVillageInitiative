@@ -1,5 +1,7 @@
 # 数乡计划平台 首版 实施计划
 
+- 作者：gym
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 用 Vue3 + Vite 搭建「乡村数字资源库」平台首版：首页作为模块化导航中枢，含一个下钻到区县级的 3D 全国地图（大地金风格），点击村庄散点跳转村庄主页；模块可插拔，新增模块无需改动既有代码。

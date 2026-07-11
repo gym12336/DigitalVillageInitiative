@@ -1,5 +1,6 @@
 # 待审校项并入右栏对应 Tab 设计
 
+- 作者：gym
 - 日期：2026-07-11
 - 栏目：乡村实践 · 我的实践 · 实践中（采集阶段）
 - 关联：[[shuxiang-practice-track]]；上游 `2026-07-11-practice-track-layout-redesign-design.md`、`2026-07-11-upload-panel-by-type-design.md`、`2026-07-11-zip-import-design.md`

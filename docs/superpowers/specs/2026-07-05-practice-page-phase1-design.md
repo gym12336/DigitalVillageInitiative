@@ -1,5 +1,7 @@
 # 乡村实践页设计（期一：主体 + 成果列表）
 
+- 作者：gym
+
 日期：2026-07-05
 范围：DigitalVillageInitiative 前端，`src/modules/practice/` 栏目页
 分期：期一 = 页面主体 + 成果列表（本文档）；期二 = 成果详情页（10 模块，另立 spec）

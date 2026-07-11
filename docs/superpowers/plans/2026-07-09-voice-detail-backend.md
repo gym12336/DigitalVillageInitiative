@@ -1,5 +1,7 @@
 # 乡村之声:详情独立页 + 后端化 实现计划
 
+- 作者：gym
+
 > **For agentic workers:** REQUIRED SUB-SKILL: superpowers:subagent-driven-development 或 superpowers:executing-plans 逐任务执行。步骤用 checkbox 追踪。
 > **状态:已全部执行完成(2026-07-09)。** 17 个测试全绿,数据已 seed,前后端实测通。本文档为已落地实现的存档。
 

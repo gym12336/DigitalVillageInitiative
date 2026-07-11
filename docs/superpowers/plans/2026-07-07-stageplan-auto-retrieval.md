@@ -1,5 +1,7 @@
 # 「实践前」自动检索 + 概要加权 Implementation Plan
 
+- 作者：gym
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 让 `retrieve` 接受可选的 topic/village 加权，并让 StagePlan 进入「实践前」时按条件自动检索一次。

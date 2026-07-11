@@ -1,5 +1,7 @@
 # 可视化语法核心 (Visualization Grammar Core) 实现计划
 
+- 作者：gym
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 实现「可视化语法(Grammar of Graphics)」的前端核心——用一套受约束的 Schema 定义可视化原子零件,把一棵 Spec 组合树渲染成 ECharts 配置,并校验 Spec 合法性。这是禁飞区②(渲染引擎)与「约束边界」(schema)的落地,纯函数、零服务器依赖、全 TDD。

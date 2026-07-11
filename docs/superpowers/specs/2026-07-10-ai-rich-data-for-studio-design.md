@@ -1,5 +1,6 @@
 # 实践中 AI 富数据 —— 为成果工作台组件提供可直接渲染的内容 设计
 
+- 作者：gym
 - 日期:2026-07-10
 - 栏目:乡村实践 · 我的实践 · 实践中(采集)→ 实践后(成果工作台)
 - 关联:[[shuxiang-practice-track]] [[shuxiang-internship-ai]];上游 spec `2026-07-10-upload-ai-structuring-design.md`、`2026-07-06-practice-result-visualizer-design.md`

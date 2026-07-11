@@ -1,5 +1,6 @@
 # 上传文件 → AI 自动结构化 → 实践后原始数据支持 设计
 
+- 作者：gym
 - 日期:2026-07-10
 - 栏目:乡村实践 · 我的实践 · 实践中(采集阶段)
 - 关联:[[shuxiang-practice-track]] [[shuxiang-internship-ai]],上游 spec `2026-07-10-practice-track-ai-collection-design.md`
