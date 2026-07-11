@@ -8,6 +8,7 @@ export function createComponent(type, x, y, chartType) {
     case 'timeline':    return createTimelineComponent(x, y)
     case 'datatable':   return createDatatableComponent(x, y)
     case 'agri-sensor': return createSensorComponent(x, y)
+    case 'layout-box': return createLayoutBoxComponent(x, y)
     default:            throw new Error(`Unknown component type: ${type}`)
   }
 }
@@ -124,6 +125,22 @@ export function createSensorComponent(x, y) {
         { name: '土壤pH', value: 6.8, unit: '', status: 'warning' },
         { name: '光照', value: 3200, unit: 'lux', status: 'normal' },
       ],
+    },
+  }
+}
+
+export function createLayoutBoxComponent(x, y) {
+  return {
+    type: 'layout-box',
+    x, y,
+    width: 800,
+    height: 500,
+    props: {
+      title: '',
+      slotCount: 2,
+      layout: 'horizontal',
+      splitRatios: [50, 50],
+      children: [null, null],
     },
   }
 }
