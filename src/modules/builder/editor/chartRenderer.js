@@ -591,30 +591,44 @@ export function renderSankeyChart(data, w, h, { title = '' } = {}) {
 
   const pad = { top: title ? 44 : 24, bottom: 20, left: 80, right: 80 }
   const nodeW = 18
+  const gap = 12
   const chartH = h - pad.top - pad.bottom
-  const flowScale = chartH / maxFlow
+
+  // Reserve space for inter-node gaps so the bottom-most item isn't flush against the frame
+  const maxSideNodes = Math.max(sourceNodes.length, targetNodes.length)
+  const totalGaps = (maxSideNodes - 1) * gap
+  const availableH = chartH - totalGaps
+  const flowScale = availableH / maxFlow
 
   const sourceX = pad.left
   const sourceRightX = sourceX + nodeW
   const targetRightX = w - pad.right
   const targetLeftX = targetRightX - nodeW
 
-  // Position source nodes — stack vertically
-  let sy = pad.top
+  // Compute total stacked height per side (including gaps) for vertical centering
+  const calcSideTotalH = (nodes) =>
+    nodes.reduce((sum, n) => sum + Math.max(16, n.total * flowScale), 0) +
+    (nodes.length - 1) * gap
+
+  const sourceTotalH = calcSideTotalH(sourceNodes)
+  const targetTotalH = calcSideTotalH(targetNodes)
+
+  // Position source nodes — stack vertically, centered in chartH
+  let sy = pad.top + (chartH - sourceTotalH) / 2
   const sourcePosMap = new Map()
   sourceNodes.forEach((node) => {
     const nh = Math.max(16, node.total * flowScale)
     sourcePosMap.set(node.name, { y: sy, h: nh })
-    sy += nh + 12
+    sy += nh + gap
   })
 
-  // Position target nodes — stack vertically
-  let ty = pad.top
+  // Position target nodes — stack vertically, centered in chartH
+  let ty = pad.top + (chartH - targetTotalH) / 2
   const targetPosMap = new Map()
   targetNodes.forEach((node) => {
     const nh = Math.max(16, node.total * flowScale)
     targetPosMap.set(node.name, { y: ty, h: nh })
-    ty += nh + 12
+    ty += nh + gap
   })
 
   // Draw flow bands — filled bezier paths, one per link

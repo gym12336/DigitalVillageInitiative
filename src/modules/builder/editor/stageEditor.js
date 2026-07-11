@@ -53,8 +53,8 @@ function restoreHistory(index) {
   state.selectedId = null
 }
 
-export function addComponentAt(type, x, y) {
-  const comp = createComponent(type, x, y)
+export function addComponentAt(type, x, y, chartType) {
+  const comp = createComponent(type, x, y, chartType)
   comp.id = state.nextId++
   state.components.push(comp)
   state.selectedId = comp.id
