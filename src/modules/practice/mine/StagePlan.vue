@@ -188,7 +188,7 @@ import { ref, reactive, computed, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { retrieve, searchWeb } from './retrieval.js'
 import { generatePlan } from './planGen.js'
-import { retrievalSources } from './sources.js'
+import { getRetrievalSources } from './sources.js'
 import WebSearchModal from './WebSearchModal.vue'
 
 const props = defineProps({
