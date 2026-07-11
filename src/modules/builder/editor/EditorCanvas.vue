@@ -155,8 +155,8 @@ function renderLayoutBoxMarkup(comp) {
       const childComp = {
         id: child.id,
         type: child.type,
-        x: s.x + 4,
-        y: s.y + 4,
+        x: 4,
+        y: 4,
         width: s.w - 8,
         height: s.h - 8,
         props: child.props,
