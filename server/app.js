@@ -6,6 +6,8 @@ import { makeTeamsRouter } from './routes/teams.js'
 import { makeDossiersRouter } from './routes/dossiers.js'
 import { makeWorksRouter } from './routes/works.js'
 import { makePlanRouter } from './routes/plan.js'
+import { makeSearchRouter } from './routes/search.js'
+import { makeBuilderRouter } from './routes/builder.js'
 import { makeMediaRouter } from './routes/media.js'
 import { makeVillagesRouter } from './routes/villages.js'
 import { makeVoiceRouter } from './routes/voice.js'
@@ -28,6 +30,8 @@ export function createApp({ db, secret, uploadDir = DEFAULT_UPLOAD_DIR }) {
   app.use('/api/dossiers', makeDossiersRouter(db, secret))
   app.use('/api/works', makeWorksRouter(db, secret))
   app.use('/api/plan', makePlanRouter(db, secret))
+  app.use('/api/search', makeSearchRouter(db, secret))
+  app.use('/api/builder', makeBuilderRouter(db, secret))
   app.use('/api/practice/media', makeMediaRouter({ db, secret, uploadDir }))
   app.use('/api/villages', makeVillagesRouter(db))
   app.use('/api/voice', makeVoiceRouter(db))

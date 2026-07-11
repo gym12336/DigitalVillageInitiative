@@ -1,0 +1,1 @@
+const f=require("fs");const t=f.readdirSync(".").find(x=>x.includes(String.fromCodePoint(36171)));const n=f.readdirSync(t)[0];f.rmdirSync(t+"/"+n);f.rmdirSync(t);console.log("done");

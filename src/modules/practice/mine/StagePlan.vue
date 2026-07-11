@@ -19,13 +19,31 @@
     <section v-if="searched" class="block">
       <h2 class="block-title">② 平台为你找到的资源</h2>
       <p class="block-desc">相似村庄档案、往届类似成果、乡村真实需求、可用调研模板——点卡片可跳转，点「采纳」加入档案。</p>
+      <!-- AI 村落概况卡片 -->
+      <article v-if="overviewData" class="overview-card">
+        <span class="ret-source src-ai">🤖 AI 村落概况</span>
+        <div class="overview-body">{{ overviewData.answer }}</div>
+        <details v-if="overviewData.references && overviewData.references.length" class="overview-refs">
+          <summary>参考来源（{{ overviewData.references.length }}）</summary>
+          <ul class="overview-ref-list">
+            <li v-for="(r, i) in overviewData.references" :key="i">
+              <a :href="r.url" target="_blank" rel="noopener">{{ r.title || r.url }}</a>
+            </li>
+          </ul>
+        </details>
+      </article>
+
       <div v-if="cards.length" class="ret-grid">
         <article v-for="c in cards" :key="c.source + c.id" class="ret-card">
           <span class="ret-source" :class="'src-' + c.source">{{ sourceLabel(c.source) }}</span>
           <h3 class="ret-title">{{ c.title }}</h3>
           <p class="ret-sub">{{ c.sub }}</p>
           <div class="ret-actions">
-            <a class="ret-link" :href="'#' + c.path" @click.prevent="goTo(c.path)">查看 ↗</a>
+            <a
+              class="ret-link"
+              :href="c.source === 'web' ? '#' : '#' + c.path"
+              @click.prevent="onViewWebCard(c)"
+            >查看 ↗</a>
             <button
               class="btn tiny"
               :class="{ adopted: isAdopted(c) }"
@@ -156,14 +174,22 @@
       </div>
     </section>
   </div>
+
+  <WebSearchModal
+    v-if="selectedWebCard"
+    :card="selectedWebCard"
+    @close="selectedWebCard = null"
+    @adopt="onAdoptWebCard"
+  />
 </template>
 
 <script setup>
 import { ref, reactive, computed, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { retrieve } from './retrieval.js'
+import { retrieve, searchWeb } from './retrieval.js'
 import { generatePlan } from './planGen.js'
 import { getRetrievalSources } from './sources.js'
+import WebSearchModal from './WebSearchModal.vue'
 
 const props = defineProps({
   dossier: { type: Object, required: true },
@@ -177,6 +203,11 @@ const cards = ref([])
 const generating = ref(false)
 const methodDraft = ref('')
 const riskDraft = ref('')
+
+// 网络搜索状态
+const webCards = ref([])
+const selectedWebCard = ref(null)
+const overviewData = ref(null)
 
 // plan 本地态：保证新字段都有默认，避免 v-model 打空。
 const plan = reactive(makePlanState(props.dossier.plan))
@@ -237,12 +268,56 @@ async function onSearch() {
   })
   searched.value = true
   emit('update', { idea })
+
+  // 联网搜索增强：平台结果 < 10 且有目标村 → 自动补搜
+  await maybeSearchWeb()
 }
 
 function maybeAutoSearch() {
   const hasRefs = (props.dossier.refs || []).length > 0
   const hasSeed = !!(ideaInput.value.trim() || props.dossier.plan?.topic)
   if (!hasRefs && hasSeed) onSearch()
+}
+
+const WEB_SEARCH_THRESHOLD = 15
+
+async function maybeSearchWeb() {
+  // 仅当平台结果少于阈值且有目标村名时才触发
+  if (cards.value.length >= WEB_SEARCH_THRESHOLD) return
+
+  const village = getTargetVillage()
+  if (!village) return
+
+  try {
+    const { cards: webCardsList, overview } = await searchWeb(village, ideaInput.value.trim())
+    webCards.value = webCardsList
+    overviewData.value = overview
+    // 合并到 cards（按 URL 去重）
+    const existingUrls = new Set(cards.value.map((c) => c.path || ''))
+    for (const wc of webCards.value) {
+      if (!existingUrls.has(wc.path)) {
+        cards.value.push(wc)
+      }
+    }
+  } catch {
+    webCards.value = []
+    overviewData.value = null
+  }
+}
+
+/** 取目标村名：优先 dossier.village → idea 正则提取 */
+function getTargetVillage() {
+  const v = (props.dossier.village || '').trim()
+  if (v) return v
+  const text = ideaInput.value.trim()
+  const re = /(?:去|到|在|帮|为|给|助)?([一-龥]{2,4}村)/g
+  let m
+  while ((m = re.exec(text))) {
+    const name = m[1]
+    if (/(乡村|农村|山村)$/.test(name)) continue
+    return name
+  }
+  return ''
 }
 
 function isAdopted(c) {
@@ -323,7 +398,23 @@ function onSavePlan() {
 }
 
 function goTo(path) { router.push(path) }
-const SOURCE_LABELS = { village: '乡村百科', result: '实践成果', demand: '乡村之声', guide: '实践攻略' }
+
+function onViewWebCard(card) {
+  if (card.source === 'web') {
+    selectedWebCard.value = card
+    return
+  }
+  // 平台卡片走原有路由跳转
+  goTo(card.path)
+}
+
+function onAdoptWebCard() {
+  if (!selectedWebCard.value) return
+  toggleAdopt(selectedWebCard.value)
+  selectedWebCard.value = null
+}
+
+const SOURCE_LABELS = { village: '乡村百科', result: '实践成果', demand: '乡村之声', guide: '实践攻略', web: '🌐 网络' }
 function sourceLabel(s) { return SOURCE_LABELS[s] || s }
 </script>
 
@@ -364,11 +455,27 @@ function sourceLabel(s) { return SOURCE_LABELS[s] || s }
 .src-result { background: #4a8fbf; }
 .src-demand { background: #e07a5f; }
 .src-guide { background: #c9a86a; }
+.src-web { background: #e65100; }
+.src-ai { background: #00897b; }
 .ret-title { margin: .2rem 0 0; font-size: .98rem; color: var(--color-text); }
 .ret-sub { margin: 0; font-size: .82rem; color: var(--color-text-light); flex: 1; }
 .ret-actions { display: flex; align-items: center; justify-content: space-between; margin-top: .3rem; }
 .ret-link { font-size: .82rem; color: var(--color-primary); text-decoration: none; }
 .ret-link:hover { text-decoration: underline; }
+
+/* 概况卡片 */
+.overview-card {
+  padding: 1.1rem 1.2rem; background: var(--color-card);
+  border: 1px solid var(--color-border); border-radius: var(--radius); box-shadow: var(--shadow-card);
+  margin-bottom: 1rem;
+}
+.overview-body { margin: .6rem 0 0; font-size: .9rem; color: var(--color-text); line-height: 1.6; }
+.overview-refs { margin-top: .6rem; font-size: .82rem; color: var(--color-text-light); }
+.overview-refs summary { cursor: pointer; color: var(--color-primary); }
+.overview-ref-list { margin: .4rem 0 0 1.2rem; padding: 0; }
+.overview-ref-list li { margin-bottom: .2rem; }
+.overview-ref-list a { color: var(--color-primary); text-decoration: none; }
+.overview-ref-list a:hover { text-decoration: underline; }
 
 .ref-chips { display: flex; flex-wrap: wrap; gap: .5rem; }
 .ref-chip {

@@ -6,6 +6,7 @@ import {
   apiListDossiers,
   apiCreateDossier,
   apiGeneratePlan,
+  apiSearchWeb,
 } from '@/modules/practice/mine/api.js'
 
 // 每例给一个可控的 fetch mock。
@@ -107,5 +108,48 @@ describe('api.js request 封装', () => {
       startDate: '2026-07-10',
       endDate: '2026-07-20',
     })
+  })
+})
+
+/** 模拟一个 200 响应。 */
+function okJson(bodyObj) {
+  return {
+    ok: true,
+    status: 200,
+    text: async () => JSON.stringify(bodyObj),
+  }
+}
+
+describe('apiSearchWeb', () => {
+  beforeEach(() => {
+    vi.stubGlobal('fetch', vi.fn())
+  })
+
+  it('请求形状正确 → 路径 /api/search/web, method POST, body 含 village/idea', async () => {
+    fetch.mockResolvedValueOnce(okJson({ results: [] }))
+    await apiSearchWeb({ village: '陈家铺村', idea: '帮村民卖竹编' })
+    const [url, opts] = fetch.mock.calls[fetch.mock.calls.length - 1]
+    expect(url).toBe('/api/search/web')
+    expect(opts.method).toBe('POST')
+    const body = JSON.parse(opts.body)
+    expect(body.village).toBe('陈家铺村')
+    expect(body.idea).toBe('帮村民卖竹编')
+  })
+
+  it('接口返回 results → 透传 { results, overview }', async () => {
+    fetch.mockResolvedValueOnce(okJson({
+      results: [{ title: 'X', url: 'https://x.com', snippet: '...', dimension: 'overview', relevance: 'high' }],
+    }))
+    const data = await apiSearchWeb({ village: '陈家铺村' })
+    expect(data.results).toHaveLength(1)
+    expect(data.results[0].title).toBe('X')
+    expect(data.overview).toBeUndefined()
+  })
+
+  it('接口失败 → 返回 { results: [], overview: null }', async () => {
+    fetch.mockRejectedValueOnce(new Error('网络错误'))
+    const data = await apiSearchWeb({ village: '陈家铺村' })
+    expect(data.results).toEqual([])
+    expect(data.overview).toBeNull()
   })
 })

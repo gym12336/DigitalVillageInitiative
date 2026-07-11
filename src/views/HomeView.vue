@@ -100,7 +100,7 @@
           <p class="modules-sub">从读懂一个村，到发布一次需求、带走一件好物 —— 每个入口都是一段可以开始的旅程。</p>
         </div>
         <div class="grid">
-          <ModuleCard v-for="m in modules" :key="m.id" :module="m" />
+          <ModuleCard v-for="m in modules.filter(m => m.enabled)" :key="m.id" :module="m" />
         </div>
       </div>
     </div>
