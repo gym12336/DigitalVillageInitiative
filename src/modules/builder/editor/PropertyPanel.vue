@@ -260,15 +260,15 @@
             <div v-for="(child, i) in comp.props.children" :key="'slot'+i" class="pp-slot-item">
               <span class="pp-slot-label">槽位 {{ i + 1 }}</span>
               <select
-                :value="child ? child.type : ''"
+                :value="child ? (child.type === 'chart' ? 'chart:' + (child.props.chartType || 'bar') : child.type) : ''"
                 @change="onSlotTypeChange(comp, i, $event.target.value)"
               >
                 <option value="">空（占位）</option>
+                <option value="chart:bar">图表-柱状图</option>
+                <option value="chart:pie">图表-饼图</option>
+                <option value="chart:line">图表-折线图</option>
+                <option value="chart:sankey">图表-桑基图</option>
                 <option value="text">文本</option>
-                <option value="chart">图表-柱状图</option>
-                <option value="chart">图表-饼图</option>
-                <option value="chart">图表-折线图</option>
-                <option value="chart">图表-桑基图</option>
                 <option value="image">图片</option>
                 <option value="timeline">时间轴</option>
                 <option value="datatable">数据表</option>
@@ -391,8 +391,12 @@ function defaultRatiosForLayout(layout, slotCount) {
   switch (layout) {
     case 'horizontal':
     case 'vertical': {
-      const v = Math.round(100 / slotCount)
-      return new Array(slotCount).fill(v)
+      // Distribute 100 evenly, ensuring sum is exactly 100
+      const base = Math.floor(100 / slotCount)
+      const remainder = 100 - base * slotCount
+      const arr = new Array(slotCount).fill(base)
+      for (let i = 0; i < remainder; i++) arr[i]++
+      return arr
     }
     case 'main-right': return [67, 33]
     case 'main-left': return [33, 67]
@@ -436,8 +440,12 @@ function childTypeLabel(child) {
 
 function onSlotCountChange(comp) {
   const sc = comp.props.slotCount || 2
-  // Update splitRatios to match new count
-  comp.props.splitRatios = new Array(sc).fill(Math.round(100 / sc))
+  // Distribute 100 evenly across slots, ensuring sum is exactly 100
+  const base = Math.floor(100 / sc)
+  const remainder = 100 - base * sc
+  const ratios = new Array(sc).fill(base)
+  for (let i = 0; i < remainder; i++) ratios[i]++
+  comp.props.splitRatios = ratios
   // Update children array
   const oldLen = comp.props.children ? comp.props.children.length : 0
   if (oldLen < sc) {
@@ -460,15 +468,18 @@ function onLayoutChange(comp, layout) {
 }
 
 let _nextChildId = Date.now()
-function onSlotTypeChange(comp, slotIndex, type) {
-  if (!type) {
+function onSlotTypeChange(comp, slotIndex, typeVal) {
+  if (!typeVal) {
     comp.props.children[slotIndex] = null
     return
   }
-  // Determine chartType from the select value if needed
-  // The select value is just 'chart', so use a default chartType
+  // Parse "chart:bar", "chart:pie", etc.
+  let type = typeVal
   let chartType = 'bar'
-  // Create the child component
+  if (typeVal.startsWith('chart:')) {
+    type = 'chart'
+    chartType = typeVal.slice(6) // extract the chart sub-type
+  }
   const child = createComponent(type, 0, 0, chartType)
   child.id = _nextChildId++
   comp.props.children[slotIndex] = child

@@ -162,7 +162,7 @@ function renderLayoutBoxMarkup(comp) {
         props: child.props,
       }
       const innerMarkup = renderComponentMarkup(childComp)
-      slotHtml += `<div style="position:absolute;left:${leftPx}px;top:${topPx}px;width:${widthPx}px;height:${heightPx}px;background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.06);overflow:hidden;">${innerMarkup}</div>`
+      slotHtml += `<div data-slot-index="${i}" style="position:absolute;left:${leftPx}px;top:${topPx}px;width:${widthPx}px;height:${heightPx}px;background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.06);overflow:hidden;">${innerMarkup}</div>`
     } else {
       slotHtml += `<div data-slot-index="${i}" style="position:absolute;left:${leftPx}px;top:${topPx}px;width:${widthPx}px;height:${heightPx}px;background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.06);overflow:hidden;border:2px dashed #d0dbe3;display:flex;align-items:center;justify-content:center;color:#8ea3b2;font-size:14px;">拖入组件</div>`
     }
