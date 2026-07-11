@@ -222,6 +222,133 @@
           <button v-if="comp.props.rows.length > 1" class="pp-sr-del" @click="removeDatatableRow(comp, ri)">×</button>
         </div>
       </div>
+
+      <!-- Layout-box props -->
+      <div v-if="comp.type === 'layout-box'" class="pp-section">
+
+        <!-- View A: Container-level settings -->
+        <template v-if="comp._selectedChildIndex == null">
+          <div class="pp-field">
+            <label>容器标题</label>
+            <input type="text" v-model="comp.props.title" placeholder="容器标题（可选）" />
+          </div>
+
+          <div class="pp-field">
+            <label>槽位数量</label>
+            <select v-model.number="comp.props.slotCount" @change="onSlotCountChange(comp)">
+              <option :value="2">2 槽位</option>
+              <option :value="3">3 槽位</option>
+              <option :value="4">4 槽位</option>
+            </select>
+          </div>
+
+          <div class="pp-field">
+            <label>布局方案</label>
+            <div class="pp-layout-presets">
+              <button
+                v-for="lo in availableLayouts"
+                :key="lo.value"
+                class="pp-layout-preset"
+                :class="{ 'pp-layout-preset--active': comp.props.layout === lo.value }"
+                @click="onLayoutChange(comp, lo.value)"
+              >{{ lo.label }}</button>
+            </div>
+          </div>
+
+          <div class="pp-field">
+            <label>槽位内容分配</label>
+            <div v-for="(child, i) in comp.props.children" :key="'slot'+i" class="pp-slot-item">
+              <span class="pp-slot-label">槽位 {{ i + 1 }}</span>
+              <select
+                :value="child ? child.type : ''"
+                @change="onSlotTypeChange(comp, i, $event.target.value)"
+              >
+                <option value="">空（占位）</option>
+                <option value="text">文本</option>
+                <option value="chart">图表-柱状图</option>
+                <option value="chart">图表-饼图</option>
+                <option value="chart">图表-折线图</option>
+                <option value="chart">图表-桑基图</option>
+                <option value="image">图片</option>
+                <option value="timeline">时间轴</option>
+                <option value="datatable">数据表</option>
+              </select>
+              <span v-if="child" class="pp-slot-type">{{ childTypeLabel(child) }}</span>
+              <button
+                v-if="child"
+                class="pp-slot-edit-btn"
+                @click="comp._selectedChildIndex = i"
+              >编辑</button>
+            </div>
+          </div>
+        </template>
+
+        <!-- View B: Child component editor -->
+        <template v-else>
+          <button class="pp-back-btn" @click="comp._selectedChildIndex = null">← 返回容器设置</button>
+
+          <div v-if="editingChild" class="pp-child-editor">
+            <h4 class="pp-subtitle">{{ childTypeLabel(editingChild) }} - 槽位 {{ comp._selectedChildIndex + 1 }}</h4>
+
+            <!-- Child chart props -->
+            <div v-if="editingChild.type === 'chart'">
+              <div class="pp-field">
+                <label>标题</label>
+                <input type="text" v-model="editingChild.props.title" />
+              </div>
+              <div class="pp-field">
+                <label>图表类型</label>
+                <select v-model="editingChild.props.chartType">
+                  <option value="bar">柱状图</option>
+                  <option value="pie">饼图</option>
+                  <option value="line">折线图</option>
+                  <option value="stacked-bar">堆叠柱状图</option>
+                  <option value="dumbbell">哑铃图</option>
+                  <option value="trend-badge">涨跌徽标</option>
+                  <option value="radar">雷达图</option>
+                  <option value="sankey">桑基图</option>
+                </select>
+              </div>
+              <div class="pp-field">
+                <label>CSV 数据</label>
+                <textarea v-model="editingChild.props.csvText" rows="6" style="font-family:monospace;font-size:12px;"></textarea>
+              </div>
+            </div>
+
+            <!-- Child text props -->
+            <div v-if="editingChild.type === 'text'">
+              <div class="pp-field">
+                <label>文本内容</label>
+                <textarea v-model="editingChild.props.text" rows="3"></textarea>
+              </div>
+              <div class="pp-field">
+                <label>字号</label>
+                <input type="number" v-model.number="editingChild.props.fontSize" min="8" max="200" />
+              </div>
+              <div class="pp-field">
+                <label>颜色</label>
+                <input type="color" v-model="editingChild.props.color" />
+              </div>
+            </div>
+
+            <!-- Child image props -->
+            <div v-if="editingChild.type === 'image'">
+              <div class="pp-field">
+                <label>图片 URL</label>
+                <input type="text" v-model="editingChild.props.src" placeholder="https://..." />
+              </div>
+              <div class="pp-field">
+                <label>填充模式</label>
+                <select v-model="editingChild.props.objectFit">
+                  <option value="cover">Cover 裁剪</option>
+                  <option value="contain">Contain 完整</option>
+                  <option value="fill">Fill 拉伸</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </template>
+      </div>
     </template>
   </div>
 </template>
@@ -229,12 +356,122 @@
 <script setup>
 import { computed } from 'vue'
 import { state, getSelected, deleteComponent } from './stageEditor.js'
+import { createComponent } from './componentFactory.js'
 
 const comp = computed(() => getSelected())
 
 function typeLabel(type) {
-  const labels = { text: '📝 文本', image: '🖼 图片', chart: '📊 图表', 'agri-sensor': '🌡 传感器', 'timeline': '⏳ 时间轴', 'datatable': '📋 数据表' }
+  const labels = { text: '📝 文本', image: '🖼 图片', chart: '📊 图表', 'agri-sensor': '🌡 传感器', 'timeline': '⏳ 时间轴', 'datatable': '📋 数据表', 'layout-box': '📦 多组件框' }
   return labels[type] || type
+}
+
+// -- Layout-box helpers --
+
+const LAYOUT_LABELS = {
+  'horizontal': '水平等分',
+  'vertical': '垂直等分',
+  'grid-2x2': '田字格',
+  'main-right': '主+右',
+  'main-left': '左+主',
+  'main-bottom': '主+下',
+  'main-top': '上+主',
+  '1+2-right': '左大+右二',
+  '2+1-right': '左二+右大',
+  '1+2-bottom': '上大+下二',
+  '2+1-top': '上二+下大',
+}
+
+const LAYOUTS_BY_SLOT_COUNT = {
+  2: ['horizontal', 'vertical', 'main-right', 'main-left', 'main-bottom', 'main-top'],
+  3: ['horizontal', 'vertical', '1+2-right', '2+1-right', '1+2-bottom', '2+1-top'],
+  4: ['horizontal', 'vertical', 'grid-2x2'],
+}
+
+function defaultRatiosForLayout(layout, slotCount) {
+  switch (layout) {
+    case 'horizontal':
+    case 'vertical': {
+      const v = Math.round(100 / slotCount)
+      return new Array(slotCount).fill(v)
+    }
+    case 'main-right': return [67, 33]
+    case 'main-left': return [33, 67]
+    case 'main-bottom': return [67, 33]
+    case 'main-top': return [33, 67]
+    case 'grid-2x2': return [50, 50, 50, 50]
+    case '1+2-right': return [60, 50]
+    case '2+1-right': return [50, 60]
+    case '1+2-bottom': return [60, 50]
+    case '2+1-top': return [50, 60]
+    default: return new Array(slotCount).fill(Math.round(100 / slotCount))
+  }
+}
+
+function defaultLayoutForSlotCount(slotCount) {
+  if (slotCount === 4) return 'grid-2x2'
+  return 'horizontal'
+}
+
+const editingChild = computed(() => {
+  if (!comp.value || !comp.value.props || comp.value._selectedChildIndex == null) return null
+  return comp.value.props.children[comp.value._selectedChildIndex] || null
+})
+
+const availableLayouts = computed(() => {
+  if (!comp.value || !comp.value.props) return []
+  const sc = comp.value.props.slotCount || 2
+  const names = LAYOUTS_BY_SLOT_COUNT[sc] || LAYOUTS_BY_SLOT_COUNT[2]
+  return names.map(v => ({ value: v, label: LAYOUT_LABELS[v] || v }))
+})
+
+function childTypeLabel(child) {
+  if (!child) return '空'
+  const labels = { text: '文本', chart: '图表', image: '图片', timeline: '时间轴', datatable: '数据表' }
+  if (child.type === 'chart' && child.props && child.props.chartType) {
+    const ctLabels = { bar: '柱状图', pie: '饼图', line: '折线图', 'stacked-bar': '堆叠柱状图', dumbbell: '哑铃图', 'trend-badge': '涨跌徽标', radar: '雷达图', sankey: '桑基图' }
+    return ctLabels[child.props.chartType] || '图表'
+  }
+  return labels[child.type] || child.type
+}
+
+function onSlotCountChange(comp) {
+  const sc = comp.props.slotCount || 2
+  // Update splitRatios to match new count
+  comp.props.splitRatios = new Array(sc).fill(Math.round(100 / sc))
+  // Update children array
+  const oldLen = comp.props.children ? comp.props.children.length : 0
+  if (oldLen < sc) {
+    for (let i = oldLen; i < sc; i++) comp.props.children.push(null)
+  } else if (oldLen > sc) {
+    comp.props.children.splice(sc)
+  }
+  // Reset layout
+  comp.props.layout = defaultLayoutForSlotCount(sc)
+  // Reset selected child index if it's now out of bounds
+  if (comp._selectedChildIndex != null && comp._selectedChildIndex >= sc) {
+    comp._selectedChildIndex = null
+  }
+}
+
+function onLayoutChange(comp, layout) {
+  comp.props.layout = layout
+  const sc = comp.props.slotCount || 2
+  comp.props.splitRatios = defaultRatiosForLayout(layout, sc)
+}
+
+let _nextChildId = Date.now()
+function onSlotTypeChange(comp, slotIndex, type) {
+  if (!type) {
+    comp.props.children[slotIndex] = null
+    return
+  }
+  // Determine chartType from the select value if needed
+  // The select value is just 'chart', so use a default chartType
+  let chartType = 'bar'
+  // Create the child component
+  const child = createComponent(type, 0, 0, chartType)
+  child.id = _nextChildId++
+  comp.props.children[slotIndex] = child
 }
 
 function addSensor(comp) {
@@ -413,4 +650,85 @@ function removeDatatableRow(comp, ri) {
 .pp-dt-row { display: flex; align-items: flex-start; gap: 4px; margin-bottom: 4px; }
 .pp-dt-row-inputs { display: flex; gap: 4px; flex: 1; overflow-x: auto; }
 .pp-dt-cell { width: 80px; flex-shrink: 0; }
+
+/* Layout-box editor */
+.pp-back-btn {
+  border: 1px solid #2c7da0; border-radius: 999px;
+  padding: 0.25rem 0.75rem;
+  background: transparent; color: #2c7da0;
+  font-size: 0.78rem; cursor: pointer; font-weight: 600;
+  transition: all var(--transition-fast);
+  margin-bottom: 0.5rem;
+}
+.pp-back-btn:hover {
+  background: #2c7da0; color: #fff;
+}
+
+.pp-layout-presets {
+  display: flex; flex-wrap: wrap; gap: 0.35rem;
+}
+.pp-layout-preset {
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: 0.25rem 0.65rem;
+  background: var(--color-bg);
+  color: var(--color-text-secondary);
+  font-size: 0.72rem; cursor: pointer;
+  transition: all var(--transition-fast);
+}
+.pp-layout-preset:hover {
+  border-color: #2c7da0;
+  color: #2c7da0;
+}
+.pp-layout-preset--active {
+  background: #2c7da0;
+  color: #fff;
+  border-color: #2c7da0;
+}
+
+.pp-slot-item {
+  display: flex; align-items: center; gap: 0.4rem;
+  padding: 0.35rem 0.5rem; margin-bottom: 0.35rem;
+  border: 1px solid var(--color-border-light);
+  border-radius: 8px;
+  background: rgba(44,125,160,0.02);
+}
+.pp-slot-label {
+  font-size: 0.72rem; font-weight: 600;
+  color: var(--color-text-light);
+  min-width: 3rem;
+}
+.pp-slot-item select {
+  flex: 1;
+  padding: 0.3rem 0.4rem;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  font-size: 0.76rem; outline: none;
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+.pp-slot-type {
+  font-size: 0.68rem;
+  color: var(--color-text-light);
+  background: rgba(44,125,160,0.06);
+  padding: 0.15rem 0.4rem;
+  border-radius: 999px;
+}
+.pp-slot-edit-btn {
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 0.18rem 0.45rem;
+  background: var(--color-bg);
+  color: var(--color-text-secondary);
+  font-size: 0.7rem; cursor: pointer;
+  transition: all var(--transition-fast);
+}
+.pp-slot-edit-btn:hover {
+  border-color: #2c7da0;
+  color: #2c7da0;
+}
+
+.pp-child-editor {
+  margin-top: 0.5rem;
+}
 </style>
