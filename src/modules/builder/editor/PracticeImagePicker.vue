@@ -68,7 +68,7 @@ async function fetchImages() {
   images.value = []
   try {
     const dossier = await apiGetDossier(props.dossierId)
-    const materials = dossier?.payload?.collected?.materials || []
+    const materials = dossier?.collected?.materials || []
     images.value = materials.filter(m => m.kind === 'image')
   } catch {
     error.value = true
