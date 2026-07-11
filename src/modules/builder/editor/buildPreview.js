@@ -3,9 +3,36 @@ import { renderChartSvg } from './chartRenderer.js'
 import { renderSensorMarkup } from './sensorRenderer.js'
 import { renderTimelineMarkup } from './timelineRenderer.js'
 import { renderDatatableMarkup } from './datatableRenderer.js'
+import { calcLayoutSlots } from './layoutBoxEngine.js'
 
 function esc(s) {
   return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+}
+
+function renderLayoutBoxPreview(comp) {
+  const { slots } = calcLayoutSlots(comp.width, comp.height, comp.props.layout, comp.props.splitRatios, comp.props.slotCount)
+  const children = comp.props.children || []
+
+  let slotHtml = ''
+  for (let i = 0; i < slots.length; i++) {
+    const s = slots[i]
+    const child = children[i] || null
+    if (child) {
+      const tempChild = {
+        type: child.type,
+        x: 4,
+        y: 4,
+        width: s.w - 8,
+        height: s.h - 8,
+        props: child.props,
+      }
+      slotHtml += `<div style="position:absolute;left:${Math.round(s.x)}px;top:${Math.round(s.y)}px;width:${Math.round(s.w)}px;height:${Math.round(s.h)}px;background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.06);overflow:hidden;">${renderComponentHtml(tempChild)}</div>`
+    } else {
+      slotHtml += `<div style="position:absolute;left:${Math.round(s.x)}px;top:${Math.round(s.y)}px;width:${Math.round(s.w)}px;height:${Math.round(s.h)}px;background:rgba(0,0,0,0.02);border-radius:12px;"></div>`
+    }
+  }
+
+  return `<div style="position:relative;width:100%;height:100%;border:1px solid #e8edf2;border-radius:16px;background:#fafdfe;overflow:hidden;">${slotHtml}</div>`
 }
 
 function renderComponentHtml(c) {
@@ -33,6 +60,9 @@ function renderComponentHtml(c) {
       break
     case 'datatable':
       inner = renderDatatableMarkup(c)
+      break
+    case 'layout-box':
+      inner = renderLayoutBoxPreview(c)
       break
   }
   return `<div style="position:absolute;left:${c.x}px;top:${c.y}px;width:${c.width}px;height:${c.height}px;overflow:hidden;">${inner}</div>`
