@@ -134,7 +134,7 @@ const NATIVE_CATEGORIES = [
   {
     id: 'media', icon: '🎬', name: '媒体嵌入',
     items: [
-      { label: '视频嵌入', icon: '▶️', type: 'image' },
+      { label: '图片', icon: '🖼️', type: 'image' },
     ],
   },
   {
