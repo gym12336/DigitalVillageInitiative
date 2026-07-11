@@ -68,4 +68,35 @@ describe('analyzeGaps', () => {
     expect(() => analyzeGaps(null)).not.toThrow()
     expect(analyzeGaps(null).complete).toBe(false)
   })
+
+  it('时段过半但进度不足 → 产出 pace-slow(warn)', () => {
+    const d = makeDossier({
+      startDate: '2026-07-01',
+      endDate: '2026-07-11',
+      plan: {
+        topic: '非遗文化挖掘',
+        metrics: [{ name: '受访手艺人数', unit: '人' }],
+        phases: [{ stage: 'track', tasks: [{ text: 'a', done: false }, { text: 'b', done: false }] }],
+      },
+      collected: { metricValues: [], materials: [], people: [] },
+    })
+    // now = 7/09，10 天里已过 8 天（>50%），但完成度为 0
+    const { gaps } = analyzeGaps(d, new Date('2026-07-09').getTime())
+    expect(gaps.some((g) => g.type === 'pace-slow' && g.level === 'warn')).toBe(true)
+  })
+
+  it('时段刚开始 → 不报 pace-slow', () => {
+    const d = makeDossier({
+      startDate: '2026-07-01',
+      endDate: '2026-07-11',
+      collected: { metricValues: [], materials: [], people: [] },
+    })
+    const { gaps } = analyzeGaps(d, new Date('2026-07-02').getTime())
+    expect(gaps.some((g) => g.type === 'pace-slow')).toBe(false)
+  })
+
+  it('无时段信息 → 不报 pace-slow', () => {
+    const { gaps } = analyzeGaps(makeDossier())
+    expect(gaps.some((g) => g.type === 'pace-slow')).toBe(false)
+  })
 })

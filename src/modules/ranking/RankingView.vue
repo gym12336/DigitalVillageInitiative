@@ -29,17 +29,17 @@
           <span class="rank-meta">{{ v.fullName }}</span>
         </div>
         <span class="rank-type">{{ v.type }}</span>
-        <span class="rank-count">{{ (v.extra?.resources || []).length }} 项资源</span>
+        <span class="rank-count">{{ (v.specialties || []).length }} 项特产</span>
       </article>
       <p v-if="!filtered.length" class="empty">该类型暂无村庄，待实地采集补充。</p>
     </div>
 
     <div v-if="scopedVillage" class="res-detail">
       <h3>{{ scopedVillage.name }} · 特色资源</h3>
-      <ul v-if="(scopedVillage.extra?.resources || []).length">
-        <li v-for="(r, i) in scopedVillage.extra.resources" :key="i">
-          <b>{{ r.name }}</b><span v-if="r.type" class="r-type">{{ r.type }}</span>
-          <p v-if="r.desc">{{ r.desc }}</p>
+      <ul v-if="(scopedVillage.specialties || []).length">
+        <li v-for="(sp, i) in scopedVillage.specialties" :key="i">
+          <b>{{ sp.name || sp }}</b><span v-if="sp.icon" class="r-type">{{ sp.icon }}</span>
+          <p v-if="sp.description">{{ sp.description }}</p>
         </li>
       </ul>
       <p v-else class="empty">该村资源待实地采集补充。</p>
@@ -48,20 +48,35 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
-import villages from '@/data/villages.json'
+import { fetchAllVillages } from '@/api/villages.js'
+
+const villages = ref([])
+const loading = ref(true)
+
+onMounted(async () => {
+  try {
+    villages.value = await fetchAllVillages()
+  } catch (e) {
+    console.error('加载村庄数据失败:', e)
+  } finally {
+    loading.value = false
+  }
+})
 
 const route = useRoute()
 const scopedVillage = computed(() =>
-  route.query.village ? villages.find((v) => v.id === route.query.village) || null : null
+  route.query.village ? villages.value.find((v) => v.id === route.query.village) || null : null
 )
 
-const types = ['全部', ...new Set(villages.map((v) => v.type))]
+const types = computed(() => ['全部', ...new Set(villages.value.map((v) => v.certLabel || (v.honors && v.honors[0]) || '其他'))])
 const activeType = ref('全部')
 const filtered = computed(() => {
   if (scopedVillage.value) return [scopedVillage.value]
-  return activeType.value === '全部' ? villages : villages.filter((v) => v.type === activeType.value)
+  const label = activeType.value
+  if (label === '全部') return villages.value
+  return villages.value.filter((v) => (v.certLabel || (v.honors && v.honors[0]) || '其他') === label)
 })
 </script>
 

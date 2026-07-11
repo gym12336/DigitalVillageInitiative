@@ -44,7 +44,7 @@ function apiError(status, message) {
  * @param {string} path - 以 /api 开头的路径
  * @param {object} [opts] - { method, body }
  */
-async function request(path, { method = 'GET', body } = {}) {
+export async function request(path, { method = 'GET', body } = {}) {
   const headers = {}
   const token = getToken()
   if (token) headers.Authorization = `Bearer ${token}`

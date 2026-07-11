@@ -150,13 +150,15 @@ import MapDashboardStats from '@/components/MapDashboardStats.vue'
 import VillageInfoCard from '@/components/VillageInfoCard.vue'
 import CountUp from '@/components/CountUp.vue'
 import { modules } from '@/modules.config.js'
-import villages from '@/data/villages.json'
+import { fetchAllVillages } from '@/api/villages.js'
 import headlines from '@/data/headlines.json'
 
 const router = useRouter()
+const villages = ref([])
+const loading = ref(true)
 const keyword = ref('')
 const selectedId = ref('')
-const selectedVillage = computed(() => villages.find((v) => v.id === selectedId.value) || null)
+const selectedVillage = computed(() => villages.value.find((v) => v.id === selectedId.value) || null)
 function onSelect(id) { selectedId.value = id }
 function doSearch() {
   router.push({ path: '/villages', query: keyword.value ? { q: keyword.value } : {} })
@@ -182,7 +184,14 @@ const tickerItems = computed(() =>
 )
 const tickerPaused = ref(false)
 
-onMounted(() => {
+onMounted(async () => {
+  try {
+    villages.value = await fetchAllVillages()
+  } catch (e) {
+    console.error('加载村庄数据失败:', e)
+  } finally {
+    loading.value = false
+  }
   slideTimer = setInterval(() => {
     currentSlide.value = (currentSlide.value + 1) % heroImages.length
   }, 5000)
@@ -191,12 +200,12 @@ onBeforeUnmount(() => {
   if (slideTimer) clearInterval(slideTimer)
 })
 
-const stats = [
-  { label: '已入驻乡村', value: 156, suffix: '+' },
+const stats = computed(() => [
+  { label: '已入驻乡村', value: villages.value.length, suffix: '+' },
   { label: '存档实践成果', value: 423, suffix: '+' },
   { label: '已发布需求', value: 89, suffix: '+' },
   { label: '已对接团队', value: 267, suffix: '+' },
-]
+])
 </script>
 
 <style scoped>

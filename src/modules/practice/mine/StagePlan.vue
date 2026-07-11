@@ -261,7 +261,8 @@ function clonePhase(ph) {
 
 async function onSearch() {
   const idea = ideaInput.value.trim()
-  cards.value = retrieve(idea, retrievalSources, {
+  const sources = await getRetrievalSources()
+  cards.value = retrieve(idea, sources, {
     topic: props.dossier.plan?.topic,
     village: props.dossier.village,
   })

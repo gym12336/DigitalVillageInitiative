@@ -36,7 +36,7 @@ export const modules = [
   {
     id: 'goods', name: '乡村好物', icon: '🛒', path: '/goods', enabled: true, desc: '每件好物背后都有一个村庄',
     hook: '农副产品、手工艺、非遗与文创，以消费帮扶助力乡村振兴。',
-    metric: '48 件好物',
+    metric: '8 件演示好物',
   },
   {
     id: 'about', name: '关于我们', icon: '🤝', path: '/about', enabled: true, desc: '青年与乡村的桥梁',

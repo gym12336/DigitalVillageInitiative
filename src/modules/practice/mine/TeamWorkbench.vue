@@ -29,7 +29,9 @@
       <template v-if="!openedId">
         <div class="list-bar">
           <span class="list-count">共 {{ dossiers.length }} 份实践</span>
-          <button class="btn primary" @click="onNew">+ 新建实践</button>
+          <div class="list-bar-actions">
+            <button class="btn primary" @click="onNew">+ 新建实践</button>
+          </div>
         </div>
 
         <div v-if="!dossiers.length" class="onboard">
@@ -236,7 +238,6 @@ function backToTeams() {
 function onNew() {
   router.push(`/practice/mine/team/${teamId.value}/new`)
 }
-
 async function onRemove(d) {
   if (!window.confirm(`确认删除实践「${d.title}」？此操作不可撤销。`)) return
   try {
@@ -310,6 +311,7 @@ async function copyCode(code) {
 .members-panel { margin-bottom: 1.6rem; }
 
 .list-bar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1.4rem; }
+.list-bar-actions { display: flex; gap: .6rem; }
 .list-count { font-size: .9rem; color: var(--color-text-light); }
 
 .onboard { text-align: center; padding: 3.5rem 1rem; background: var(--color-card); border: 1px dashed var(--color-border); border-radius: var(--radius); }

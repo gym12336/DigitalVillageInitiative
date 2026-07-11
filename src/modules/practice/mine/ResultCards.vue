@@ -11,6 +11,7 @@
               {{ m.deltaLabel }}
             </span>
           </div>
+          <p v-if="m.insight" class="cmp-insight">{{ m.insight }}</p>
           <div class="cmp-bars">
             <div class="bar-line">
               <span class="bar-tag">前</span>
@@ -31,9 +32,10 @@
     <section v-if="kpis.length" class="card">
       <h3 class="card-title">🎯 关键指标</h3>
       <div class="kpi-grid">
-        <div v-for="k in kpis" :key="k.name" class="kpi">
+        <div v-for="k in kpis" :key="k.name" class="kpi" :class="{ hi: k.isHighlight }">
           <span class="kpi-num">{{ k.value }}<i class="kpi-unit">{{ k.unit }}</i></span>
           <span class="kpi-label">{{ k.name }}</span>
+          <span v-if="k.insight" class="kpi-insight">{{ k.insight }}</span>
         </div>
       </div>
     </section>
@@ -46,8 +48,9 @@
           <span class="tl-dot" />
           <div class="tl-body">
             <p class="tl-name">{{ t.name }}</p>
-            <p v-if="t.note" class="tl-note">{{ t.note }}</p>
-            <span class="tl-type">{{ t.type || '材料' }}</span>
+            <p v-if="t.summary" class="tl-note">{{ t.summary }}</p>
+            <p v-else-if="t.note" class="tl-note">{{ t.note }}</p>
+            <span class="tl-type">{{ t.theme || t.type || '材料' }}</span>
           </div>
         </li>
       </ol>
@@ -60,7 +63,9 @@
         <article v-for="(p, i) in people" :key="i" class="person">
           <div class="person-avatar" :style="{ background: avatarColor(i) }">{{ initial(p.name) }}</div>
           <p class="person-name">{{ p.name }}<span v-if="p.role" class="person-role">· {{ p.role }}</span></p>
-          <p v-if="p.quote" class="person-quote">“{{ p.quote }}”</p>
+          <span v-if="p.highlight" class="person-tag">{{ p.highlight }}</span>
+          <p v-if="p.story" class="person-story">{{ p.story }}</p>
+          <p v-else-if="p.quote" class="person-quote">“{{ p.quote }}”</p>
         </article>
       </div>
     </section>
@@ -170,9 +175,14 @@ function initial(name) {
   display: flex; flex-direction: column; gap: .3rem; padding: 1rem .8rem; text-align: center;
   background: var(--color-bg); border-radius: 12px;
 }
+.kpi.hi { background: var(--color-accent); box-shadow: inset 0 0 0 1px var(--color-primary); }
 .kpi-num { font-size: 1.6rem; font-weight: 700; color: var(--color-primary-dark); }
 .kpi-unit { font-size: .85rem; font-weight: 500; font-style: normal; color: var(--color-text-light); margin-left: 2px; }
 .kpi-label { font-size: .8rem; color: var(--color-text-secondary); }
+.kpi-insight { font-size: .72rem; color: var(--color-primary-dark); line-height: 1.4; margin-top: .25rem; }
+.cmp-insight { margin: 0 0 .5rem; font-size: .78rem; color: var(--color-primary-dark); line-height: 1.5; }
+.person-tag { font-size: .68rem; color: #fff; background: var(--color-primary); padding: .1rem .5rem; border-radius: 50px; }
+.person-story { margin: .2rem 0 0; font-size: .78rem; color: var(--color-text-secondary); line-height: 1.5; text-align: left; }
 
 /* 时间线 */
 .timeline { list-style: none; margin: 0; padding: 0; }
