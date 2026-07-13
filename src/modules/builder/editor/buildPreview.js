@@ -150,14 +150,92 @@ function renderComponentHtml(c) {
     case 'flow-box':
       inner = renderFlowBoxPreview(c)
       break
+    case 'map-3d': {
+      const located = p.centerLng != null && p.centerLat != null
+      if (!located) {
+        inner = `<div style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#f2f6f8;border-radius:12px;color:#8ea3b2;font-size:13px;gap:6px;"><span style="font-size:2rem;opacity:0.5;">\u{1F3D4}️</span><span>请在属性面板输入村庄名</span></div>`
+      } else {
+        inner = `<div id="map3d-${c.id || ''}" style="width:100%;height:100%;border-radius:12px;overflow:hidden;background:#f2f6f8;"></div>
+<script type="module">
+(function() {
+  var container = document.getElementById('map3d-${c.id || ''}');
+  if (!container) return;
+
+  window.__map3dCount = (window.__map3dCount || 0) + 1;
+  if (window.__map3dCount > 4) {
+    container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#8ea3b2;font-size:13px;">实例超限，单页最多 4 个 3D 地图</div>';
+    return;
+  }
+
+  var opts = {
+    lng: ${p.centerLng},
+    lat: ${p.centerLat},
+    terrainExaggeration: ${p.terrainExaggeration || 1.5},
+    showRangeCircle: ${p.showRangeCircle !== false},
+    rangeRadius: ${p.rangeRadius || 500},
+    defaultHeight: ${p.defaultHeight || 1200},
+    defaultPitch: ${p.defaultPitch || 60},
+    minZoomHeight: ${p.minZoomHeight || 500},
+    maxZoomHeight: ${p.maxZoomHeight || 5000},
+    tiandituKey: window.__tiandituKey || '',
+    ionToken: window.__ionToken || '',
+    onError: function(err) {
+      if (err.type === 'no-tianditu-key' || err.type === 'bad-tianditu-key') {
+        container.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:#8ea3b2;font-size:13px;gap:8px;"><span>天地图密钥未配置，请联系管理员</span></div>';
+      } else if (err.type === 'no-webgl') {
+        container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#8ea3b2;font-size:13px;">浏览器不支持 3D 渲染</div>';
+      }
+    }
+  };
+
+  import('__CESIUM_SCENE_URL__')
+    .then(function(m) {
+      return m.createScene(container, opts);
+    })
+    .then(function(ctrl) {
+      if (ctrl && ctrl.setLabel) {
+        ctrl.setLabel('${esc(p.villageName || '')}');
+      }
+    })
+    .catch(function(e) {
+      console.error('[map3d preview] 初始化失败:', e);
+      container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#8ea3b2;font-size:13px;">3D 渲染初始化失败</div>';
+    });
+})();
+</script>`
+      }
+      break
+    }
   }
   const overflow = (c.type === 'timeline') ? 'overflow:visible;' : 'overflow:hidden;'
   return `<div style="position:absolute;left:${c.x}px;top:${c.y}px;width:${c.width}px;height:${c.height}px;${overflow}">${inner}</div>`
 }
 
 export function buildPreviewHtml(state, baseUrl) {
-  const componentsHtml = state.components.map(c => renderComponentHtml(c)).join('\n')
+  const hasMap3d = state.components.some(c => c.type === 'map-3d' && c.props.centerLng != null)
+
+  const isDev = import.meta.env.DEV
+  const cesiumSceneUrl = isDev
+    ? '/src/modules/builder/editor/map3d/cesiumScene.js'
+    : '/assets/cesiumScene.js'
+
+  const componentsHtml = state.components
+    .map(c => renderComponentHtml(c))
+    .join('\n')
+    .replace(/__CESIUM_SCENE_URL__/g, cesiumSceneUrl)
+
   const baseTag = baseUrl ? `<base href="${esc(baseUrl)}">` : ''
+
+  const map3dHead = hasMap3d ? `
+<script type="module">
+  if (window.opener && window.opener.__map3dKeys) {
+    window.__tiandituKey = window.opener.__map3dKeys.tiandituKey || '';
+    window.__ionToken = window.opener.__map3dKeys.ionToken || '';
+  }
+  window.__map3dCount = 0;
+</script>
+<link rel="stylesheet" href="https://cesium.com/downloads/cesiumjs/releases/1.118/Build/Cesium/Widgets/widgets.css">
+` : ''
 
   return `<!DOCTYPE html>
 <html lang="zh-CN">
@@ -166,6 +244,7 @@ export function buildPreviewHtml(state, baseUrl) {
 ${baseTag}
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>成果预览</title>
+${map3dHead}
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body {
@@ -188,6 +267,14 @@ ${componentsHtml}
 }
 
 export function buildAndOpen(state) {
+  // 将密钥暴露给预览子窗口（通过 opener 访问）
+  import('./map3d/mapConfig.js').then(m => {
+    window.__map3dKeys = {
+      tiandituKey: m.getTiandituKey(),
+      ionToken: m.getIonToken(),
+    }
+  })
+
   const html = buildPreviewHtml(state, window.location.origin + '/')
   const blob = new Blob([html], { type: 'text/html;charset=utf-8' })
   const url = URL.createObjectURL(blob)
