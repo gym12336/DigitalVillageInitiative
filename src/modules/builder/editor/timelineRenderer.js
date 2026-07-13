@@ -149,6 +149,7 @@ export function renderTimelineMarkup(component) {
       .tl-popup-${uid} { opacity: 0; transform: translateY(4px); transition: opacity 0.2s ease, transform 0.2s ease; pointer-events: none; }
       .tl-card-${uid}:hover ~ .tl-popup-${uid} { opacity: 1; transform: translateY(0); }
       .tl-card-${uid}:hover { border-color: rgba(44,125,160,0.18) !important; background: rgba(44,125,160,0.06) !important; }
+      .tl-hover-${uid}:has(.tl-card-${uid}:hover) { z-index: 100 !important; }
     </style>
     <div style="width:100%;height:100%;display:flex;flex-direction:column;padding:16px 20px;box-sizing:border-box;overflow:visible;background:#fafdfe;border-radius:14px;border:1px solid rgba(44,125,160,0.08);">
       ${titleHtml}
