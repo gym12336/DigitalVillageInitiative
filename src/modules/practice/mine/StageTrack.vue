@@ -21,8 +21,6 @@
           @extracted="onExtracted"
           @change="save"
         />
-        <!-- 手动登记材料（补料） -->
-        <TrackMedia :materials="state.materials" :dossier-id="dossier.id" @change="save" />
       </div>
 
       <!-- 右栏：采集成果（Tab 切换） -->
@@ -64,10 +62,10 @@
           />
         </section>
 
-        <!-- 材料 Tab：按类型分组 -->
+        <!-- 材料 Tab：可编辑材料列表 + 待审校 -->
         <section v-show="activeTab === 'materials'" class="tab-panel">
-          <p class="block-desc">上传的材料按类型归类展示，点「查看」可站内预览。</p>
-          <MaterialGroups :materials="state.materials" @preview="preview = $event" />
+          <p class="block-desc">上传或手动登记的材料都在这里，可改名称/备注、补传文件、AI 识图、查看预览。</p>
+          <TrackMedia :materials="state.materials" :dossier-id="dossier.id" @change="save" />
           <DraftReview
             kind="materialHints"
             :items="draft.materialHints"
@@ -123,8 +121,6 @@
       <button class="btn primary" @click="save">保存采集数据</button>
       <span v-if="justSaved" class="saved-hint">已保存 ✓</span>
     </div>
-
-    <MediaPreview :item="preview" @close="preview = null" />
   </div>
 </template>
 
@@ -133,8 +129,6 @@ import { reactive, ref, computed, watch } from 'vue'
 import TrackProgress from './TrackProgress.vue'
 import TrackMedia from './TrackMedia.vue'
 import TrackExtract from './TrackExtract.vue'
-import MaterialGroups from './MaterialGroups.vue'
-import MediaPreview from './MediaPreview.vue'
 import UploadPanel from './UploadPanel.vue'
 import DraftReview from './DraftReview.vue'
 
@@ -143,9 +137,8 @@ const props = defineProps({
 })
 const emit = defineEmits(['update'])
 
-// 右栏 Tab 状态 + 站内预览目标。
+// 右栏 Tab 状态。
 const activeTab = ref('metrics')
-const preview = ref(null)
 
 // —— 待审校区（提升到此，供右栏三 Tab 各自渲染）——
 const draft = reactive({ people: [], metrics: [], materialHints: [] })
@@ -194,7 +187,9 @@ function adoptDraft(kind, i) {
     draft.metrics.splice(i, 1)
   } else {
     const h = draft.materialHints[i]
-    state.materials.push({ type: '其他', name: h.name, note: h.note, summary: h.summary || '', theme: h.theme || '' })
+    // source:'auto' 标记「AI 抽取采纳而来」——这类材料本就无需上传文件，
+    // TrackMedia 据此隐藏「选文件」按钮、显示 AI 图标。
+    state.materials.push({ type: '其他', name: h.name, note: h.note, summary: h.summary || '', theme: h.theme || '', source: 'auto' })
     draft.materialHints.splice(i, 1)
   }
   save()
@@ -305,12 +300,21 @@ function save() {
 
 <style scoped>
 .stage { display: flex; flex-direction: column; gap: 1.6rem; }
+/* 实践中工作台内容多，撑破外层 1080px 容器限宽，占近全屏（两侧留边距）。
+   仅本阶段生效；用负 margin 而非 transform，避免破坏 MediaPreview 的 fixed 定位。 */
+@media (min-width: 1140px) {
+  .stage {
+    width: calc(100vw - 6rem);
+    max-width: 1600px;
+    margin-left: calc(50% - min(50vw - 3rem, 800px));
+  }
+}
 .block-title { font-size: 1.15rem; color: var(--color-primary-dark); margin: 0 0 .4rem; }
 .block-desc { margin: 0 0 .9rem; font-size: .88rem; color: var(--color-text-secondary); }
 .hint { font-size: .85rem; color: var(--color-text-light); margin: 0 0 .6rem; }
 
-/* —— 左右分栏工作台 —— */
-.workbench { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1.4rem; align-items: start; }
+/* —— 左右分栏工作台：左窄（操作区够用即可）、右宽（材料列表需要空间）—— */
+.workbench { display: grid; grid-template-columns: minmax(320px, 440px) minmax(0, 1fr); gap: 1.4rem; align-items: start; }
 .col-left { display: flex; flex-direction: column; gap: 1.4rem; min-width: 0; }
 .col-right {
   min-width: 0; padding: 1.2rem 1.3rem; background: var(--color-card);
@@ -327,7 +331,7 @@ function save() {
 .tab:hover { color: var(--color-primary); }
 .tab.active { color: var(--color-primary-dark); border-bottom-color: var(--color-primary); }
 .tab-n { font-size: .72rem; color: var(--color-text-light); background: var(--color-bg); padding: 0 .4rem; border-radius: 50px; margin-left: .2rem; }
-.tab-panel { min-height: 120px; }
+.tab-panel { min-height: 120px; max-height: 68vh; overflow-y: auto; padding-right: .3rem; }
 
 /* 折叠任务 */
 .task-fold { border: 1px solid var(--color-border); border-radius: var(--radius); background: var(--color-card); padding: .4rem .9rem; }
