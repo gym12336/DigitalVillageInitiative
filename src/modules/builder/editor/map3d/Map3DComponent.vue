@@ -6,16 +6,15 @@
       <span class="m3d-placeholder-text">请在属性面板输入村庄名</span>
     </div>
 
-    <!-- 编辑态：已定位 → 静态图缩略图 -->
-    <img
+    <!-- 编辑态：已定位 → WMTS 瓦片拼贴缩略图 -->
+    <canvas
       v-else-if="mode === 'edit' && isLocated && !imageFailed"
-      :src="staticImageUrl"
-      :style="{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '12px' }"
-      @error="onImageError"
-      :alt="comp.props.villageName || '村庄地图'"
-    />
+      ref="thumbCanvas"
+      class="m3d-thumb-canvas"
+      @pointerdown="onPanStart"
+    ></canvas>
 
-    <!-- 编辑态：静态图加载失败 → 灰色占位 + 村名 -->
+    <!-- 编辑态：瓦片加载失败 → 灰色占位 + 村名 -->
     <div v-else-if="mode === 'edit' && imageFailed" class="m3d-placeholder">
       <span class="m3d-placeholder-icon">🖼️</span>
       <span class="m3d-placeholder-text">缩略图暂不可用 · {{ comp.props.villageName }}</span>
@@ -39,8 +38,10 @@
 
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
-import { buildStaticImageUrl } from './tianditu.js'
+import { buildMosaicTiles } from './tianditu.js'
 import { getTiandituKey, getIonToken } from './mapConfig.js'
+import { pixelsToLngLat } from './panMath.js'
+import { state as editorState, pushHistory } from '../stageEditor.js'
 
 const props = defineProps({
   component: { type: Object, required: true },
@@ -52,6 +53,7 @@ const isLocated = computed(() => comp.value.props.centerLng != null && comp.valu
 
 const rootRef = ref(null)
 const cesiumContainer = ref(null)
+const thumbCanvas = ref(null)
 
 const imageFailed = ref(false)
 const errorState = ref(null)       // null | 'no-tianditu-key' | 'bad-tianditu-key' | 'no-webgl'
@@ -60,30 +62,103 @@ const terrainUnavailable = ref(false)
 const terrainReason = ref('')
 
 let sceneController = null
+let drawToken = 0
+let panState = null
 
-// 静态图 URL（编辑态）
-const staticImageUrl = computed(() => {
-  if (!isLocated.value) return ''
-  const { centerLng, centerLat } = comp.value.props
-  const w = comp.value.width || 640
-  const h = comp.value.height || 420
-  return buildStaticImageUrl(centerLng, centerLat, 14, Math.round(w), Math.round(h))
-})
-
-function onImageError() {
-  imageFailed.value = true
+function onPanStart(e) {
+  if (e.button !== 0) return
+  if (!thumbCanvas.value) return
+  const p = comp.value.props
+  if (p.centerLng == null || p.centerLat == null) return
+  panState = {
+    startClientX: e.clientX,
+    startClientY: e.clientY,
+    startLng: p.centerLng,
+    startLat: p.centerLat,
+    startZoom: p.thumbnailZoom ?? 17,
+    pointerId: e.pointerId,
+  }
+  try { thumbCanvas.value.setPointerCapture(e.pointerId) } catch (_) {}
+  e.stopPropagation()
 }
 
-// 属性变化时重置静态图错误状态
+function loadTileImage(url) {
+  return new Promise((resolve) => {
+    const img = new Image()
+    img.crossOrigin = 'anonymous'
+    img.onload = () => resolve(img)
+    img.onerror = () => resolve(null)
+    img.src = url
+  })
+}
+
+async function renderThumbnail() {
+  if (props.mode !== 'edit') return
+  if (!isLocated.value) return
+  const canvas = thumbCanvas.value
+  if (!canvas) return
+
+  const dpr = window.devicePixelRatio || 1
+  const cssW = canvas.clientWidth || 640
+  const cssH = canvas.clientHeight || 420
+  const w = Math.round(cssW)
+  const h = Math.round(cssH)
+  canvas.width = Math.round(cssW * dpr)
+  canvas.height = Math.round(cssH * dpr)
+
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+  ctx.clearRect(0, 0, w, h)
+
+  const { centerLng, centerLat, thumbnailZoom } = comp.value.props
+  const tiles = buildMosaicTiles({
+    lng: centerLng,
+    lat: centerLat,
+    zoom: thumbnailZoom ?? 17,
+    width: w,
+    height: h,
+  })
+
+  const token = ++drawToken
+  const loaded = await Promise.all(tiles.map(t => loadTileImage(t.url).then(img => ({ ...t, img }))))
+  if (token !== drawToken) return
+
+  let anySuccess = false
+  for (const t of loaded) {
+    if (!t.img) continue
+    anySuccess = true
+    ctx.drawImage(t.img, t.drawX, t.drawY)
+  }
+  imageFailed.value = !anySuccess
+}
+
 watch(
-  () => [comp.value.props.centerLng, comp.value.props.centerLat],
-  () => { imageFailed.value = false }
+  () => [
+    comp.value.props.centerLng,
+    comp.value.props.centerLat,
+    comp.value.props.thumbnailZoom,
+    comp.value.width,
+    comp.value.height,
+  ],
+  () => {
+    imageFailed.value = false
+    renderThumbnail()
+  },
+  // 关键：canvas 由 v-else-if 控制显示，第一次 isLocated 从 false → true 时，
+  // 默认 flush: 'pre' 会在 DOM 更新前触发 watch，此时 thumbCanvas.value 还是 null，
+  // renderThumbnail 会直接早退。用 'post' 让 watch 在 DOM 挂载后再跑。
+  { flush: 'post' }
 )
 
 // 编辑态：watch 属性变化仅刷新静态图 URL（computed 自动处理）
 
-// 预览态：初始化 Cesium 场景
 onMounted(async () => {
+  if (props.mode === 'edit') {
+    // canvas 需要在 DOM 挂载后一帧再拿到 clientWidth/Height
+    requestAnimationFrame(() => renderThumbnail())
+    return
+  }
   if (props.mode !== 'preview') return
   if (!isLocated.value) return
   await initCesiumScene()
@@ -244,6 +319,13 @@ const rootStyle = computed(() => ({
 .m3d-cesium-container {
   width: 100%;
   height: 100%;
+}
+
+.m3d-thumb-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  border-radius: 12px;
 }
 
 .m3d-error-overlay {
