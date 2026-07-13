@@ -11,6 +11,7 @@
       v-else-if="mode === 'edit' && isLocated && !imageFailed"
       ref="thumbCanvas"
       class="m3d-thumb-canvas"
+      :class="{ 'm3d-thumb-canvas--panning': isPanning }"
       @pointerdown="onPanStart"
       @pointermove="onPanMove"
       @pointerup="onPanEnd"
@@ -66,6 +67,7 @@ const terrainReason = ref('')
 
 let sceneController = null
 let drawToken = 0
+const isPanning = ref(false)
 let panState = null
 
 function onPanStart(e) {
@@ -82,6 +84,7 @@ function onPanStart(e) {
     pointerId: e.pointerId,
   }
   try { thumbCanvas.value.setPointerCapture(e.pointerId) } catch (_) {}
+  isPanning.value = true
   e.stopPropagation()
 }
 
@@ -100,6 +103,7 @@ function cancelPan() {
     try { thumbCanvas.value.releasePointerCapture(panState.pointerId) } catch (_) {}
   }
   panState = null
+  isPanning.value = false
 }
 
 function onPanEnd(e) {
@@ -378,6 +382,12 @@ const rootStyle = computed(() => ({
   height: 100%;
   display: block;
   border-radius: 12px;
+  cursor: grab;
+  touch-action: none;
+}
+
+.m3d-thumb-canvas--panning {
+  cursor: grabbing;
 }
 
 .m3d-error-overlay {
