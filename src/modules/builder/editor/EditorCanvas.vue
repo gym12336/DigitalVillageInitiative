@@ -261,7 +261,8 @@ function renderComponentMarkup(c) {
       break
   }
 
-  return `<div class="ec-component${selClass}" data-component-id="${c.id}" style="position:absolute;left:${c.x}px;top:${c.y}px;width:${c.width}px;height:${c.height}px;overflow:hidden;">${inner}${handles}</div>`
+  const overflow = (c.type === 'timeline') ? 'overflow:visible;' : 'overflow:hidden;'
+  return `<div class="ec-component${selClass}" data-component-id="${c.id}" style="position:absolute;left:${c.x}px;top:${c.y}px;width:${c.width}px;height:${c.height}px;${overflow}">${inner}${handles}</div>`
 }
 
 const stageHtml = computed(() => {

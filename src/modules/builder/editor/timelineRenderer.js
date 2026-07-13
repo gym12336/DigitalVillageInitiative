@@ -150,7 +150,7 @@ export function renderTimelineMarkup(component) {
       .tl-card-${uid}:hover ~ .tl-popup-${uid} { opacity: 1; transform: translateY(0); }
       .tl-card-${uid}:hover { border-color: rgba(44,125,160,0.18) !important; background: rgba(44,125,160,0.06) !important; }
     </style>
-    <div style="width:100%;height:100%;display:flex;flex-direction:column;padding:16px 20px;box-sizing:border-box;overflow:hidden;background:#fafdfe;border-radius:14px;border:1px solid rgba(44,125,160,0.08);">
+    <div style="width:100%;height:100%;display:flex;flex-direction:column;padding:16px 20px;box-sizing:border-box;overflow:visible;background:#fafdfe;border-radius:14px;border:1px solid rgba(44,125,160,0.08);">
       ${titleHtml}
       <div style="flex:1;position:relative;min-height:0;">
         ${lineHtml}

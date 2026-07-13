@@ -151,7 +151,8 @@ function renderComponentHtml(c) {
       inner = renderFlowBoxPreview(c)
       break
   }
-  return `<div style="position:absolute;left:${c.x}px;top:${c.y}px;width:${c.width}px;height:${c.height}px;overflow:hidden;">${inner}</div>`
+  const overflow = (c.type === 'timeline') ? 'overflow:visible;' : 'overflow:hidden;'
+  return `<div style="position:absolute;left:${c.x}px;top:${c.y}px;width:${c.width}px;height:${c.height}px;${overflow}">${inner}</div>`
 }
 
 export function buildPreviewHtml(state, baseUrl) {
