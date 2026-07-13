@@ -42,8 +42,6 @@ export const PROVINCE_MAP = [
 
 const SEARCH_TIMEOUT = 5000
 const TIANDITU_SEARCH_URL = 'https://api.tianditu.gov.cn/v2/search'
-const TIANDITU_IMG_URL = 'https://t{s}.tianditu.gov.cn/img_w/wmts'
-const TIANDITU_CIA_URL = 'https://t{s}.tianditu.gov.cn/cia_w/wmts'
 
 /**
  * 搜索村庄
@@ -139,25 +137,3 @@ export function normalizeRegion(address) {
   return parts.length > 0 ? parts.join(' · ') : address
 }
 
-/**
- * 构建天地图影像图层（仅 cesiumScene.js 调用，动态 import Cesium）
- */
-export function buildImageryProvider(tk) {
-  // 动态 import Cesium —— 调用方保证 Cesium 已加载
-  return new Cesium.UrlTemplateImageryProvider({
-    url: `${TIANDITU_IMG_URL}?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=img&STYLE=default&TILEMATRIXSET=w&FORMAT=tiles&TILEMATRIX={TileMatrix}&TILEROW={TileRow}&TILECOL={TileCol}&tk=${tk}`,
-    maximumLevel: 18,
-    subdomains: ['0', '1', '2', '3', '4', '5', '6', '7'],
-  })
-}
-
-/**
- * 构建天地图注记图层
- */
-export function buildLabelProvider(tk) {
-  return new Cesium.UrlTemplateImageryProvider({
-    url: `${TIANDITU_CIA_URL}?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=cia&STYLE=default&TILEMATRIXSET=w&FORMAT=tiles&TILEMATRIX={TileMatrix}&TILEROW={TileRow}&TILECOL={TileCol}&tk=${tk}`,
-    maximumLevel: 18,
-    subdomains: ['0', '1', '2', '3', '4', '5', '6', '7'],
-  })
-}

@@ -5,6 +5,16 @@ import { renderTimelineMarkup } from './timelineRenderer.js'
 import { renderDatatableMarkup } from './datatableRenderer.js'
 import { calcLayoutSlots } from './layoutBoxEngine.js'
 
+// 模块加载时即开始异步加载地图密钥配置，避免 buildAndOpen 中的竞态条件
+const keyPromise = import('./map3d/mapConfig.js').then(m => {
+  window.__map3dKeys = {
+    tiandituKey: m.getTiandituKey(),
+    ionToken: m.getIonToken(),
+  }
+}).catch(err => {
+  console.error('[buildPreview] 无法加载地图密钥配置:', err)
+})
+
 function esc(s) {
   return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 }
@@ -268,14 +278,6 @@ ${componentsHtml}
 }
 
 export function buildAndOpen(state) {
-  // 将密钥暴露给预览子窗口（通过 opener 访问）
-  import('./map3d/mapConfig.js').then(m => {
-    window.__map3dKeys = {
-      tiandituKey: m.getTiandituKey(),
-      ionToken: m.getIonToken(),
-    }
-  })
-
   const html = buildPreviewHtml(state, window.location.origin + '/')
   const blob = new Blob([html], { type: 'text/html;charset=utf-8' })
   const url = URL.createObjectURL(blob)

@@ -17,6 +17,5 @@ if (existsSync(cesiumBase)) {
     }
   }
 } else {
-  console.error('[postinstall] Cesium build directory not found:', cesiumBase)
-  process.exit(1)
+  console.warn('[postinstall] Cesium build directory not found, skipping asset copy')
 }
