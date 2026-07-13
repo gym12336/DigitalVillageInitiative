@@ -13,6 +13,7 @@
         <button class="tb-btn" @click="addToCanvas('timeline')">⏱ 时间轴</button>
         <button class="tb-btn" @click="addToCanvas('datatable')">📋 数据表</button>
         <button class="tb-btn" @click="addToCanvas('layout-box')">📦 多组件框</button>
+        <button class="tb-btn" @click="addToCanvas('flow-box')">🎠 流动框</button>
       </div>
       <div class="ec-tb-center">
         <button class="tb-btn" @click="undo" :disabled="state.historyIndex <= 0" title="撤销">↩</button>
@@ -178,6 +179,47 @@ function renderLayoutBoxMarkup(comp) {
   return `<div style="position:relative;width:100%;height:100%;border:1px solid #e8edf2;border-radius:16px;background:#fafdfe;overflow:hidden;" data-layout-box>${slotHtml}${dividerHtml}</div>`
 }
 
+function renderFlowBoxMarkup(comp) {
+  const p = comp.props
+  const children = p.children || []
+  const activeIndex = p.activeIndex || 0
+  const w = comp.width
+  const h = comp.height
+
+  // Render current child
+  let childHtml = ''
+  if (children.length > 0 && children[activeIndex]) {
+    const child = children[activeIndex]
+    const childComp = {
+      id: child.id,
+      type: child.type,
+      x: 4,
+      y: 4,
+      width: w - 8,
+      height: h - 8,
+      props: child.props,
+    }
+    childHtml = renderComponentMarkup(childComp)
+  } else {
+    childHtml = `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#8ea3b2;font-size:14px;border:2px dashed #d0dbe3;border-radius:12px;">拖入组件开始轮播</div>`
+  }
+
+  // Render dot indicators (only if more than 1 child)
+  let dotsHtml = ''
+  if (children.length > 1) {
+    const dotSize = 8
+    const dotGap = 8
+    let dotsMarkup = ''
+    for (let i = 0; i < children.length; i++) {
+      const isActive = i === activeIndex
+      dotsMarkup += `<span data-flow-dot="${i}" style="display:inline-block;width:${dotSize}px;height:${dotSize}px;border-radius:50%;margin:0 ${dotGap / 2}px;cursor:pointer;background:${isActive ? '#2c7da0' : 'rgba(255,255,255,0.5)'};border:1.5px solid ${isActive ? '#2c7da0' : 'rgba(255,255,255,0.5)'};transition:all 0.2s;" onmouseover="if(!this.classList.contains('active')){this.style.background='rgba(255,255,255,0.8)';}" onmouseout="if(!this.classList.contains('active')){this.style.background='rgba(255,255,255,0.5)';}"></span>`
+    }
+    dotsHtml = `<div style="position:absolute;bottom:12px;left:50%;transform:translateX(-50%);display:flex;align-items:center;padding:4px 12px;background:rgba(0,0,0,0.25);border-radius:999px;z-index:5;">${dotsMarkup}</div>`
+  }
+
+  return `<div style="position:relative;width:100%;height:100%;border:1px solid #e8edf2;border-radius:16px;background:#fafdfe;overflow:hidden;" data-flow-box>${childHtml}${dotsHtml}</div>`
+}
+
 function renderComponentMarkup(c) {
   const selected = state.selectedId === c.id
   const selClass = selected ? ' ec-sel' : ''
@@ -213,6 +255,9 @@ function renderComponentMarkup(c) {
       break
     case 'layout-box':
       inner = renderLayoutBoxMarkup(c)
+      break
+    case 'flow-box':
+      inner = renderFlowBoxMarkup(c)
       break
   }
 
@@ -331,6 +376,27 @@ async function onDrop(e) {
         }
       }
     }
+    // Check if dropping into a flow-box
+    const flowBoxEl = dropEl ? dropEl.closest('[data-flow-box]') : null
+    if (flowBoxEl) {
+      const compEl = flowBoxEl.closest('[data-component-id]')
+      if (compEl) {
+        const containerId = Number(compEl.dataset.componentId)
+        const container = state.components.find(c => c.id === containerId)
+        if (container && container.type === 'flow-box') {
+          const child = createComponent(info.type, 0, 0, info.chartType)
+          child.id = state.nextId++
+          child.x = 0
+          child.y = 0
+          child.width = 0
+          child.height = 0
+          container.props.children.push(child)
+          container.props.activeIndex = container.props.children.length - 1
+          pushHistory()
+          return
+        }
+      }
+    }
     addComponentAt(info.type, Math.round(x), Math.round(y), info.chartType)
   }
 }
@@ -378,12 +444,13 @@ function onStageMouseDown(e) {
   const target = findTarget(e)
   if (!target) return
 
-  // Clear child selection on any layout-box when clicking elsewhere
+  // Clear child selection on any container when clicking elsewhere
   const clearEl = document.elementFromPoint(e.clientX, e.clientY)
   const insideLayoutBox = clearEl ? clearEl.closest('[data-layout-box]') : null
-  if (!insideLayoutBox) {
+  const insideFlowBox = clearEl ? clearEl.closest('[data-flow-box]') : null
+  if (!insideLayoutBox && !insideFlowBox) {
     for (const comp of state.components) {
-      if (comp.type === 'layout-box' && comp._selectedChildIndex !== undefined) {
+      if ((comp.type === 'layout-box' || comp.type === 'flow-box') && comp._selectedChildIndex !== undefined) {
         comp._selectedChildIndex = undefined
       }
     }
@@ -432,6 +499,27 @@ function onStageMouseDown(e) {
           }
           // Clicked on container padding/whitespace — fall through to drag logic
           state.selectedId = containerId
+        }
+      }
+    }
+    // Check if click is inside a flow-box
+    const flowBoxParent = el ? el.closest('[data-flow-box]') : null
+    if (flowBoxParent) {
+      const fbCompEl = flowBoxParent.closest('[data-component-id]')
+      if (fbCompEl) {
+        const fbId = Number(fbCompEl.dataset.componentId)
+        const fb = state.components.find(c => c.id === fbId)
+        if (fb && fb.type === 'flow-box') {
+          // Check if clicking on a dot indicator
+          const dotEl = el.closest('[data-flow-dot]')
+          if (dotEl) {
+            fb.props.activeIndex = parseInt(dotEl.dataset.flowDot, 10)
+            state.selectedId = fbId
+            ctxMenu.value.show = false
+            return
+          }
+          // Clicked on child area — select and fall through to drag
+          state.selectedId = fbId
         }
       }
     }
@@ -636,6 +724,27 @@ function onWheel(e) {
   if (e.ctrlKey) {
     const delta = e.deltaY > 0 ? -0.25 : 0.25
     setZoom(state.zoom + delta)
+    return
+  }
+  // Check if wheel is over a flow-box for carousel navigation
+  const target = document.elementFromPoint(e.clientX, e.clientY)
+  const flowBoxEl = target ? target.closest('[data-flow-box]') : null
+  if (flowBoxEl) {
+    const compEl = flowBoxEl.closest('[data-component-id]')
+    if (compEl) {
+      const fbId = Number(compEl.dataset.componentId)
+      const fb = state.components.find(c => c.id === fbId)
+      if (fb && fb.type === 'flow-box' && fb.props.children.length > 1) {
+        const len = fb.props.children.length
+        if (e.deltaY > 0) {
+          fb.props.activeIndex = (fb.props.activeIndex + 1) % len
+        } else {
+          fb.props.activeIndex = (fb.props.activeIndex - 1 + len) % len
+        }
+        e.preventDefault()
+        return
+      }
+    }
   }
 }
 
