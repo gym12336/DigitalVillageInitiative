@@ -391,7 +391,6 @@
             <button
               class="pp-slot-edit-btn"
               @click="comp._selectedChildIndex = i"
-              :disabled="i === (comp.props.activeIndex || 0)"
               style="margin-right:4px;"
             >编辑</button>
             <button
@@ -435,18 +434,18 @@
         <template v-else>
           <button class="pp-back-btn" @click="comp._selectedChildIndex = null">← 返回容器设置</button>
 
-          <div v-if="editingFlowChild" class="pp-child-editor">
-            <h4 class="pp-subtitle">{{ childTypeLabel(editingFlowChild) }} - 第 {{ comp._selectedChildIndex + 1 }} 项</h4>
+          <div v-if="editingChild" class="pp-child-editor">
+            <h4 class="pp-subtitle">{{ childTypeLabel(editingChild) }} - 第 {{ comp._selectedChildIndex + 1 }} 项</h4>
 
             <!-- Child chart props -->
-            <div v-if="editingFlowChild.type === 'chart'">
+            <div v-if="editingChild.type === 'chart'">
               <div class="pp-field">
                 <label>标题</label>
-                <input type="text" v-model="editingFlowChild.props.title" />
+                <input type="text" v-model="editingChild.props.title" />
               </div>
               <div class="pp-field">
                 <label>图表类型</label>
-                <select v-model="editingFlowChild.props.chartType">
+                <select v-model="editingChild.props.chartType">
                   <option value="bar">柱状图</option>
                   <option value="pie">饼图</option>
                   <option value="line">折线图</option>
@@ -459,47 +458,95 @@
               </div>
               <div class="pp-field">
                 <label>CSV 数据</label>
-                <textarea v-model="editingFlowChild.props.csvText" rows="6" style="font-family:monospace;font-size:12px;"></textarea>
+                <textarea v-model="editingChild.props.csvText" rows="6" style="font-family:monospace;font-size:12px;"></textarea>
               </div>
             </div>
 
             <!-- Child text props -->
-            <div v-if="editingFlowChild.type === 'text'">
+            <div v-if="editingChild.type === 'text'">
               <div class="pp-field">
                 <label>文本内容</label>
-                <textarea v-model="editingFlowChild.props.text" rows="3"></textarea>
+                <textarea v-model="editingChild.props.text" rows="3"></textarea>
               </div>
               <div class="pp-field">
                 <label>字号</label>
-                <input type="number" v-model.number="editingFlowChild.props.fontSize" min="8" max="200" />
+                <input type="number" v-model.number="editingChild.props.fontSize" min="8" max="200" />
               </div>
               <div class="pp-field">
                 <label>颜色</label>
-                <input type="color" v-model="editingFlowChild.props.color" />
+                <input type="color" v-model="editingChild.props.color" />
               </div>
             </div>
 
             <!-- Child image props -->
-            <div v-if="editingFlowChild.type === 'image'">
+            <div v-if="editingChild.type === 'image'">
               <div class="pp-field">
                 <label>图片 URL</label>
-                <input type="text" v-model="editingFlowChild.props.src" placeholder="https://..." />
+                <input type="text" v-model="editingChild.props.src" placeholder="https://..." />
               </div>
               <div class="pp-field">
                 <label>或从实践选取</label>
                 <PracticeImagePicker
                   :dossier-id="dossierId"
-                  v-model="editingFlowChild.props.src"
-                  @select="(m) => { if (!editingFlowChild.props.alt) editingFlowChild.props.alt = m.name.replace(/\.[^.]+$/, '') }"
+                  v-model="editingChild.props.src"
+                  @select="(m) => { if (!editingChild.props.alt) editingChild.props.alt = m.name.replace(/\.[^.]+$/, '') }"
                 />
               </div>
               <div class="pp-field">
                 <label>填充模式</label>
-                <select v-model="editingFlowChild.props.objectFit">
+                <select v-model="editingChild.props.objectFit">
                   <option value="cover">Cover 裁剪</option>
                   <option value="contain">Contain 完整</option>
                   <option value="fill">Fill 拉伸</option>
                 </select>
+              </div>
+            </div>
+
+            <!-- Child timeline props -->
+            <div v-if="editingChild.type === 'timeline'">
+              <div class="pp-field">
+                <label>标题</label>
+                <input type="text" v-model="editingChild.props.title" />
+              </div>
+              <h4 class="pp-subtitle">
+                事件列表
+                <button class="pp-add" @click="addTimelineEvent(editingChild)">+ 添加事件</button>
+              </h4>
+              <div v-for="(ev, i) in editingChild.props.events" :key="i" class="pp-timeline-row">
+                <div class="pp-timeline-fields">
+                  <input type="text" v-model="ev.date" placeholder="日期" class="pp-tl-date" />
+                  <input type="text" v-model="ev.title" placeholder="标题" class="pp-tl-title" />
+                </div>
+                <textarea v-model="ev.description" placeholder="描述" rows="2" class="pp-tl-desc"></textarea>
+                <button class="pp-sr-del" @click="removeTimelineEvent(editingChild, i)">×</button>
+              </div>
+            </div>
+
+            <!-- Child datatable props -->
+            <div v-if="editingChild.type === 'datatable'">
+              <div class="pp-field">
+                <label>标题</label>
+                <input type="text" v-model="editingChild.props.title" />
+              </div>
+              <h4 class="pp-subtitle">
+                列定义
+                <button class="pp-add" @click="addDatatableColumn(editingChild)">+ 添加列</button>
+              </h4>
+              <div class="pp-dt-columns">
+                <div v-for="(col, ci) in editingChild.props.columns" :key="'col'+ci" class="pp-dt-col-item">
+                  <input type="text" v-model="editingChild.props.columns[ci]" placeholder="列名" class="pp-dt-col-input" />
+                  <button v-if="editingChild.props.columns.length > 1" class="pp-sr-del" @click="removeDatatableColumn(editingChild, ci)">×</button>
+                </div>
+              </div>
+              <h4 class="pp-subtitle">
+                数据行
+                <button class="pp-add" @click="addDatatableRow(editingChild)">+ 添加行</button>
+              </h4>
+              <div v-for="(row, ri) in editingChild.props.rows" :key="'row'+ri" class="pp-dt-row">
+                <div class="pp-dt-row-inputs">
+                  <input v-for="(col, ci) in editingChild.props.columns" :key="ci" type="text" v-model="editingChild.props.rows[ri][ci]" :placeholder="col" class="pp-dt-cell" />
+                </div>
+                <button v-if="editingChild.props.rows.length > 1" class="pp-sr-del" @click="removeDatatableRow(editingChild, ri)">×</button>
               </div>
             </div>
           </div>
@@ -586,11 +633,6 @@ function defaultLayoutForSlotCount(slotCount) {
 }
 
 const editingChild = computed(() => {
-  if (!comp.value || !comp.value.props || comp.value._selectedChildIndex == null) return null
-  return comp.value.props.children[comp.value._selectedChildIndex] || null
-})
-
-const editingFlowChild = computed(() => {
   if (!comp.value || !comp.value.props || comp.value._selectedChildIndex == null) return null
   return comp.value.props.children[comp.value._selectedChildIndex] || null
 })
