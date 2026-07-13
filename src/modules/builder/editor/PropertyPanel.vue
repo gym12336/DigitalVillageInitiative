@@ -366,6 +366,145 @@
           </div>
         </template>
       </div>
+
+      <!-- Flow-box props -->
+      <div v-if="comp.type === 'flow-box'" class="pp-section">
+
+        <!-- View A: Container-level settings -->
+        <template v-if="comp._selectedChildIndex == null">
+          <div class="pp-field">
+            <label>容器标题</label>
+            <input type="text" v-model="comp.props.title" placeholder="容器标题（可选）" />
+          </div>
+
+          <h4 class="pp-subtitle">
+            子组件列表
+            <button class="pp-add" @click="addFlowBoxChild(comp)">+ 添加</button>
+          </h4>
+          <div v-if="comp.props.children.length === 0" class="pp-hint" style="margin-bottom:0.6rem;">
+            拖入组件或点击上方按钮添加
+          </div>
+          <div v-for="(child, i) in comp.props.children" :key="'fbchild'+i" class="pp-slot-item">
+            <span class="pp-slot-label">{{ i + 1 }}</span>
+            <span class="pp-slot-type">{{ childTypeLabel(child) }}</span>
+            <div style="flex:1;"></div>
+            <button
+              class="pp-slot-edit-btn"
+              @click="comp._selectedChildIndex = i"
+              :disabled="i === (comp.props.activeIndex || 0)"
+              style="margin-right:4px;"
+            >编辑</button>
+            <button
+              v-if="i > 0"
+              class="pp-slot-edit-btn"
+              @click="moveFlowBoxChild(comp, i, -1)"
+              style="margin-right:4px;"
+              title="上移"
+            >↑</button>
+            <button
+              v-if="i < comp.props.children.length - 1"
+              class="pp-slot-edit-btn"
+              @click="moveFlowBoxChild(comp, i, 1)"
+              style="margin-right:4px;"
+              title="下移"
+            >↓</button>
+            <button class="pp-sr-del" @click="removeFlowBoxChild(comp, i)">×</button>
+          </div>
+
+          <div class="pp-field" style="margin-top:0.8rem;">
+            <label class="pp-check">
+              <input type="checkbox" v-model="comp.props.autoPlay" />
+              自动轮播
+            </label>
+          </div>
+          <div class="pp-field">
+            <label>轮播间隔 (秒)</label>
+            <input type="number" v-model.number="comp.props.interval" min="1" max="30" :disabled="!comp.props.autoPlay" />
+          </div>
+          <div class="pp-field">
+            <label>动画时长</label>
+            <select v-model.number="comp.props.animationDuration">
+              <option :value="200">快 (200ms)</option>
+              <option :value="400">中 (400ms)</option>
+              <option :value="600">慢 (600ms)</option>
+            </select>
+          </div>
+        </template>
+
+        <!-- View B: Child component editor -->
+        <template v-else>
+          <button class="pp-back-btn" @click="comp._selectedChildIndex = null">← 返回容器设置</button>
+
+          <div v-if="editingFlowChild" class="pp-child-editor">
+            <h4 class="pp-subtitle">{{ childTypeLabel(editingFlowChild) }} - 第 {{ comp._selectedChildIndex + 1 }} 项</h4>
+
+            <!-- Child chart props -->
+            <div v-if="editingFlowChild.type === 'chart'">
+              <div class="pp-field">
+                <label>标题</label>
+                <input type="text" v-model="editingFlowChild.props.title" />
+              </div>
+              <div class="pp-field">
+                <label>图表类型</label>
+                <select v-model="editingFlowChild.props.chartType">
+                  <option value="bar">柱状图</option>
+                  <option value="pie">饼图</option>
+                  <option value="line">折线图</option>
+                  <option value="stacked-bar">堆叠柱状图</option>
+                  <option value="dumbbell">哑铃图</option>
+                  <option value="trend-badge">涨跌徽标</option>
+                  <option value="radar">雷达图</option>
+                  <option value="sankey">桑基图</option>
+                </select>
+              </div>
+              <div class="pp-field">
+                <label>CSV 数据</label>
+                <textarea v-model="editingFlowChild.props.csvText" rows="6" style="font-family:monospace;font-size:12px;"></textarea>
+              </div>
+            </div>
+
+            <!-- Child text props -->
+            <div v-if="editingFlowChild.type === 'text'">
+              <div class="pp-field">
+                <label>文本内容</label>
+                <textarea v-model="editingFlowChild.props.text" rows="3"></textarea>
+              </div>
+              <div class="pp-field">
+                <label>字号</label>
+                <input type="number" v-model.number="editingFlowChild.props.fontSize" min="8" max="200" />
+              </div>
+              <div class="pp-field">
+                <label>颜色</label>
+                <input type="color" v-model="editingFlowChild.props.color" />
+              </div>
+            </div>
+
+            <!-- Child image props -->
+            <div v-if="editingFlowChild.type === 'image'">
+              <div class="pp-field">
+                <label>图片 URL</label>
+                <input type="text" v-model="editingFlowChild.props.src" placeholder="https://..." />
+              </div>
+              <div class="pp-field">
+                <label>或从实践选取</label>
+                <PracticeImagePicker
+                  :dossier-id="dossierId"
+                  v-model="editingFlowChild.props.src"
+                  @select="(m) => { if (!editingFlowChild.props.alt) editingFlowChild.props.alt = m.name.replace(/\.[^.]+$/, '') }"
+                />
+              </div>
+              <div class="pp-field">
+                <label>填充模式</label>
+                <select v-model="editingFlowChild.props.objectFit">
+                  <option value="cover">Cover 裁剪</option>
+                  <option value="contain">Contain 完整</option>
+                  <option value="fill">Fill 拉伸</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </template>
+      </div>
     </template>
   </div>
 </template>
@@ -383,7 +522,7 @@ const dossierId = computed(() => route.params.dossierId || '')
 const comp = computed(() => getSelected())
 
 function typeLabel(type) {
-  const labels = { text: '📝 文本', image: '🖼 图片', chart: '📊 图表', 'agri-sensor': '🌡 传感器', 'timeline': '⏳ 时间轴', 'datatable': '📋 数据表', 'layout-box': '📦 多组件框' }
+  const labels = { text: '📝 文本', image: '🖼 图片', chart: '📊 图表', 'agri-sensor': '🌡 传感器', 'timeline': '⏳ 时间轴', 'datatable': '📋 数据表', 'layout-box': '📦 多组件框', 'flow-box': '🎠 流动组件框' }
   return labels[type] || type
 }
 
@@ -451,6 +590,11 @@ const editingChild = computed(() => {
   return comp.value.props.children[comp.value._selectedChildIndex] || null
 })
 
+const editingFlowChild = computed(() => {
+  if (!comp.value || !comp.value.props || comp.value._selectedChildIndex == null) return null
+  return comp.value.props.children[comp.value._selectedChildIndex] || null
+})
+
 const availableLayouts = computed(() => {
   if (!comp.value || !comp.value.props) return []
   const sc = comp.value.props.slotCount || 2
@@ -513,6 +657,51 @@ function onSlotTypeChange(comp, slotIndex, typeVal) {
   const child = createComponent(type, 0, 0, chartType)
   child.id = _nextChildId++
   comp.props.children[slotIndex] = child
+}
+
+let _nextFlowChildId = Date.now() + 100000
+function addFlowBoxChild(fbComp) {
+  const child = createComponent('text', 0, 0)
+  child.id = _nextFlowChildId++
+  fbComp.props.children.push(child)
+  if (fbComp.props.children.length === 1) {
+    fbComp.props.activeIndex = 0
+  }
+}
+
+function removeFlowBoxChild(fbComp, index) {
+  const len = fbComp.props.children.length
+  fbComp.props.children.splice(index, 1)
+  // Adjust activeIndex
+  if (fbComp.props.activeIndex >= len - 1) {
+    fbComp.props.activeIndex = Math.max(0, len - 2)
+  }
+  // Reset child editor if editing the removed child
+  if (fbComp._selectedChildIndex === index) {
+    fbComp._selectedChildIndex = null
+  } else if (fbComp._selectedChildIndex > index) {
+    fbComp._selectedChildIndex--
+  }
+}
+
+function moveFlowBoxChild(fbComp, index, direction) {
+  const newIndex = index + direction
+  if (newIndex < 0 || newIndex >= fbComp.props.children.length) return
+  const temp = fbComp.props.children[index]
+  fbComp.props.children[index] = fbComp.props.children[newIndex]
+  fbComp.props.children[newIndex] = temp
+  // Adjust activeIndex if we moved the active child
+  if (fbComp.props.activeIndex === index) {
+    fbComp.props.activeIndex = newIndex
+  } else if (fbComp.props.activeIndex === newIndex) {
+    fbComp.props.activeIndex = index
+  }
+  // Adjust selectedChildIndex similarly
+  if (fbComp._selectedChildIndex === index) {
+    fbComp._selectedChildIndex = newIndex
+  } else if (fbComp._selectedChildIndex === newIndex) {
+    fbComp._selectedChildIndex = index
+  }
 }
 
 function addSensor(comp) {
