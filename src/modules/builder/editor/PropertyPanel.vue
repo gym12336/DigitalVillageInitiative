@@ -728,6 +728,96 @@
           </div>
         </template>
       </div>
+
+      <!-- Map3D props -->
+      <div v-if="comp.type === 'map-3d'" class="pp-section">
+        <!-- 区块 1: 村庄定位 -->
+        <h4 class="pp-subtitle">📍 村庄定位</h4>
+        <VillageSearchField v-model="comp.props" />
+
+        <!-- 区块 2: 地形显示 -->
+        <h4 class="pp-subtitle" style="margin-top:1rem;">⛰️ 地形显示</h4>
+        <div class="pp-field">
+          <label>地形夸张：{{ comp.props.terrainExaggeration.toFixed(1) }}</label>
+          <input
+            type="range"
+            v-model.number="comp.props.terrainExaggeration"
+            min="1.0"
+            max="3.0"
+            step="0.1"
+          />
+        </div>
+        <div class="pp-field">
+          <label class="pp-check">
+            <input type="checkbox" v-model="comp.props.showRangeCircle" />
+            显示范围圆
+          </label>
+        </div>
+        <div class="pp-field">
+          <label>范围圆半径（米）：{{ comp.props.rangeRadius }}</label>
+          <div style="display:flex;gap:0.5rem;align-items:center;">
+            <input
+              type="range"
+              v-model.number="comp.props.rangeRadius"
+              min="100"
+              max="5000"
+              step="100"
+              style="flex:1;"
+              :disabled="!comp.props.showRangeCircle"
+            />
+            <input
+              type="number"
+              v-model.number="comp.props.rangeRadius"
+              min="100"
+              max="5000"
+              style="width:80px;"
+              :disabled="!comp.props.showRangeCircle"
+            />
+          </div>
+        </div>
+
+        <!-- 区块 3: 相机视角 -->
+        <h4 class="pp-subtitle" style="margin-top:1rem;">📷 相机视角</h4>
+        <div class="pp-field">
+          <label>默认高度（米）</label>
+          <input
+            type="number"
+            v-model.number="comp.props.defaultHeight"
+            min="500"
+            max="5000"
+          />
+        </div>
+        <div class="pp-field">
+          <label>默认倾斜角：{{ comp.props.defaultPitch }}°</label>
+          <input
+            type="range"
+            v-model.number="comp.props.defaultPitch"
+            min="30"
+            max="85"
+            step="1"
+          />
+        </div>
+        <div class="pp-field-row">
+          <div class="pp-field">
+            <label>最小缩放高度（米）</label>
+            <input
+              type="number"
+              v-model.number="comp.props.minZoomHeight"
+              min="100"
+              max="5000"
+            />
+          </div>
+          <div class="pp-field">
+            <label>最大缩放高度（米）</label>
+            <input
+              type="number"
+              v-model.number="comp.props.maxZoomHeight"
+              min="100"
+              max="5000"
+            />
+          </div>
+        </div>
+      </div>
     </template>
   </div>
 </template>
@@ -738,6 +828,7 @@ import { useRoute } from 'vue-router'
 import { state, getSelected, deleteComponent } from './stageEditor.js'
 import { createComponent, createEmptyChildComponent, defaultCsvFor } from './componentFactory.js'
 import PracticeImagePicker from './PracticeImagePicker.vue'
+import VillageSearchField from './map3d/VillageSearchField.vue'
 
 const route = useRoute()
 const dossierId = computed(() => route.params.dossierId || '')
@@ -745,7 +836,7 @@ const dossierId = computed(() => route.params.dossierId || '')
 const comp = computed(() => getSelected())
 
 function typeLabel(type) {
-  const labels = { text: '📝 文本', image: '🖼 图片', chart: '📊 图表', 'agri-sensor': '🌡 传感器', 'timeline': '⏳ 时间轴', 'datatable': '📋 数据表', 'layout-box': '📦 多组件框', 'flow-box': '🎠 流动组件框' }
+  const labels = { text: '📝 文本', image: '🖼 图片', chart: '📊 图表', 'agri-sensor': '🌡 传感器', 'timeline': '⏳ 时间轴', 'datatable': '📋 数据表', 'layout-box': '📦 多组件框', 'flow-box': '🎠 流动组件框', 'map-3d': '🏔️ 村庄 3D 地形图' }
   return labels[type] || type
 }
 
