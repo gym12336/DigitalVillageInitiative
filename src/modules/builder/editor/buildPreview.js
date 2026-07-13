@@ -108,7 +108,7 @@ function renderFlowBoxPreview(comp) {
       autoPlayJs = fbId + '_resetTimer();'
     }
 
-    wheelJs = 'document.getElementById("' + fbId + '").addEventListener("wheel",function(e){e.preventDefault();if(e.deltaY>0){' + fbId + '_next();}else{' + fbId + '_prev();}' + fbId + '_resetTimer();});'
+    wheelJs = 'document.getElementById("' + fbId + '").addEventListener("wheel",function(e){e.preventDefault();if(e.deltaY>0){' + fbId + '_next();}else{' + fbId + '_prev();}' + (autoPlay ? fbId + '_resetTimer();' : '') + '});'
   }
 
   return '<div id="' + fbId + '" style="position:relative;width:100%;height:100%;border:1px solid #e8edf2;border-radius:16px;background:#fafdfe;overflow:hidden;">' +
