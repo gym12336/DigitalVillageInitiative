@@ -131,6 +131,7 @@ const NATIVE_CATEGORIES = [
     id: 'group', icon: '📦', name: '组合',
     items: [
       { label: '多组件框', icon: '📦', type: 'layout-box' },
+      { label: '流动组件框', icon: '🎠', type: 'flow-box' },
     ],
   },
 ]
