@@ -66,7 +66,7 @@ export function createChartComponent(x, y, chartType) {
   }
 }
 
-function defaultCsvFor(chartType) {
+export function defaultCsvFor(chartType) {
   switch (chartType) {
     case 'pie':           return 'label,value\n类别A,35\n类别B,68\n类别C,42\n类别D,55\n类别E,27'
     case 'stacked-bar':   return 'label,系列1,系列2,系列3\n一月,10,20,15\n二月,25,30,20\n三月,35,28,22'

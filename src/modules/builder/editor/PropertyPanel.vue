@@ -736,7 +736,7 @@
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { state, getSelected, deleteComponent } from './stageEditor.js'
-import { createComponent, createEmptyChildComponent } from './componentFactory.js'
+import { createComponent, createEmptyChildComponent, defaultCsvFor } from './componentFactory.js'
 import PracticeImagePicker from './PracticeImagePicker.vue'
 
 const route = useRoute()
@@ -969,6 +969,7 @@ function onTimelineChildTypeChange(comp, eventIndex, typeVal) {
   const child = createEmptyChildComponent(type)
   if (type === 'chart') {
     child.props.chartType = chartType
+    child.props.csvText = defaultCsvFor(chartType)
   }
   comp.props.events[eventIndex].child = child
 }
