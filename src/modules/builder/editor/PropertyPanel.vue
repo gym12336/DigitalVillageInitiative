@@ -675,6 +675,8 @@ function removeFlowBoxChild(fbComp, index) {
   // Adjust activeIndex
   if (fbComp.props.activeIndex >= len - 1) {
     fbComp.props.activeIndex = Math.max(0, len - 2)
+  } else if (fbComp.props.activeIndex > index) {
+    fbComp.props.activeIndex--
   }
   // Reset child editor if editing the removed child
   if (fbComp._selectedChildIndex === index) {
