@@ -57,16 +57,17 @@ export async function searchVillages({ name, provinceCode = '', cityKeyword = ''
     throw new Error('天地图密钥未配置')
   }
 
-  const params = new URLSearchParams({
+  // 天地图 v2 search 要求用 postStr 传 JSON 参数，必填字段：keyWord / mapBound / level / queryType / count
+  const postStr = JSON.stringify({
     keyWord: name,
-    queryType: '1',    // 1 = 普通搜索（行政区划+地名）
-    tk,
+    mapBound: '-180,-90,180,90',  // 全球范围
+    level: '12',
+    queryType: '7',              // 7 = 地名搜索（更精准匹配行政区划名称）
+    count: '20',
+    ...(provinceCode ? { specify: provinceCode } : {}),
   })
-  if (provinceCode) {
-    params.set('specify', provinceCode)
-  }
 
-  const url = `${TIANDITU_SEARCH_URL}?${params.toString()}`
+  const url = `${TIANDITU_SEARCH_URL}?postStr=${encodeURIComponent(postStr)}&type=query&tk=${tk}`
 
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), SEARCH_TIMEOUT)

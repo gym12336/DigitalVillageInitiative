@@ -83,10 +83,12 @@ describe('tianditu', () => {
 
       const calledUrl = global.fetch.mock.calls[0][0]
       expect(calledUrl).toContain('api.tianditu.gov.cn/v2/search')
-      expect(calledUrl).toContain('keyWord=%E5%92%8C%E5%B9%B3%E6%9D%91')
-      expect(calledUrl).toContain('specify=530000')
-      expect(calledUrl).toContain('queryType=1')
+      expect(calledUrl).toContain('postStr=')
+      expect(calledUrl).toContain('type=query')
       expect(calledUrl).toContain('tk=test-key-123')
+      // postStr JSON 中包含 keyWord 和 specify
+      expect(calledUrl).toContain(encodeURIComponent('"keyWord":"和平村"'))
+      expect(calledUrl).toContain(encodeURIComponent('"specify":"530000"'))
     })
 
     it('无 provinceCode 时不传 specify 参数', async () => {
@@ -98,7 +100,7 @@ describe('tianditu', () => {
       await searchVillages({ name: '和平村' })
 
       const calledUrl = global.fetch.mock.calls[0][0]
-      expect(calledUrl).not.toContain('specify=')
+      expect(calledUrl).not.toContain(encodeURIComponent('"specify"'))
     })
 
     it('返回空数组当天地图返回空结果', async () => {
