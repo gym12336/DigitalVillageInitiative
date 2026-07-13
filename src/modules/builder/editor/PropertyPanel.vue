@@ -323,7 +323,7 @@
                 <select v-model="s.status" style="width:100%;margin-top:4px;">
                   <option value="normal">正常</option>
                   <option value="warning">警告</option>
-                  <option value="danger">危险</option>
+                  <option value="error">危险</option>
                 </select>
                 <button v-if="editingChild.props.sensors.length > 1" class="pp-sr-del" @click="removeSensor(editingChild, si)">×</button>
               </div>
