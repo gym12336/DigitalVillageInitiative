@@ -35,6 +35,89 @@ function renderLayoutBoxPreview(comp) {
   return `<div style="position:relative;width:100%;height:100%;border:1px solid #e8edf2;border-radius:16px;background:#fafdfe;overflow:hidden;">${slotHtml}</div>`
 }
 
+function renderFlowBoxPreview(comp) {
+  const p = comp.props
+  const children = p.children || []
+  const activeIndex = p.activeIndex || 0
+  const w = comp.width
+  const h = comp.height
+  const duration = p.animationDuration || 400
+  const interval = (p.interval || 5) * 1000
+  const autoPlay = p.autoPlay !== false
+
+  if (children.length === 0) {
+    return '<div style="position:relative;width:100%;height:100%;border:1px solid #e8edf2;border-radius:16px;background:#fafdfe;display:flex;align-items:center;justify-content:center;color:#8ea3b2;font-size:14px;">无子组件</div>'
+  }
+
+  const fbId = 'fb' + Math.random().toString(36).slice(2, 8)
+
+  // Render each child as a slide
+  let slidesHtml = ''
+  for (let i = 0; i < children.length; i++) {
+    const child = children[i]
+    const translateX = (i - activeIndex) * 100
+    const childComp = {
+      type: child.type,
+      x: 0,
+      y: 0,
+      width: w,
+      height: h,
+      props: child.props,
+    }
+    const innerHtml = renderComponentHtml(childComp)
+    slidesHtml += '<div class="' + fbId + '-slide" data-slide-index="' + i + '" style="position:absolute;left:0;top:0;width:100%;height:100%;transform:translateX(' + translateX + '%);transition:transform ' + duration + 'ms ease;overflow:hidden;">' + innerHtml + '</div>'
+  }
+
+  // Dot indicators (only if more than one child)
+  let dotsHtml = ''
+  if (children.length > 1) {
+    let dotsMarkup = ''
+    for (let i = 0; i < children.length; i++) {
+      const isActive = i === activeIndex
+      dotsMarkup += '<span onclick="window[\'' + fbId + '_goTo\'](' + i + ')" style="display:inline-block;width:8px;height:8px;border-radius:50%;margin:0 4px;cursor:pointer;background:' + (isActive ? '#2c7da0' : 'rgba(255,255,255,0.5)') + ';border:1.5px solid ' + (isActive ? '#2c7da0' : 'rgba(255,255,255,0.5)') + ';transition:all 0.2s;"></span>'
+    }
+    dotsHtml = '<div id="' + fbId + '-dots" style="position:absolute;bottom:12px;left:50%;transform:translateX(-50%);display:flex;align-items:center;padding:4px 12px;background:rgba(0,0,0,0.25);border-radius:999px;z-index:5;">' + dotsMarkup + '</div>'
+  }
+
+  // JavaScript for navigation, auto-play, and wheel
+  let commonJs = ''
+  let autoPlayJs = ''
+  let wheelJs = ''
+
+  if (children.length > 1) {
+    commonJs =
+      'var ' + fbId + '_idx=' + activeIndex + ';' +
+      'var ' + fbId + '_len=' + children.length + ';' +
+      'var ' + fbId + '_timer=null;' +
+      'function ' + fbId + '_goTo(idx){' +
+        fbId + '_idx=idx;' +
+        'var slides=document.querySelectorAll(".' + fbId + '-slide");' +
+        'for(var s=0;s<slides.length;s++){slides[s].style.transform="translateX("+((s-idx)*100)+"%)";}' +
+        'var dots=document.querySelectorAll("#' + fbId + '-dots span");' +
+        'for(var d=0;d<dots.length;d++){' +
+          'if(d===idx){dots[d].style.background="#2c7da0";dots[d].style.borderColor="#2c7da0";}' +
+          'else{dots[d].style.background="rgba(255,255,255,0.5)";dots[d].style.borderColor="rgba(255,255,255,0.5)";}' +
+        '}' +
+      '}' +
+      'function ' + fbId + '_next(){' + fbId + '_goTo((' + fbId + '_idx+1)%' + fbId + '_len);}' +
+      'function ' + fbId + '_prev(){' + fbId + '_goTo((' + fbId + '_idx-1+' + fbId + '_len)%' + fbId + '_len);}' +
+      'function ' + fbId + '_resetTimer(){if(' + fbId + '_timer)clearTimeout(' + fbId + '_timer);' + fbId + '_timer=setTimeout(function(){' + fbId + '_next();' + fbId + '_resetTimer();},' + interval + ');}' +
+      'window[\'' + fbId + '_goTo\']=' + fbId + '_goTo;'
+
+    if (autoPlay) {
+      autoPlayJs = fbId + '_resetTimer();'
+    }
+
+    wheelJs = 'document.getElementById("' + fbId + '").addEventListener("wheel",function(e){e.preventDefault();if(e.deltaY>0){' + fbId + '_next();}else{' + fbId + '_prev();}' + fbId + '_resetTimer();});'
+  }
+
+  return '<div id="' + fbId + '" style="position:relative;width:100%;height:100%;border:1px solid #e8edf2;border-radius:16px;background:#fafdfe;overflow:hidden;">' +
+    slidesHtml +
+    dotsHtml +
+    '</div>' +
+    '<script>' + commonJs + autoPlayJs + wheelJs + '</script>'
+}
+
 function renderComponentHtml(c) {
   let inner = ''
   const p = c.props
@@ -63,6 +146,9 @@ function renderComponentHtml(c) {
       break
     case 'layout-box':
       inner = renderLayoutBoxPreview(c)
+      break
+    case 'flow-box':
+      inner = renderFlowBoxPreview(c)
       break
   }
   return `<div style="position:absolute;left:${c.x}px;top:${c.y}px;width:${c.width}px;height:${c.height}px;overflow:hidden;">${inner}</div>`
