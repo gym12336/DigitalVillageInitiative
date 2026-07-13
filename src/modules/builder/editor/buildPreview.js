@@ -227,14 +227,15 @@ export function buildPreviewHtml(state, baseUrl) {
   const baseTag = baseUrl ? `<base href="${esc(baseUrl)}">` : ''
 
   const map3dHead = hasMap3d ? `
-<script type="module">
+<script>
+  window.CESIUM_BASE_URL = '/cesium/';
   if (window.opener && window.opener.__map3dKeys) {
     window.__tiandituKey = window.opener.__map3dKeys.tiandituKey || '';
     window.__ionToken = window.opener.__map3dKeys.ionToken || '';
   }
   window.__map3dCount = 0;
 </script>
-<link rel="stylesheet" href="https://cesium.com/downloads/cesiumjs/releases/1.118/Build/Cesium/Widgets/widgets.css">
+<link rel="stylesheet" href="/cesium/Widgets/widgets.css">
 ` : ''
 
   return `<!DOCTYPE html>
