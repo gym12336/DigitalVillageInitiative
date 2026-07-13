@@ -10,6 +10,7 @@ export function createComponent(type, x, y, chartType) {
     case 'agri-sensor': return createSensorComponent(x, y)
     case 'layout-box': return createLayoutBoxComponent(x, y)
     case 'flow-box':   return createFlowBoxComponent(x, y)
+    case 'map-3d':    return createMap3DComponent(x, y)
     default:            throw new Error(`Unknown component type: ${type}`)
   }
 }
@@ -160,6 +161,37 @@ export function createFlowBoxComponent(x, y) {
       interval: 5,
       animation: 'slide',
       animationDuration: 400,
+    },
+  }
+}
+
+export function createMap3DComponent(x, y) {
+  return {
+    type: 'map-3d',
+    x, y,
+    width: 640,
+    height: 420,
+    props: {
+      // 定位
+      villageName: '',
+      centerLng: null,
+      centerLat: null,
+      region: '',
+
+      // 搜索筛选
+      filterProvince: '',
+      filterCity: '',
+
+      // 视觉
+      terrainExaggeration: 1.5,
+      showRangeCircle: true,
+      rangeRadius: 500,
+
+      // 相机
+      defaultHeight: 1200,
+      defaultPitch: 60,
+      minZoomHeight: 500,
+      maxZoomHeight: 5000,
     },
   }
 }

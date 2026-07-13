@@ -73,6 +73,7 @@ const COMPONENT_CATEGORIES = [
     id: 'geo', icon: '🗺️', name: '讲「空间」— 地理分布',
     items: [
       { label: '地图散点', icon: '📍', type: 'chart', chartType: 'bar' },
+      { label: '村庄 3D 地形图', icon: '🏔️', type: 'map-3d' },
     ],
   },
   {
