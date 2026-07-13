@@ -11,6 +11,7 @@ import { makeBuilderRouter } from './routes/builder.js'
 import { makeMediaRouter } from './routes/media.js'
 import { makeVillagesRouter } from './routes/villages.js'
 import { makeVoiceRouter } from './routes/voice.js'
+import { makeConfigRouter } from './routes/config.js'
 import { errorHandler, notFound } from './middleware/errorHandler.js'
 
 // 上传根目录缺省：<cwd>/server/uploads/practice。测试注入临时目录。
@@ -35,6 +36,7 @@ export function createApp({ db, secret, uploadDir = DEFAULT_UPLOAD_DIR }) {
   app.use('/api/practice/media', makeMediaRouter({ db, secret, uploadDir }))
   app.use('/api/villages', makeVillagesRouter(db))
   app.use('/api/voice', makeVoiceRouter(db))
+  app.use('/api/config', makeConfigRouter())
 
   // 静态托管上传的材料（仅暴露 uploads/practice 下的文件）。
   app.use('/uploads/practice', express.static(uploadDir))
