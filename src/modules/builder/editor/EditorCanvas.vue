@@ -450,7 +450,7 @@ function onStageMouseDown(e) {
   const insideFlowBox = clearEl ? clearEl.closest('[data-flow-box]') : null
   if (!insideLayoutBox && !insideFlowBox) {
     for (const comp of state.components) {
-      if ((comp.type === 'layout-box' || comp.type === 'flow-box') && comp._selectedChildIndex !== undefined) {
+      if ((comp.type === 'layout-box' || comp.type === 'flow-box' || comp.type === 'timeline') && comp._selectedChildIndex !== undefined) {
         comp._selectedChildIndex = undefined
       }
     }
