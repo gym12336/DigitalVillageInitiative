@@ -14,6 +14,7 @@
       @pointerdown="onPanStart"
       @pointermove="onPanMove"
       @pointerup="onPanEnd"
+      @pointercancel="onPanCancel"
     ></canvas>
 
     <!-- 编辑态：瓦片加载失败 → 灰色占位 + 村名 -->
@@ -120,6 +121,16 @@ function onPanEnd(e) {
   pushHistory()
 }
 
+function onPanCancel() {
+  cancelPan()
+}
+
+function onWindowKeyDown(e) {
+  if (panState && e.key === 'Escape') {
+    cancelPan()
+  }
+}
+
 function loadTileImage(url) {
   return new Promise((resolve) => {
     const img = new Image()
@@ -192,6 +203,7 @@ watch(
 // 编辑态：watch 属性变化仅刷新静态图 URL（computed 自动处理）
 
 onMounted(async () => {
+  window.addEventListener('keydown', onWindowKeyDown)
   if (props.mode === 'edit') {
     // canvas 需要在 DOM 挂载后一帧再拿到 clientWidth/Height
     requestAnimationFrame(() => renderThumbnail())
@@ -203,6 +215,8 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
+  window.removeEventListener('keydown', onWindowKeyDown)
+  cancelPan()
   if (sceneController) {
     sceneController.destroy()
     sceneController = null
