@@ -13,6 +13,7 @@
       class="m3d-thumb-canvas"
       @pointerdown="onPanStart"
       @pointermove="onPanMove"
+      @pointerup="onPanEnd"
     ></canvas>
 
     <!-- 编辑态：瓦片加载失败 → 灰色占位 + 村名 -->
@@ -90,6 +91,33 @@ function onPanMove(e) {
   const dxCanvas = (e.clientX - panState.startClientX) / stageZoom
   const dyCanvas = (e.clientY - panState.startClientY) / stageZoom
   thumbCanvas.value.style.transform = `translate(${dxCanvas}px, ${dyCanvas}px)`
+}
+
+function cancelPan() {
+  if (thumbCanvas.value) thumbCanvas.value.style.transform = ''
+  if (panState && thumbCanvas.value) {
+    try { thumbCanvas.value.releasePointerCapture(panState.pointerId) } catch (_) {}
+  }
+  panState = null
+}
+
+function onPanEnd(e) {
+  if (!panState) return
+  const stageZoom = editorState.zoom || 1
+  const dxCanvas = (e.clientX - panState.startClientX) / stageZoom
+  const dyCanvas = (e.clientY - panState.startClientY) / stageZoom
+  const dxScreen = e.clientX - panState.startClientX
+  const dyScreen = e.clientY - panState.startClientY
+  const distSq = dxScreen * dxScreen + dyScreen * dyScreen
+  if (distSq < 9) {
+    cancelPan()
+    return
+  }
+  const { dLng, dLat } = pixelsToLngLat(dxCanvas, dyCanvas, panState.startLat, panState.startZoom)
+  comp.value.props.centerLng = panState.startLng + dLng
+  comp.value.props.centerLat = panState.startLat + dLat
+  cancelPan()
+  pushHistory()
 }
 
 function loadTileImage(url) {
