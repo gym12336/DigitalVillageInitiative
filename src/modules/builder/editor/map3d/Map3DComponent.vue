@@ -12,6 +12,7 @@
       ref="thumbCanvas"
       class="m3d-thumb-canvas"
       @pointerdown="onPanStart"
+      @pointermove="onPanMove"
     ></canvas>
 
     <!-- 编辑态：瓦片加载失败 → 灰色占位 + 村名 -->
@@ -80,6 +81,15 @@ function onPanStart(e) {
   }
   try { thumbCanvas.value.setPointerCapture(e.pointerId) } catch (_) {}
   e.stopPropagation()
+}
+
+function onPanMove(e) {
+  if (!panState) return
+  if (!thumbCanvas.value) return
+  const stageZoom = editorState.zoom || 1
+  const dxCanvas = (e.clientX - panState.startClientX) / stageZoom
+  const dyCanvas = (e.clientY - panState.startClientY) / stageZoom
+  thumbCanvas.value.style.transform = `translate(${dxCanvas}px, ${dyCanvas}px)`
 }
 
 function loadTileImage(url) {
