@@ -27,11 +27,11 @@
       <label>村庄名称</label>
       <div class="vsf-search-row">
         <input
-          ref="searchInput"
           type="text"
           v-model="searchText"
           placeholder="输入村名，如：和平村"
-          @keydown.enter="doSearch"
+          @input="onSearchInput"
+          @keydown.enter="onSearchEnter"
         />
         <button class="vsf-search-btn" @click="doSearch" :disabled="searching">
           {{ searching ? '搜索中...' : '🔍 搜索' }}
@@ -64,7 +64,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, watch, onUnmounted } from 'vue'
 import { searchVillages, normalizeRegion, PROVINCE_MAP } from './tianditu.js'
 
 const props = defineProps({
@@ -97,6 +97,22 @@ watch(
 )
 
 let debounceTimer = null
+
+function onSearchInput() {
+  clearTimeout(debounceTimer)
+  debounceTimer = setTimeout(() => {
+    doSearch()
+  }, 300)
+}
+
+function onSearchEnter() {
+  clearTimeout(debounceTimer)
+  doSearch()
+}
+
+onUnmounted(() => {
+  clearTimeout(debounceTimer)
+})
 
 function onFilterChange() {
   emit('update:modelValue', {
