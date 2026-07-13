@@ -154,13 +154,15 @@ function renderComponentHtml(c) {
   return `<div style="position:absolute;left:${c.x}px;top:${c.y}px;width:${c.width}px;height:${c.height}px;overflow:hidden;">${inner}</div>`
 }
 
-export function buildPreviewHtml(state) {
+export function buildPreviewHtml(state, baseUrl) {
   const componentsHtml = state.components.map(c => renderComponentHtml(c)).join('\n')
+  const baseTag = baseUrl ? `<base href="${esc(baseUrl)}">` : ''
 
   return `<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
+${baseTag}
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>成果预览</title>
 <style>
@@ -185,7 +187,7 @@ ${componentsHtml}
 }
 
 export function buildAndOpen(state) {
-  const html = buildPreviewHtml(state)
+  const html = buildPreviewHtml(state, window.location.origin + '/')
   const blob = new Blob([html], { type: 'text/html;charset=utf-8' })
   const url = URL.createObjectURL(blob)
   window.open(url, '_blank')
