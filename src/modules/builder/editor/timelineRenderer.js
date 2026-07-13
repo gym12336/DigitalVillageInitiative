@@ -82,19 +82,19 @@ export function renderTimelineMarkup(component) {
     const flipLeft = popRightEdge > width - 20
     const popTop = cardTop - Math.max(0, (popH - cardH) / 2)
 
-    // Hover zone: covers card + popup area; anchored at card's left edge
-    const zoneLeft = hasChild && flipLeft ? -cardW / 2 - popW - popupGap : -cardW / 2
-    const zoneTop = Math.min(cardTop, hasChild ? popTop : cardTop)
-    const zoneW = cardW + (hasChild ? popW + popupGap : 0)
-    const zoneH = Math.max(cardH, hasChild ? popH : cardH)
+    // Hover zone: card-sized only (popup triggers on card hover, not zone hover)
+    const zoneLeft = -cardW / 2
+    const zoneTop = cardTop
+    const zoneW = cardW
+    const zoneH = cardH
 
-    // Card offset within hover zone
-    const cardLeftInZone = hasChild && flipLeft ? popW + popupGap : 0
-    const cardTopInZone = cardTop - zoneTop
+    // Card at origin of zone
+    const cardLeftInZone = 0
+    const cardTopInZone = 0
 
-    // Popup offset within hover zone
-    const popupLeftInZone = flipLeft ? 0 : cardW + popupGap
-    const popupTopInZone = hasChild ? popTop - zoneTop : 0
+    // Popup positioned relative to zone (card) edges
+    const popupLeftInZone = flipLeft ? -popW - popupGap : cardW + popupGap
+    const popupTopInZone = hasChild ? popTop - cardTop : 0
 
     let popupHtml = ''
     if (hasChild) {
@@ -123,7 +123,7 @@ export function renderTimelineMarkup(component) {
         <div style="position:absolute;left:0;top:${isAbove ? cardTop + cardH : lineY}px;width:1px;height:${isAbove ? lineY - cardTop - cardH : cardTop - lineY}px;background:${color};opacity:0.3;transform:translateX(-0.5px);"></div>
         <!-- dot -->
         <div style="position:absolute;left:-7px;top:${lineY - 7}px;width:14px;height:14px;border-radius:50%;background:${color};border:2px solid #fff;box-shadow:0 0 0 3px ${color}22;pointer-events:auto;"></div>
-        <!-- card + popup wrapper (hover zone) -->
+        <!-- card wrapper (popup is sibling) -->
         <div class="tl-hover-${uid}" style="position:absolute;left:${zoneLeft}px;top:${zoneTop}px;width:${zoneW}px;height:${zoneH}px;pointer-events:auto;z-index:1;">
           <!-- card -->
           <div class="tl-card-${uid}" style="position:absolute;left:${cardLeftInZone}px;top:${cardTopInZone}px;width:${cardW}px;background:rgba(44,125,160,0.03);border:1px solid rgba(44,125,160,0.06);border-radius:10px;padding:10px 12px;">
@@ -146,9 +146,9 @@ export function renderTimelineMarkup(component) {
 
   return `
     <style>
-      .tl-popup-${uid} { opacity: 0; transform: translateY(4px); transition: opacity 0.2s ease, transform 0.2s ease; }
-      .tl-hover-${uid}:hover .tl-popup-${uid} { opacity: 1; transform: translateY(0); }
-      .tl-hover-${uid}:hover .tl-card-${uid} { border-color: rgba(44,125,160,0.18); background: rgba(44,125,160,0.06); }
+      .tl-popup-${uid} { opacity: 0; transform: translateY(4px); transition: opacity 0.2s ease, transform 0.2s ease; pointer-events: none; }
+      .tl-card-${uid}:hover ~ .tl-popup-${uid} { opacity: 1; transform: translateY(0); }
+      .tl-card-${uid}:hover { border-color: rgba(44,125,160,0.18) !important; background: rgba(44,125,160,0.06) !important; }
     </style>
     <div style="width:100%;height:100%;display:flex;flex-direction:column;padding:16px 20px;box-sizing:border-box;overflow:hidden;background:#fafdfe;border-radius:14px;border:1px solid rgba(44,125,160,0.08);">
       ${titleHtml}
