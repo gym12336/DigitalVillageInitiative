@@ -30,9 +30,9 @@
 | `src/modules/builder/editor/map3d/Map3DComponent.vue` | Vue 组件。编辑态渲染静态图 `<img>`，预览态挂载 Cesium 容器并调用 `cesiumScene.js`。管理生命周期。 | `cesiumScene.js`, `tianditu.js` |
 | `src/modules/builder/editor/map3d/cesiumScene.js` | 纯逻辑模块（无 Vue 依赖）。导出 `createScene(container, opts)` → 返回 `{ flyTo, setTerrainExaggeration, setRangeCircle, setZoomLimits, pauseRendering, resumeRendering, resize, destroy }`。所有 Cesium API 调用封装在此。 | `cesium`（动态 import） |
 | `src/modules/builder/editor/map3d/tianditu.js` | 天地图 API 封装。导出：`searchVillages(name)`、`buildStaticImageUrl(lng, lat, zoom, w, h)`、`buildImageryProvider(tk)`、`buildLabelProvider(tk)`。 | `tiandituConfig` |
-| `src/modules/builder/editor/map3d/tiandituConfig.js` | 模块级密钥缓存。启动时从 `/api/config` 拉取一次并缓存，`getKey()` 返回当前密钥。 | 无 |
+| `src/modules/builder/editor/map3d/mapConfig.js` | 模块级密钥缓存。启动时从 `/api/config` 拉取一次并缓存两个 token：`getTiandituKey()` / `getIonToken()`。 | 无 |
 | `src/modules/builder/editor/map3d/VillageSearchField.vue` | 村庄搜索输入框 + 候选列表小组件，服务于属性面板。 | `tianditu.js` |
-| `server/routes/config.js` | 提供 `GET /api/config`，返回 `{ tiandituKey: process.env.TIANDITU_KEY || '' }`。 | Express |
+| `server/routes/config.js` | 提供 `GET /api/config`，返回 `{ tiandituKey, ionToken }`，两个字段分别从 `process.env.TIANDITU_KEY` / `process.env.CESIUM_ION_TOKEN` 读取，未配置时返回空字符串。 | Express |
 
 ### 修改文件
 
@@ -43,9 +43,9 @@
 | `src/modules/builder/editor/PropertyPanel.vue` | 新增 `v-if="comp.type === 'map-3d'"` 属性表单区块（村庄定位 / 地形显示 / 相机视角）。 |
 | `src/modules/builder/editor/EditorCanvas.vue` | `renderComponentMarkup` 增加 `case 'map-3d'`：输出带 `data-map-3d-id="${c.id}"` 的占位 `<div>`；模板层用 `<Teleport>` 挂载 `Map3DComponent` 到对应占位。 |
 | `src/modules/builder/editor/buildPreview.js` | `renderComponentHtml` 增加 `case 'map-3d'`：预览态生成带动态加载 Cesium + 初始化脚本的 HTML 片段。 |
-| `src/main.js` | 应用启动时 `await fetchTiandituConfig()` 初始化密钥缓存。 |
+| `src/main.js` | 应用启动时 `await fetchMapConfig()` 初始化密钥缓存（同时拉取 `tiandituKey` 和 `ionToken`）。 |
 | `server/index.js` | 挂载 `/api/config` 路由。 |
-| `.env.example` | 增加 `TIANDITU_KEY=` 占位。 |
+| `.env.example` | 增加 `TIANDITU_KEY=` 和 `CESIUM_ION_TOKEN=` 两条占位。 |
 | `.gitignore` | 确认 `.env` 已忽略（现状已忽略，无需改动）。 |
 | `package.json` | 新增依赖 `cesium`（约 3MB）。 |
 | `vite.config.js` | 配置 Cesium 静态资源复制（`Widgets/`、`Assets/`、`Workers/`）到 `public/cesium/`。 |
@@ -69,7 +69,11 @@
     villageName: '',        // 用户选中的村名（展示）
     centerLng: null,        // 经度，null 表示未定位
     centerLat: null,        // 纬度，null 表示未定位
-    region: '',             // 上级行政区（省/市/区）
+    region: '',             // 完整行政区层级字符串，如 "云南省 · 普洱市 · 澜沧县 · 竹塘乡"
+
+    // 搜索筛选（可选，用于消歧）
+    filterProvince: '',     // 省份名称，如 "云南省"；空表示不限
+    filterCity: '',         // 市 / 区县关键字，纯文本，前端在候选结果里二次过滤；空表示不限
 
     // 视觉
     terrainExaggeration: 1.5, // 地形夸张系数 1.0–3.0
@@ -91,11 +95,20 @@
 
 ### 区块 1 — 村庄定位（`VillageSearchField`）
 
-- 搜索框（村名输入）+ 🔍 搜索按钮
-- 搜索输入 300ms 防抖，回车触发
-- 候选下拉列表：显示 `村名（上级行政区）` 格式，用户点选后写入 `villageName / centerLng / centerLat / region`
-- 已定位状态：显示 `✅ 已定位到：李家村（云南省 · 普洱市 · 澜沧县）` + "重新搜索"链接
-- 搜索失败：Toast 提示 `未找到该村庄，请检查名称` 或 `搜索失败，请重试`
+**筛选（可选，用于消歧全国重名村庄）：**
+
+- 省份下拉：内置 34 省 / 直辖市 / 自治区 / 特别行政区静态列表，默认"不限"。选中后传给天地图搜索接口的 `specify` 参数（省份 `adminCode`），从服务端就缩小范围。
+- 市 / 区县关键字：可选文本输入。天地图不为此提供服务端参数，前端在候选返回后按 `address` 字段做子串过滤。
+
+**搜索：**
+
+- 村名搜索框 + 🔍 搜索按钮
+- 输入 300ms 防抖，回车触发
+- 请求：`tianditu.searchVillages({ name, provinceCode, cityKeyword })`
+- 候选下拉列表：显示完整层级 `村名 · 省 - 市 - 区/县 - 乡镇`，例如 `和平村 · 云南省 - 普洱市 - 澜沧县 - 竹塘乡`。用户点选后写入 `villageName / centerLng / centerLat / region`
+- 已定位状态：显示 `✅ 已定位到：和平村（云南省 · 普洱市 · 澜沧县 · 竹塘乡）` + "重新搜索"链接
+- 搜索失败：Toast 提示 `未找到该村庄，请检查名称或缩小行政区范围` 或 `搜索失败，请重试`
+- **省份 / 市区县筛选也持久化到 `filterProvince / filterCity`**（即使已定位），方便用户后续快速重搜相邻村庄
 
 ### 区块 2 — 地形显示
 
@@ -125,21 +138,29 @@ main.js → await fetchTiandituConfig()
 ### 村庄搜索流程
 
 ```
-用户输入村名 → 点击 🔍 或回车
+用户填写村名（可选：省份下拉、市/区县关键字）→ 点击 🔍 或回车
   ↓
-tianditu.searchVillages(name)  // GET https://api.tianditu.gov.cn/v2/search?...&tk=xxx
+tianditu.searchVillages({ name, provinceCode, cityKeyword })
+  // GET https://api.tianditu.gov.cn/v2/search?keyWord=<name>&specify=<provinceCode>&queryType=1&tk=xxx
+  // provinceCode 为空时省略 specify 参数（全国搜索）
   ↓
-候选数组 [{ name, region, lng, lat }, ...]
+天地图返回候选数组 [{ name, address, lng, lat }, ...]
   ↓
-候选下拉列表 → 用户点选
+若 cityKeyword 非空：前端按 address 字段做子串过滤
   ↓
-写入 comp.props（villageName / centerLng / centerLat / region）
+候选下拉列表：显示 `村名 · 完整行政区层级`
+  ↓
+用户点选 → 写入 comp.props：
+  villageName, centerLng, centerLat,
+  region（从 address 规范化为 "省 · 市 · 区/县 · 乡镇" 字符串）
   ↓
 若预览态已挂载 Cesium：cesiumScene.flyTo(lng, lat)
 若编辑态：仅刷新静态图缩略图
 ```
 
 搜索失败或超时（5 秒）：Toast 提示，不修改 `comp.props`。
+
+**省份下拉的 `adminCode` 静态映射**：34 条数据（省 / 直辖市 / 自治区 / 特别行政区），存 `tianditu.js` 内的常量表，无需额外接口。
 
 ### 属性变化响应
 
@@ -229,10 +250,10 @@ export async function createScene(container, opts) {
 
 ### 初始化步骤
 
-1. **不设置** `Cesium.Ion.defaultAccessToken`（避免默认拉取 Cesium 服务）
+1. **配置 Cesium Ion Token**：`Cesium.Ion.defaultAccessToken = opts.ionToken`。**必须在创建 Viewer 之前设置**，否则地形加载会走 Cesium SDK 内置的 default token（rate limit 极低、随时可能失效，生产不可依赖）。若 `opts.ionToken` 为空，跳过第 4 步（直接进入无地形降级模式）。
 2. **创建 Viewer 并关闭所有 UI 控件**：`animation: false, timeline: false, baseLayerPicker: false, geocoder: false, homeButton: false, sceneModePicker: false, navigationHelpButton: false, fullscreenButton: false, infoBox: false, selectionIndicator: false, imageryProvider: false`
 3. **手动添加天地图图层**：影像层（`img_w`）+ 注记层（`cia_w`）叠加
-4. **加载全球地形**：`createWorldTerrainAsync({ requestVertexNormals: true })`；失败时降级为 `EllipsoidTerrainProvider`（无地形，平面）
+4. **加载全球地形**（依赖 Ion Token）：`createWorldTerrainAsync({ requestVertexNormals: true })`。加载失败（401 / 网络错误 / Token 无效）时降级为 `EllipsoidTerrainProvider`（无地形，平面），并触发 `onError({ type: 'terrain-failed', reason })` 让 UI 显示不显眼的角标提示"地形数据不可用"
 5. **关闭全局特效**：`scene.skyBox.show = false`、`scene.skyAtmosphere.show = false`、`scene.sun.show = false`、`scene.moon.show = false`、`scene.fog.enabled = false`、`globe.showGroundAtmosphere = false`、`globe.enableLighting = false`
 6. **村级参数**：
    - `scene.verticalExaggeration = opts.terrainExaggeration`（Cesium ≥ 1.107 使用 `scene.verticalExaggeration`；旧版用 `globe.terrainExaggeration`。本项目依赖 `cesium@^1.118`，采用前者。）
@@ -265,10 +286,12 @@ export async function createScene(container, opts) {
 
 | 场景 | 触发点 | 处理策略 | 用户反馈 |
 |---|---|---|---|
-| 天地图密钥未配置 | 应用启动 `/api/config` 返回空 key | Cesium 初始化时检测到空 key，触发 `onError({ type: 'no-key' })` | 组件显示错误占位框「天地图密钥未配置，请联系管理员」 |
-| 天地图密钥无效 | 影像图层加载 401/403 | 监听图层错误事件，触发 `onError({ type: 'bad-key' })` | 错误占位框 + "重试"按钮 |
+| 天地图密钥未配置 | 应用启动 `/api/config` 返回空 `tiandituKey` | Cesium 初始化时检测到空 key，触发 `onError({ type: 'no-tianditu-key' })` | 组件显示错误占位框「天地图密钥未配置，请联系管理员」 |
+| 天地图密钥无效 | 影像图层加载 401/403 | 监听图层错误事件，触发 `onError({ type: 'bad-tianditu-key' })` | 错误占位框 + "重试"按钮 |
+| Cesium Ion Token 未配置 | 应用启动 `/api/config` 返回空 `ionToken` | 初始化时跳过全球地形加载，直接进入无地形模式 | 画面正常但无地形起伏；组件右下角显示不显眼的角标「地形数据不可用（Ion Token 未配置）」 |
+| Cesium Ion Token 无效 | `createWorldTerrainAsync` 401 / reject | 降级为 `EllipsoidTerrainProvider`；触发 `onError({ type: 'terrain-failed', reason })` | 同上角标提示「地形数据不可用」 |
 | WebGL 不支持 | `new Viewer` 抛错 | `try/catch` 捕获 | 错误占位框「浏览器不支持 3D 渲染」 |
-| 全球地形加载失败 | `createWorldTerrainAsync` reject | 降级为 `EllipsoidTerrainProvider` 继续渲染 | 控制台警告，画面继续可用 |
+| 全球地形加载失败（非 Token 原因） | `createWorldTerrainAsync` 网络错误 | 同 Ion Token 无效路径处理，降级为 `EllipsoidTerrainProvider` | 角标提示「地形数据不可用」 |
 | 村庄搜索无结果 | 天地图搜索返回空数组 | 属性面板不改动 | Toast「未找到该村庄，请检查名称」 |
 | 村庄搜索请求失败 | 网络错误 / 超时（5 秒） | 属性面板不改动 | Toast「搜索失败，请重试」 |
 | 静态图缩略图拉取失败 | 编辑态 `<img>` `onerror` | 显示灰色占位 + 村名文字 | 灰色框「缩略图暂不可用 · 李家村」 |
