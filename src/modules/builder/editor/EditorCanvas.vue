@@ -212,7 +212,7 @@ function renderFlowBoxMarkup(comp) {
     let dotsMarkup = ''
     for (let i = 0; i < children.length; i++) {
       const isActive = i === activeIndex
-      dotsMarkup += `<span data-flow-dot="${i}" style="display:inline-block;width:${dotSize}px;height:${dotSize}px;border-radius:50%;margin:0 ${dotGap / 2}px;cursor:pointer;background:${isActive ? '#2c7da0' : 'rgba(255,255,255,0.5)'};border:1.5px solid ${isActive ? '#2c7da0' : 'rgba(255,255,255,0.5)'};transition:all 0.2s;" onmouseover="if(!this.classList.contains('active')){this.style.background='rgba(255,255,255,0.8)';}" onmouseout="if(!this.classList.contains('active')){this.style.background='rgba(255,255,255,0.5)';}"></span>`
+      dotsMarkup += `<span data-flow-dot="${i}" ${isActive ? 'data-active=""' : ''} style="display:inline-block;width:${dotSize}px;height:${dotSize}px;border-radius:50%;margin:0 ${dotGap / 2}px;cursor:pointer;background:${isActive ? '#2c7da0' : 'rgba(255,255,255,0.5)'};border:1.5px solid ${isActive ? '#2c7da0' : 'rgba(255,255,255,0.5)'};transition:all 0.2s;" onmouseover="if(!this.hasAttribute('data-active')){this.style.background='rgba(255,255,255,0.8)';}" onmouseout="if(!this.hasAttribute('data-active')){this.style.background='rgba(255,255,255,0.5)';}"></span>`
     }
     dotsHtml = `<div style="position:absolute;bottom:12px;left:50%;transform:translateX(-50%);display:flex;align-items:center;padding:4px 12px;background:rgba(0,0,0,0.25);border-radius:999px;z-index:5;">${dotsMarkup}</div>`
   }
@@ -514,6 +514,7 @@ function onStageMouseDown(e) {
           const dotEl = el.closest('[data-flow-dot]')
           if (dotEl) {
             fb.props.activeIndex = parseInt(dotEl.dataset.flowDot, 10)
+            pushHistory()
             state.selectedId = fbId
             ctxMenu.value.show = false
             return
@@ -741,6 +742,7 @@ function onWheel(e) {
         } else {
           fb.props.activeIndex = (fb.props.activeIndex - 1 + len) % len
         }
+        pushHistory()
         e.preventDefault()
         return
       }
