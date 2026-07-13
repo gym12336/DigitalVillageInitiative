@@ -9,6 +9,7 @@ export function createComponent(type, x, y, chartType) {
     case 'datatable':   return createDatatableComponent(x, y)
     case 'agri-sensor': return createSensorComponent(x, y)
     case 'layout-box': return createLayoutBoxComponent(x, y)
+    case 'flow-box':   return createFlowBoxComponent(x, y)
     default:            throw new Error(`Unknown component type: ${type}`)
   }
 }
@@ -141,6 +142,24 @@ export function createLayoutBoxComponent(x, y) {
       layout: 'horizontal',
       splitRatios: [50, 50],
       children: [null, null],
+    },
+  }
+}
+
+export function createFlowBoxComponent(x, y) {
+  return {
+    type: 'flow-box',
+    x, y,
+    width: 900,
+    height: 500,
+    props: {
+      title: '',
+      children: [],
+      activeIndex: 0,
+      autoPlay: true,
+      interval: 5,
+      animation: 'slide',
+      animationDuration: 400,
     },
   }
 }
