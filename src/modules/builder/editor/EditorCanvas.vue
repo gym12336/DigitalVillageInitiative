@@ -14,6 +14,7 @@
         <button class="tb-btn" @click="addToCanvas('datatable')">📋 数据表</button>
         <button class="tb-btn" @click="addToCanvas('layout-box')">📦 多组件框</button>
         <button class="tb-btn" @click="addToCanvas('flow-box')">🎠 流动框</button>
+        <button class="tb-btn" @click="addToCanvas('map-3d')">🏔️ 3D地图</button>
       </div>
       <div class="ec-tb-center">
         <button class="tb-btn" @click="undo" :disabled="state.historyIndex <= 0" title="撤销">↩</button>
@@ -55,6 +56,22 @@
           }"
           v-html="stageHtml"
         ></div>
+
+        <!-- Map3D 组件覆盖层 -->
+        <div
+          v-for="c in map3dComponents"
+          :key="'m3d-' + c.id"
+          :style="{
+            position: 'absolute',
+            left: (c.x * state.zoom) + 'px',
+            top: (c.y * state.zoom) + 'px',
+            width: (c.width * state.zoom) + 'px',
+            height: (c.height * state.zoom) + 'px',
+            zIndex: 1,
+          }"
+        >
+          <Map3DComponent :component="c" mode="edit" />
+        </div>
       </div>
 
       <!-- Box selection overlay -->
@@ -86,6 +103,7 @@ import { renderTimelineMarkup } from './timelineRenderer.js'
 import { renderDatatableMarkup } from './datatableRenderer.js'
 import { calcLayoutSlots } from './layoutBoxEngine.js'
 import { createComponent } from './componentFactory.js'
+import Map3DComponent from './map3d/Map3DComponent.vue'
 
 const router = useRouter()
 
@@ -259,6 +277,9 @@ function renderComponentMarkup(c) {
     case 'flow-box':
       inner = renderFlowBoxMarkup(c)
       break
+    case 'map-3d':
+      inner = `<div style="width:100%;height:100%;border-radius:12px;background:transparent;"></div>`
+      break
   }
 
   const overflow = (c.type === 'timeline') ? 'overflow:visible;' : 'overflow:hidden;'
@@ -268,6 +289,10 @@ function renderComponentMarkup(c) {
 const stageHtml = computed(() => {
   return state.components.map(c => renderComponentMarkup(c)).join('')
 })
+
+const map3dComponents = computed(() =>
+  state.components.filter(c => c.type === 'map-3d')
+)
 
 // ---- Actions ----
 
