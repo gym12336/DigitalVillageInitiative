@@ -830,7 +830,7 @@ const availableLayouts = computed(() => {
 
 function childTypeLabel(child) {
   if (!child) return '空'
-  const labels = { text: '文本', chart: '图表', image: '图片', timeline: '时间轴', datatable: '数据表' }
+  const labels = { text: '文本', chart: '图表', image: '图片', 'agri-sensor': '传感器', timeline: '时间轴', datatable: '数据表' }
   if (child.type === 'chart' && child.props && child.props.chartType) {
     const ctLabels = { bar: '柱状图', pie: '饼图', line: '折线图', 'stacked-bar': '堆叠柱状图', dumbbell: '哑铃图', 'trend-badge': '涨跌徽标', radar: '雷达图', sankey: '桑基图' }
     return ctLabels[child.props.chartType] || '图表'
