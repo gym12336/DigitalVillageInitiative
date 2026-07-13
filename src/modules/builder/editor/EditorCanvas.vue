@@ -68,6 +68,7 @@
             width: (c.width * state.zoom) + 'px',
             height: (c.height * state.zoom) + 'px',
             zIndex: 1,
+            pointerEvents: 'none',
           }"
         >
           <Map3DComponent :component="c" mode="edit" />

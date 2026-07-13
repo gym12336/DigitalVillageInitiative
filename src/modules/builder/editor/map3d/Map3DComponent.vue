@@ -211,6 +211,7 @@ const rootStyle = computed(() => ({
   position: 'relative',
   overflow: 'hidden',
   borderRadius: '12px',
+  pointerEvents: 'auto',
 }))
 </script>
 
