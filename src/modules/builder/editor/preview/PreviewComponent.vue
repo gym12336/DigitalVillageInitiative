@@ -115,6 +115,8 @@ const textStyle = computed(() => {
 
 // ---- image ----
 const imageStyle = computed(() => ({
+  width: '100%',
+  height: '100%',
   objectFit: p.value.objectFit || 'fill',
   borderRadius: (p.value.borderRadius || 0) + 'px',
 }))
