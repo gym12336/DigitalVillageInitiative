@@ -72,9 +72,14 @@
           </div>
 
           <template v-if="tabModes.data === 'preview'">
-            <CompareBars v-if="comparableMetrics.length" :items="comparableMetrics" />
-            <KpiGrid v-if="kpiMetrics.length" :items="kpiMetrics" />
-            <p v-if="!comparableMetrics.length && !kpiMetrics.length" class="hint">还没有指标。切换到「编辑」添加，或回「实践前」生成方案。</p>
+            <template v-if="dataPreviewGroups.length">
+              <div v-for="g in dataPreviewGroups" :key="'dg-'+g.cat" class="preview-group">
+                <h4 class="preview-cat-label">{{ g.cat }}</h4>
+                <CompareBars v-if="g.cmpItems.length" :items="g.cmpItems" />
+                <KpiGrid v-if="g.kpiItems.length" :items="g.kpiItems" />
+              </div>
+            </template>
+            <p v-else class="hint">还没有指标。切换到「编辑」添加，或回「实践前」生成方案。</p>
           </template>
 
           <template v-else>
@@ -119,7 +124,12 @@
           </div>
 
           <template v-if="tabModes.people === 'preview'">
-            <PeopleWall v-if="state.people.filter(p => p.name).length" :items="state.people.filter(p => p.name)" />
+            <template v-if="peopleGroups.length">
+              <div v-for="[cat, items] in peopleGroups" :key="'pw-'+cat" class="preview-group">
+                <h4 class="preview-cat-label">{{ cat }}</h4>
+                <PeopleWall :items="items.filter(p => p.name)" />
+              </div>
+            </template>
             <p v-else class="hint">还没有人物。切换到「编辑」添加，AI 提取或手动添加。</p>
           </template>
 
@@ -163,7 +173,12 @@
           </div>
 
           <template v-if="tabModes.places === 'preview'">
-            <TimelineView v-if="sortedPlaces.length" :items="sortedPlaces" />
+            <template v-if="placeGroups.length">
+              <div v-for="[cat, items] in placeGroups" :key="'tl-'+cat" class="preview-group">
+                <h4 class="preview-cat-label">{{ cat }}</h4>
+                <TimelineView :items="[...items].filter(p => p.name).sort((a, b) => { if (!a.date) return 1; if (!b.date) return -1; return String(a.date).localeCompare(String(b.date)) })" />
+              </div>
+            </template>
             <p v-else class="hint">还没有实践足迹。切换到「编辑」添加，AI 提取或手动添加。</p>
           </template>
 
@@ -410,6 +425,50 @@ const kpiMetrics = computed(() => {
       isHighlight: !!m.isHighlight,
       insight: m.insight || '',
     }))
+})
+
+// 数据Tab预览：按分类分组（与编辑模式分类一致）
+const dataPreviewGroups = computed(() => {
+  const allCats = new Set()
+  for (const m of state.metricValues) {
+    if (!isNumStr(m.before) && !isNumStr(m.after)) continue
+    allCats.add((m.category || '').trim() || '未分类')
+  }
+  const cats = [...allCats]
+  const fbIdx = cats.indexOf('未分类')
+  if (fbIdx > -1) { cats.splice(fbIdx, 1); cats.push('未分类') }
+
+  return cats.map((cat) => {
+    const items = state.metricValues.filter((m) => {
+      if (!isNumStr(m.before) && !isNumStr(m.after)) return false
+      return ((m.category || '').trim() || '未分类') === cat
+    })
+    const cmpItems = items
+      .filter((m) => isNumStr(m.before) && isNumStr(m.after))
+      .map((m) => {
+        const before = Number(m.before)
+        const after = Number(m.after)
+        const max = Math.max(before, after, 1)
+        const delta = after - before
+        return {
+          name: m.name, unit: m.unit || '', before, after,
+          beforePct: Math.round((before / max) * 100),
+          afterPct: Math.round((after / max) * 100),
+          up: delta > 0, down: delta < 0,
+          deltaLabel: delta === 0 ? '持平' : (delta > 0 ? '▲ +' : '▼ ') + Math.abs(delta) + (m.unit || ''),
+          insight: m.insight || '',
+        }
+      })
+    const kpiItems = items
+      .filter((m) => isNumStr(m.after) || isNumStr(m.before))
+      .map((m) => ({
+        name: m.name, unit: m.unit || '',
+        value: isNumStr(m.after) ? Number(m.after) : Number(m.before),
+        isHighlight: !!m.isHighlight,
+        insight: m.insight || '',
+      }))
+    return { cat, cmpItems, kpiItems }
+  })
 })
 
 const sortedPlaces = computed(() => {
@@ -1021,4 +1080,12 @@ function dedupeState() {
 .mode-btn:last-child { border-radius: 0 8px 8px 0; }
 .mode-btn.active { background: var(--color-primary); color: #fff; border-color: var(--color-primary); }
 .mode-btn:hover:not(.active) { border-color: var(--color-primary); color: var(--color-primary); }
+
+/* 预览模式分类分组 */
+.preview-group { margin-bottom: 1.2rem; }
+.preview-cat-label {
+  font-size: .82rem; font-weight: 600; color: var(--color-primary-dark);
+  padding: .3rem .6rem; background: var(--color-accent); border-radius: 6px;
+  display: inline-block; margin-bottom: .6rem;
+}
 </style>
