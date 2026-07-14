@@ -109,7 +109,7 @@
         <div class="stage-wrap">
           <StagePlan v-if="active.stage === 'plan'" :dossier="active" @update="applyUpdate" />
           <StageTrack v-else-if="active.stage === 'track'" :dossier="active" @update="applyUpdate" />
-          <StageResult v-else :dossier="active" @update="applyUpdate" />
+          <StageBuilder v-else :dossier="active" @update="applyUpdate" />
         </div>
 
         <div class="stage-nav">
@@ -134,7 +134,7 @@ import AuthGate from './AuthGate.vue'
 import TeamMembers from './TeamMembers.vue'
 import StagePlan from './StagePlan.vue'
 import StageTrack from './StageTrack.vue'
-import StageResult from './StageResult.vue'
+import StageBuilder from './StageBuilder.vue'
 import { currentUser } from './auth.js'
 import { apiGetTeam } from './api.js'
 import { loadDossiers, getDossier, updateDossier, removeDossier, setStage, STAGES } from './dossier.js'
