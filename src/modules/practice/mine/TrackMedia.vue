@@ -10,7 +10,7 @@
     <div class="mat-list">
       <div v-for="(m, i) in materials" :key="i" class="mat-row" :class="{ 'has-file': m.url }">
         <img v-if="m.url && m.kind === 'image'" :src="m.url" class="mat-thumb" :alt="m.name" />
-        <span v-else class="mat-ic">{{ kindIcon(m.kind) }}</span>
+        <span v-else class="mat-ic">{{ rowIcon(m) }}</span>
         <select v-model="m.type" class="cell type">
           <option v-for="t in materialTypes" :key="t" :value="t">{{ t }}</option>
         </select>
@@ -24,10 +24,20 @@
             @click="onDescribe(i)"
           >{{ describing === i ? 'AI 识图中…' : '🤖 AI 描述此图' }}</button>
           <button v-if="m.url || m.text" class="mat-link" @click="preview = m">查看 ↗</button>
-          <label v-else class="btn tiny row-file" :class="{ disabled: rowUploading === i }">
+          <!-- 手动登记、暂无文件的材料：默认「选文件」入口 -->
+          <label v-else-if="!isAiMaterial(m)" class="btn tiny row-file" :class="{ disabled: rowUploading === i }">
             {{ rowUploading === i ? '上传中…' : '📎 选文件' }}
             <input type="file" class="file-input" :disabled="rowUploading === i" @change="onRowFile(i, $event)" />
           </label>
+          <!-- AI 抽取采纳而来的材料：标明来源，补传做成「选填」入口（如实物拍照/扫描件），
+               不用和手动登记一样的默认「选文件」，避免误以为必须绑文件 -->
+          <template v-else>
+            <span class="ai-badge">AI 抽取</span>
+            <label class="mat-link row-file-supplement" :class="{ disabled: rowUploading === i }">
+              {{ rowUploading === i ? '上传中…' : '📎 补实物照片（选填）' }}
+              <input type="file" class="file-input" :disabled="rowUploading === i" @change="onRowFile(i, $event)" />
+            </label>
+          </template>
         </div>
         <button class="chip-x" aria-label="删除" @click="remove(i)">×</button>
       </div>
@@ -67,6 +77,18 @@ const rowUploading = ref(-1) // 正在上传的行下标，-1 表示无
 const KIND_TO_TYPE = { image: '照片', av: '视频', doc: '文档', table: '表格', other: '其他' }
 const KIND_ICON = { image: '🖼', av: '🎬', doc: '📄', table: '📊', other: '📎' }
 function kindIcon(kind) { return KIND_ICON[kind] || '📎' }
+// 是否 AI 抽取采纳而来、无需绑文件的材料。
+// 兼容两类：新数据带 source:'auto'；旧数据仅带 summary/theme（早期 adoptDraft 未打 source）。
+// 判定前提是「未绑文件」（无 url/text），已绑文件的材料一律按普通材料走查看/识图。
+function isAiMaterial(m) {
+  if (m.url || m.text) return false
+  return m.source === 'auto' || !!(m.summary || m.theme)
+}
+// 行首图标：AI 抽取采纳而来的材料用 🤖 区分；其余按类型。
+function rowIcon(m) {
+  if (isAiMaterial(m)) return '🤖'
+  return kindIcon(m.kind)
+}
 
 // 行内选文件：给某条手动登记的材料补传真实文件，绑定到该行（保留已填的名称/备注）。
 async function onRowFile(i, e) {
@@ -167,6 +189,11 @@ function remove(i) {
 .mat-link { font-size: .8rem; color: var(--color-primary); text-decoration: none; white-space: nowrap; border: none; background: transparent; cursor: pointer; padding: 0; }
 .mat-link:hover { text-decoration: underline; }
 .mat-link:disabled { color: var(--color-text-light); cursor: default; text-decoration: none; }
+.ai-badge { font-size: .72rem; color: var(--color-primary-dark); background: var(--color-accent); padding: .12rem .5rem; border-radius: 50px; white-space: nowrap; }
+/* AI 抽取材料的补传入口：弱化为「选填」文字链接，和默认「选文件」按钮区分开。 */
+.row-file-supplement { position: relative; overflow: hidden; cursor: pointer; font-size: .78rem; color: var(--color-text-light); }
+.row-file-supplement:hover { color: var(--color-primary); text-decoration: underline; }
+.row-file-supplement.disabled { pointer-events: none; opacity: .6; }
 
 .cell {
   padding: .5rem .7rem; font-size: .88rem; color: var(--color-text);

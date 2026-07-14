@@ -30,6 +30,40 @@ describe('TrackMedia 手动登记材料（bug 复现）', () => {
     expect(afterRows).toBe(beforeRows + 1)
   })
 
+  it('AI 抽取的材料（有 summary/theme、无 url/source）显示 AI 抽取徽标 + 选填补传入口，不显示默认「选文件」', async () => {
+    const dossier = makeDossier({
+      collected: {
+        metricValues: [],
+        people: [],
+        // 旧数据：早期 adoptDraft 未打 source:'auto'，仅带 summary/theme
+        materials: [{ type: '其他', name: '备用电池', note: '每台机身配2-3块', summary: '每台机身配备2-3块备用电池', theme: '设备清单' }],
+      },
+    })
+    const w = mount(StageTrack, { props: { dossier } })
+    const row = w.find('.mat-row')
+    expect(row.exists()).toBe(true)
+    // 徽标标明来源
+    expect(row.find('.ai-badge').exists()).toBe(true)
+    // 不呈现和手动登记一样的默认「选文件」按钮（避免误以为必须绑文件）
+    expect(row.find('.row-file').exists()).toBe(false)
+    // 但保留一个明确「选填」的补传入口（实物照片/扫描件），且底层仍是 file input
+    const supp = row.find('.row-file-supplement')
+    expect(supp.exists()).toBe(true)
+    expect(supp.text()).toMatch(/选填/)
+    expect(supp.find('input[type="file"]').exists()).toBe(true)
+  })
+
+  it('手动登记的空材料（无 url/summary/theme）仍显示默认「选文件」', async () => {
+    const dossier = makeDossier({
+      collected: { metricValues: [], people: [], materials: [{ type: '照片', name: '村口古樟树', note: '' }] },
+    })
+    const w = mount(StageTrack, { props: { dossier } })
+    const row = w.find('.mat-row')
+    expect(row.find('.row-file').exists()).toBe(true)
+    expect(row.find('.row-file-supplement').exists()).toBe(false)
+    expect(row.find('.ai-badge').exists()).toBe(false)
+  })
+
   it('新增一行 → 在材料名里录入文字 → 保存后 emit 的 collected 应含该材料', async () => {
     const w = mount(StageTrack, { props: { dossier: makeDossier() } })
     const addBtn = w.findAll('button').find((b) => b.text().includes('手动登记材料'))
