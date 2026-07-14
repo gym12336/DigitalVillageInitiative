@@ -16,9 +16,18 @@ function makeDossier(overrides = {}) {
   }
 }
 
+// 素材 Tab 默认预览模式（渲染 MaterialGroups）；TrackMedia 只在编辑模式渲染。
+// 点击素材 Tab 面板里第一个「编辑」模式按钮切过去。
+async function enterFilesEdit(w) {
+  const editBtn = w.findAll('.mode-btn').find((b) => b.text() === '编辑')
+  expect(editBtn).toBeTruthy()
+  await editBtn.trigger('click')
+}
+
 describe('TrackMedia 手动登记材料（bug 复现）', () => {
   it('点「+ 手动登记材料」后应新增一行材料输入', async () => {
     const w = mount(StageTrack, { props: { dossier: makeDossier() } })
+    await enterFilesEdit(w)
     // 找到 TrackMedia 里的「手动登记材料」按钮
     const addBtn = w.findAll('button').find((b) => b.text().includes('手动登记材料'))
     expect(addBtn).toBeTruthy()
@@ -40,6 +49,7 @@ describe('TrackMedia 手动登记材料（bug 复现）', () => {
       },
     })
     const w = mount(StageTrack, { props: { dossier } })
+    await enterFilesEdit(w)
     const row = w.find('.mat-row')
     expect(row.exists()).toBe(true)
     // 徽标标明来源
@@ -58,6 +68,7 @@ describe('TrackMedia 手动登记材料（bug 复现）', () => {
       collected: { metricValues: [], people: [], materials: [{ type: '照片', name: '村口古樟树', note: '' }] },
     })
     const w = mount(StageTrack, { props: { dossier } })
+    await enterFilesEdit(w)
     const row = w.find('.mat-row')
     expect(row.find('.row-file').exists()).toBe(true)
     expect(row.find('.row-file-supplement').exists()).toBe(false)
@@ -66,6 +77,7 @@ describe('TrackMedia 手动登记材料（bug 复现）', () => {
 
   it('新增一行 → 在材料名里录入文字 → 保存后 emit 的 collected 应含该材料', async () => {
     const w = mount(StageTrack, { props: { dossier: makeDossier() } })
+    await enterFilesEdit(w)
     const addBtn = w.findAll('button').find((b) => b.text().includes('手动登记材料'))
     await addBtn.trigger('click')
 
