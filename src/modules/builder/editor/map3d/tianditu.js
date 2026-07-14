@@ -138,3 +138,71 @@ export function normalizeRegion(address) {
   return parts.length > 0 ? parts.join(' · ') : address
 }
 
+// ---- 拼贴瓦片（编辑态缩略图） ----
+
+const TILE_SIZE = 256
+const TIANDITU_IMG_URL = 'https://t{s}.tianditu.gov.cn/img_w/wmts'
+const TIANDITU_CIA_URL = 'https://t{s}.tianditu.gov.cn/cia_w/wmts'
+const SUBDOMAINS = ['0', '1', '2', '3', '4', '5', '6', '7']
+
+function tileUrl(baseUrl, tx, ty, zoom, tk) {
+  const s = SUBDOMAINS[(tx + ty) % SUBDOMAINS.length]
+  return baseUrl.replace('{s}', s)
+    + `?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=`
+    + (baseUrl.includes('img_w') ? 'img' : 'cia')
+    + `&STYLE=default&TILEMATRIXSET=w&FORMAT=tiles&TILEMATRIX=${zoom}&TILEROW=${ty}&TILECOL=${tx}&tk=${tk}`
+}
+
+/**
+ * 拼装画布区域所需的天图 WMTS 瓦片列表
+ * @param {{lng:number, lat:number, zoom:number, width:number, height:number}} opts
+ * @returns {Array<{url:string, drawX:number, drawY:number, layer:'img_w'|'cia_w'}>}
+ */
+export function buildMosaicTiles({ lng, lat, zoom, width, height }) {
+  const tk = getTiandituKey()
+
+  // 中心点在 Web Mercator 全局像素坐标
+  const mapSize = TILE_SIZE * (1 << zoom)
+  const centerX = ((lng + 180) / 360) * mapSize
+  const sinLat = Math.sin((lat * Math.PI) / 180)
+  const centerY = (1 - Math.log((1 + sinLat) / (1 - sinLat)) / (2 * Math.PI)) * 0.5 * mapSize
+
+  const left = centerX - width / 2
+  const top = centerY - height / 2
+
+  const tileMinX = Math.floor(left / TILE_SIZE)
+  const tileMaxX = Math.floor((centerX + width / 2 - 1) / TILE_SIZE)
+  const tileMinY = Math.floor(top / TILE_SIZE)
+  const tileMaxY = Math.floor((centerY + height / 2 - 1) / TILE_SIZE)
+
+  const tiles = []
+
+  for (let ty = tileMinY; ty <= tileMaxY; ty++) {
+    for (let tx = tileMinX; tx <= tileMaxX; tx++) {
+      const drawX = Math.round(tx * TILE_SIZE - left)
+      const drawY = Math.round(ty * TILE_SIZE - top)
+      tiles.push({
+        url: tileUrl(TIANDITU_IMG_URL, tx, ty, zoom, tk),
+        drawX,
+        drawY,
+        layer: 'img_w',
+      })
+    }
+  }
+
+  for (let ty = tileMinY; ty <= tileMaxY; ty++) {
+    for (let tx = tileMinX; tx <= tileMaxX; tx++) {
+      const drawX = Math.round(tx * TILE_SIZE - left)
+      const drawY = Math.round(ty * TILE_SIZE - top)
+      tiles.push({
+        url: tileUrl(TIANDITU_CIA_URL, tx, ty, zoom, tk),
+        drawX,
+        drawY,
+        layer: 'cia_w',
+      })
+    }
+  }
+
+  return tiles
+}
+
