@@ -8,6 +8,14 @@ vi.mock('@/modules/practice/mine/retrieval.js', () => ({
   extractKeywords: vi.fn(() => []),
 }))
 
+// mock sources：StagePlan onMounted 会调 getRetrievalSources()，其内部走 fetch('/api/villages')，
+// jsdom 无 origin 解析相对路径会抛 Invalid URL。测试只关心 retrieve/searchWeb，故给空数据源。
+vi.mock('@/modules/practice/mine/sources.js', () => ({
+  getRetrievalSources: vi.fn(async () => ({
+    villages: [], results: [], demands: [], guide: {},
+  })),
+}))
+
 import StagePlan from '@/modules/practice/mine/StagePlan.vue'
 import * as retrieval from '@/modules/practice/mine/retrieval.js'
 
