@@ -64,7 +64,8 @@ export async function searchVillages({ name, provinceCode = '', cityKeyword = ''
     level: '12',
     queryType: '7',              // 7 = 地名搜索（更精准匹配行政区划名称）
     count: '20',
-    ...(provinceCode ? { specify: provinceCode } : {}),
+    // 天地图 v2 用 specifyAdminCode + 9 位国标码（国家码 156 + 6 位行政区划码）
+    ...(provinceCode ? { specifyAdminCode: '156' + provinceCode } : {}),
   })
 
   const url = `${TIANDITU_SEARCH_URL}?postStr=${encodeURIComponent(postStr)}&type=query&tk=${tk}`
@@ -83,17 +84,33 @@ export async function searchVillages({ name, provinceCode = '', cityKeyword = ''
     clearTimeout(timer)
   }
 
-  if (!data || data.status !== '0' || !Array.isArray(data.pois)) {
+  // 天地图 v2 status 可能是字符串 '0'，也可能是对象 { infocode: 1000 }
+  const ok = data && (data.status === '0'
+    || (data.status && typeof data.status === 'object' && Number(data.status.infocode) === 1000))
+  if (!ok || !Array.isArray(data.pois)) {
     return []
   }
 
+  // 天地图 v2 poi 用 lonlat "lng,lat" 字段；兼容旧格式的 lon/lat 分离字段。
+  function parseLngLat(poi) {
+    if (poi.lonlat && typeof poi.lonlat === 'string') {
+      const [lng, lat] = poi.lonlat.split(',').map(parseFloat)
+      return { lng, lat }
+    }
+    if (poi.lon && poi.lat) {
+      return { lng: parseFloat(poi.lon), lat: parseFloat(poi.lat) }
+    }
+    return { lng: NaN, lat: NaN }
+  }
+
   let results = data.pois
-    .filter(poi => poi.lon && poi.lat)
-    .map(poi => ({
+    .map(poi => ({ poi, ...parseLngLat(poi) }))
+    .filter(r => !Number.isNaN(r.lng) && !Number.isNaN(r.lat))
+    .map(({ poi, lng, lat }) => ({
       name: poi.name || '',
       address: poi.address || '',
-      lng: parseFloat(poi.lon),
-      lat: parseFloat(poi.lat),
+      lng,
+      lat,
     }))
 
   // 前端按市/区县关键字二次过滤
