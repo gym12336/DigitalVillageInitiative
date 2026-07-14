@@ -10,3 +10,5 @@ server/data/
 
 # 上传的实践材料（用户数据/测试文件，不入库）
 server/uploads/
+
+coverage/
