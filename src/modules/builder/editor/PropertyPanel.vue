@@ -100,6 +100,15 @@
           <label>图片 URL</label>
           <input type="text" v-model="comp.props.src" placeholder="https://..." />
         </div>
+        <!-- 新增：从实践选取 -->
+        <div class="pp-field">
+          <label>或从实践选取</label>
+          <PracticeImagePicker
+            :dossier-id="dossierId"
+            v-model="comp.props.src"
+            @select="onImagePicked"
+          />
+        </div>
         <div class="pp-field">
           <label>替代文本</label>
           <input type="text" v-model="comp.props.alt" placeholder="图片描述" />
@@ -177,22 +186,198 @@
 
       <!-- Timeline props -->
       <div v-if="comp.type === 'timeline'" class="pp-section">
-        <div class="pp-field">
-          <label>标题</label>
-          <input type="text" v-model="comp.props.title" />
-        </div>
-        <h4 class="pp-subtitle">
-          事件列表
-          <button class="pp-add" @click="addTimelineEvent(comp)">+ 添加事件</button>
-        </h4>
-        <div v-for="(ev, i) in comp.props.events" :key="i" class="pp-timeline-row">
-          <div class="pp-timeline-fields">
-            <input type="text" v-model="ev.date" placeholder="日期" class="pp-tl-date" />
-            <input type="text" v-model="ev.title" placeholder="标题" class="pp-tl-title" />
+
+        <!-- View A: Event list -->
+        <template v-if="comp._selectedChildIndex == null">
+          <div class="pp-field">
+            <label>标题</label>
+            <input type="text" v-model="comp.props.title" />
           </div>
-          <textarea v-model="ev.description" placeholder="描述" rows="2" class="pp-tl-desc"></textarea>
-          <button class="pp-sr-del" @click="removeTimelineEvent(comp, i)">×</button>
-        </div>
+          <h4 class="pp-subtitle">
+            事件列表
+            <button class="pp-add" @click="addTimelineEvent(comp)">+ 添加事件</button>
+          </h4>
+          <div v-for="(ev, i) in comp.props.events" :key="i" class="pp-timeline-row">
+            <div class="pp-timeline-fields">
+              <input type="text" v-model="ev.date" placeholder="日期" class="pp-tl-date" />
+              <input type="text" v-model="ev.title" placeholder="标题" class="pp-tl-title" />
+            </div>
+            <textarea v-model="ev.description" placeholder="描述" rows="2" class="pp-tl-desc"></textarea>
+            <button class="pp-sr-del" @click="removeTimelineEvent(comp, i)">×</button>
+
+            <!-- Child config row -->
+            <div class="pp-tl-child-row">
+              <select
+                :value="ev.child ? (ev.child.type === 'chart' ? 'chart:' + (ev.child.props.chartType || 'bar') : ev.child.type) : ''"
+                class="pp-tl-child-select"
+                @change="onTimelineChildTypeChange(comp, i, $event.target.value)"
+              >
+                <option value="">无关联组件</option>
+                <option value="text">文本</option>
+                <option value="image">图片</option>
+                <option value="chart:bar">图表-柱状图</option>
+                <option value="chart:pie">图表-饼图</option>
+                <option value="chart:line">图表-折线图</option>
+                <option value="chart:dumbbell">图表-哑铃图</option>
+                <option value="chart:trend-badge">图表-涨跌徽标</option>
+                <option value="chart:radar">图表-雷达图</option>
+                <option value="chart:sankey">图表-桑基图</option>
+                <option value="agri-sensor">传感器</option>
+                <option value="timeline">时间轴</option>
+                <option value="datatable">数据表</option>
+              </select>
+              <span class="pp-tl-size">
+                <input type="number" v-model.number="ev.popupWidth" min="100" max="600" class="pp-tl-size-input" title="弹出宽度" />
+                ×
+                <input type="number" v-model.number="ev.popupHeight" min="80" max="500" class="pp-tl-size-input" title="弹出高度" />
+              </span>
+              <button
+                v-if="ev.child"
+                class="pp-slot-edit-btn"
+                @click="comp._selectedChildIndex = i"
+              >编辑</button>
+            </div>
+          </div>
+        </template>
+
+        <!-- View B: Child editor (reuses existing editingChild computed and child-editor template) -->
+        <template v-else>
+          <button class="pp-back-btn" @click="comp._selectedChildIndex = null">← 返回事件列表</button>
+
+          <div v-if="editingChild" class="pp-child-editor">
+            <h4 class="pp-subtitle">{{ childTypeLabel(editingChild) }} - 事件 {{ comp._selectedChildIndex + 1 }}</h4>
+
+            <!-- Child chart props -->
+            <div v-if="editingChild.type === 'chart'">
+              <div class="pp-field">
+                <label>标题</label>
+                <input type="text" v-model="editingChild.props.title" />
+              </div>
+              <div class="pp-field">
+                <label>图表类型</label>
+                <select v-model="editingChild.props.chartType">
+                  <option value="bar">柱状图</option>
+                  <option value="pie">饼图</option>
+                  <option value="line">折线图</option>
+                  <option value="stacked-bar">堆叠柱状图</option>
+                  <option value="dumbbell">哑铃图</option>
+                  <option value="trend-badge">涨跌徽标</option>
+                  <option value="radar">雷达图</option>
+                  <option value="sankey">桑基图</option>
+                </select>
+              </div>
+              <div class="pp-field">
+                <label>CSV 数据</label>
+                <textarea v-model="editingChild.props.csvText" rows="6" style="font-family:monospace;font-size:12px;"></textarea>
+              </div>
+            </div>
+
+            <!-- Child text props -->
+            <div v-if="editingChild.type === 'text'">
+              <div class="pp-field">
+                <label>文本内容</label>
+                <textarea v-model="editingChild.props.text" rows="3"></textarea>
+              </div>
+              <div class="pp-field">
+                <label>字号</label>
+                <input type="number" v-model.number="editingChild.props.fontSize" min="8" max="200" />
+              </div>
+              <div class="pp-field">
+                <label>颜色</label>
+                <input type="color" v-model="editingChild.props.color" />
+              </div>
+            </div>
+
+            <!-- Child image props -->
+            <div v-if="editingChild.type === 'image'">
+              <div class="pp-field">
+                <label>图片 URL</label>
+                <input type="text" v-model="editingChild.props.src" placeholder="https://..." />
+              </div>
+              <div class="pp-field">
+                <label>填充模式</label>
+                <select v-model="editingChild.props.objectFit">
+                  <option value="cover">Cover 裁剪</option>
+                  <option value="contain">Contain 完整</option>
+                  <option value="fill">Fill 拉伸</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Child sensor props -->
+            <div v-if="editingChild.type === 'agri-sensor'">
+              <div class="pp-field">
+                <label>标题</label>
+                <input type="text" v-model="editingChild.props.title" />
+              </div>
+              <h4 class="pp-subtitle">
+                传感器
+                <button class="pp-add" @click="addSensor(editingChild)">+ 添加</button>
+              </h4>
+              <div v-for="(s, si) in editingChild.props.sensors" :key="si" class="pp-timeline-row">
+                <div class="pp-timeline-fields">
+                  <input type="text" v-model="s.name" placeholder="名称" class="pp-tl-date" />
+                  <input type="number" v-model.number="s.value" placeholder="值" class="pp-tl-title" />
+                  <input type="text" v-model="s.unit" placeholder="单位" style="width:50px;" />
+                </div>
+                <select v-model="s.status" style="width:100%;margin-top:4px;">
+                  <option value="normal">正常</option>
+                  <option value="warning">警告</option>
+                  <option value="error">危险</option>
+                </select>
+                <button v-if="editingChild.props.sensors.length > 1" class="pp-sr-del" @click="removeSensor(editingChild, si)">×</button>
+              </div>
+            </div>
+
+            <!-- Child timeline props -->
+            <div v-if="editingChild.type === 'timeline'">
+              <div class="pp-field">
+                <label>标题</label>
+                <input type="text" v-model="editingChild.props.title" />
+              </div>
+              <h4 class="pp-subtitle">
+                事件列表
+                <button class="pp-add" @click="addTimelineEvent(editingChild)">+ 添加事件</button>
+              </h4>
+              <div v-for="(ev, i) in editingChild.props.events" :key="i" class="pp-timeline-row">
+                <div class="pp-timeline-fields">
+                  <input type="text" v-model="ev.date" placeholder="日期" class="pp-tl-date" />
+                  <input type="text" v-model="ev.title" placeholder="标题" class="pp-tl-title" />
+                </div>
+                <textarea v-model="ev.description" placeholder="描述" rows="2" class="pp-tl-desc"></textarea>
+                <button v-if="editingChild.props.events.length > 1" class="pp-sr-del" @click="removeTimelineEvent(editingChild, i)">×</button>
+              </div>
+            </div>
+
+            <!-- Child datatable props -->
+            <div v-if="editingChild.type === 'datatable'">
+              <div class="pp-field">
+                <label>标题</label>
+                <input type="text" v-model="editingChild.props.title" />
+              </div>
+              <h4 class="pp-subtitle">
+                列定义
+                <button class="pp-add" @click="addDatatableColumn(editingChild)">+ 添加列</button>
+              </h4>
+              <div class="pp-dt-columns">
+                <div v-for="(col, ci) in editingChild.props.columns" :key="'col'+ci" class="pp-dt-col-item">
+                  <input type="text" v-model="editingChild.props.columns[ci]" placeholder="列名" class="pp-dt-col-input" />
+                  <button v-if="editingChild.props.columns.length > 1" class="pp-sr-del" @click="removeDatatableColumn(editingChild, ci)">×</button>
+                </div>
+              </div>
+              <h4 class="pp-subtitle">
+                数据行
+                <button class="pp-add" @click="addDatatableRow(editingChild)">+ 添加行</button>
+              </h4>
+              <div v-for="(row, ri) in editingChild.props.rows" :key="'row'+ri" class="pp-timeline-row">
+                <div class="pp-dt-cells">
+                  <input v-for="(col, ci) in editingChild.props.columns" :key="ci" type="text" v-model="editingChild.props.rows[ri][ci]" :placeholder="col" class="pp-dt-cell" />
+                </div>
+                <button v-if="editingChild.props.rows.length > 1" class="pp-sr-del" @click="removeDatatableRow(editingChild, ri)">×</button>
+              </div>
+            </div>
+          </div>
+        </template>
       </div>
 
       <!-- Datatable props -->
@@ -338,6 +523,14 @@
                 <input type="text" v-model="editingChild.props.src" placeholder="https://..." />
               </div>
               <div class="pp-field">
+                <label>或从实践选取</label>
+                <PracticeImagePicker
+                  :dossier-id="dossierId"
+                  v-model="editingChild.props.src"
+                  @select="(m) => { if (!editingChild.props.alt) editingChild.props.alt = m.name.replace(/\.[^.]+$/, '') }"
+                />
+              </div>
+              <div class="pp-field">
                 <label>填充模式</label>
                 <select v-model="editingChild.props.objectFit">
                   <option value="cover">Cover 裁剪</option>
@@ -349,20 +542,310 @@
           </div>
         </template>
       </div>
+
+      <!-- Flow-box props -->
+      <div v-if="comp.type === 'flow-box'" class="pp-section">
+
+        <!-- View A: Container-level settings -->
+        <template v-if="comp._selectedChildIndex == null">
+          <div class="pp-field">
+            <label>容器标题</label>
+            <input type="text" v-model="comp.props.title" placeholder="容器标题（可选）" />
+          </div>
+
+          <h4 class="pp-subtitle">
+            子组件列表
+            <button class="pp-add" @click="addFlowBoxChild(comp)">+ 添加</button>
+          </h4>
+          <div v-if="comp.props.children.length === 0" class="pp-hint" style="margin-bottom:0.6rem;">
+            拖入组件或点击上方按钮添加
+          </div>
+          <div v-for="(child, i) in comp.props.children" :key="'fbchild'+i" class="pp-slot-item">
+            <span class="pp-slot-label">{{ i + 1 }}</span>
+            <span class="pp-slot-type">{{ childTypeLabel(child) }}</span>
+            <div style="flex:1;"></div>
+            <button
+              class="pp-slot-edit-btn"
+              @click="comp._selectedChildIndex = i"
+              style="margin-right:4px;"
+            >编辑</button>
+            <button
+              v-if="i > 0"
+              class="pp-slot-edit-btn"
+              @click="moveFlowBoxChild(comp, i, -1)"
+              style="margin-right:4px;"
+              title="上移"
+            >↑</button>
+            <button
+              v-if="i < comp.props.children.length - 1"
+              class="pp-slot-edit-btn"
+              @click="moveFlowBoxChild(comp, i, 1)"
+              style="margin-right:4px;"
+              title="下移"
+            >↓</button>
+            <button class="pp-sr-del" @click="removeFlowBoxChild(comp, i)">×</button>
+          </div>
+
+          <div class="pp-field" style="margin-top:0.8rem;">
+            <label class="pp-check">
+              <input type="checkbox" v-model="comp.props.autoPlay" />
+              自动轮播
+            </label>
+          </div>
+          <div class="pp-field">
+            <label>轮播间隔 (秒)</label>
+            <input type="number" v-model.number="comp.props.interval" min="1" max="30" :disabled="!comp.props.autoPlay" />
+          </div>
+          <div class="pp-field">
+            <label>动画时长</label>
+            <select v-model.number="comp.props.animationDuration">
+              <option :value="200">快 (200ms)</option>
+              <option :value="400">中 (400ms)</option>
+              <option :value="600">慢 (600ms)</option>
+            </select>
+          </div>
+        </template>
+
+        <!-- View B: Child component editor -->
+        <template v-else>
+          <button class="pp-back-btn" @click="comp._selectedChildIndex = null">← 返回容器设置</button>
+
+          <div v-if="editingChild" class="pp-child-editor">
+            <h4 class="pp-subtitle">{{ childTypeLabel(editingChild) }} - 第 {{ comp._selectedChildIndex + 1 }} 项</h4>
+
+            <!-- Child chart props -->
+            <div v-if="editingChild.type === 'chart'">
+              <div class="pp-field">
+                <label>标题</label>
+                <input type="text" v-model="editingChild.props.title" />
+              </div>
+              <div class="pp-field">
+                <label>图表类型</label>
+                <select v-model="editingChild.props.chartType">
+                  <option value="bar">柱状图</option>
+                  <option value="pie">饼图</option>
+                  <option value="line">折线图</option>
+                  <option value="stacked-bar">堆叠柱状图</option>
+                  <option value="dumbbell">哑铃图</option>
+                  <option value="trend-badge">涨跌徽标</option>
+                  <option value="radar">雷达图</option>
+                  <option value="sankey">桑基图</option>
+                </select>
+              </div>
+              <div class="pp-field">
+                <label>CSV 数据</label>
+                <textarea v-model="editingChild.props.csvText" rows="6" style="font-family:monospace;font-size:12px;"></textarea>
+              </div>
+            </div>
+
+            <!-- Child text props -->
+            <div v-if="editingChild.type === 'text'">
+              <div class="pp-field">
+                <label>文本内容</label>
+                <textarea v-model="editingChild.props.text" rows="3"></textarea>
+              </div>
+              <div class="pp-field">
+                <label>字号</label>
+                <input type="number" v-model.number="editingChild.props.fontSize" min="8" max="200" />
+              </div>
+              <div class="pp-field">
+                <label>颜色</label>
+                <input type="color" v-model="editingChild.props.color" />
+              </div>
+            </div>
+
+            <!-- Child image props -->
+            <div v-if="editingChild.type === 'image'">
+              <div class="pp-field">
+                <label>图片 URL</label>
+                <input type="text" v-model="editingChild.props.src" placeholder="https://..." />
+              </div>
+              <div class="pp-field">
+                <label>或从实践选取</label>
+                <PracticeImagePicker
+                  :dossier-id="dossierId"
+                  v-model="editingChild.props.src"
+                  @select="(m) => { if (!editingChild.props.alt) editingChild.props.alt = m.name.replace(/\.[^.]+$/, '') }"
+                />
+              </div>
+              <div class="pp-field">
+                <label>填充模式</label>
+                <select v-model="editingChild.props.objectFit">
+                  <option value="cover">Cover 裁剪</option>
+                  <option value="contain">Contain 完整</option>
+                  <option value="fill">Fill 拉伸</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Child timeline props -->
+            <div v-if="editingChild.type === 'timeline'">
+              <div class="pp-field">
+                <label>标题</label>
+                <input type="text" v-model="editingChild.props.title" />
+              </div>
+              <h4 class="pp-subtitle">
+                事件列表
+                <button class="pp-add" @click="addTimelineEvent(editingChild)">+ 添加事件</button>
+              </h4>
+              <div v-for="(ev, i) in editingChild.props.events" :key="i" class="pp-timeline-row">
+                <div class="pp-timeline-fields">
+                  <input type="text" v-model="ev.date" placeholder="日期" class="pp-tl-date" />
+                  <input type="text" v-model="ev.title" placeholder="标题" class="pp-tl-title" />
+                </div>
+                <textarea v-model="ev.description" placeholder="描述" rows="2" class="pp-tl-desc"></textarea>
+                <button class="pp-sr-del" @click="removeTimelineEvent(editingChild, i)">×</button>
+              </div>
+            </div>
+
+            <!-- Child datatable props -->
+            <div v-if="editingChild.type === 'datatable'">
+              <div class="pp-field">
+                <label>标题</label>
+                <input type="text" v-model="editingChild.props.title" />
+              </div>
+              <h4 class="pp-subtitle">
+                列定义
+                <button class="pp-add" @click="addDatatableColumn(editingChild)">+ 添加列</button>
+              </h4>
+              <div class="pp-dt-columns">
+                <div v-for="(col, ci) in editingChild.props.columns" :key="'col'+ci" class="pp-dt-col-item">
+                  <input type="text" v-model="editingChild.props.columns[ci]" placeholder="列名" class="pp-dt-col-input" />
+                  <button v-if="editingChild.props.columns.length > 1" class="pp-sr-del" @click="removeDatatableColumn(editingChild, ci)">×</button>
+                </div>
+              </div>
+              <h4 class="pp-subtitle">
+                数据行
+                <button class="pp-add" @click="addDatatableRow(editingChild)">+ 添加行</button>
+              </h4>
+              <div v-for="(row, ri) in editingChild.props.rows" :key="'row'+ri" class="pp-dt-row">
+                <div class="pp-dt-row-inputs">
+                  <input v-for="(col, ci) in editingChild.props.columns" :key="ci" type="text" v-model="editingChild.props.rows[ri][ci]" :placeholder="col" class="pp-dt-cell" />
+                </div>
+                <button v-if="editingChild.props.rows.length > 1" class="pp-sr-del" @click="removeDatatableRow(editingChild, ri)">×</button>
+              </div>
+            </div>
+          </div>
+        </template>
+      </div>
+
+      <!-- Map3D props -->
+      <div v-if="comp.type === 'map-3d'" class="pp-section">
+        <!-- 区块 1: 村庄定位 -->
+        <h4 class="pp-subtitle">📍 村庄定位</h4>
+        <VillageSearchField v-model="comp.props" />
+
+        <!-- 区块 2: 地形显示 -->
+        <h4 class="pp-subtitle" style="margin-top:1rem;">⛰️ 地形显示</h4>
+        <div class="pp-field">
+          <label>地形夸张：{{ comp.props.terrainExaggeration.toFixed(1) }}</label>
+          <input
+            type="range"
+            v-model.number="comp.props.terrainExaggeration"
+            min="1.0"
+            max="3.0"
+            step="0.1"
+          />
+        </div>
+        <div class="pp-field">
+          <label class="pp-check">
+            <input type="checkbox" v-model="comp.props.showRangeCircle" />
+            显示范围圆
+          </label>
+        </div>
+        <div class="pp-field">
+          <label>范围圆半径（米）：{{ comp.props.rangeRadius }}</label>
+          <div style="display:flex;gap:0.5rem;align-items:center;">
+            <input
+              type="range"
+              v-model.number="comp.props.rangeRadius"
+              min="100"
+              max="5000"
+              step="100"
+              style="flex:1;"
+              :disabled="!comp.props.showRangeCircle"
+            />
+            <input
+              type="number"
+              v-model.number="comp.props.rangeRadius"
+              min="100"
+              max="5000"
+              style="width:80px;"
+              :disabled="!comp.props.showRangeCircle"
+            />
+          </div>
+        </div>
+
+        <!-- 区块 3: 相机视角 -->
+        <h4 class="pp-subtitle" style="margin-top:1rem;">📷 相机视角</h4>
+        <div class="pp-field">
+          <label>默认高度（米）</label>
+          <input
+            type="number"
+            v-model.number="comp.props.defaultHeight"
+            min="500"
+            max="5000"
+          />
+        </div>
+        <div class="pp-field">
+          <label>默认倾斜角：{{ comp.props.defaultPitch }}°</label>
+          <input
+            type="range"
+            v-model.number="comp.props.defaultPitch"
+            min="30"
+            max="85"
+            step="1"
+          />
+        </div>
+        <div class="pp-field-row">
+          <div class="pp-field">
+            <label>最小缩放高度（米）</label>
+            <input
+              type="number"
+              v-model.number="comp.props.minZoomHeight"
+              min="100"
+              max="5000"
+            />
+          </div>
+          <div class="pp-field">
+            <label>最大缩放高度（米）</label>
+            <input
+              type="number"
+              v-model.number="comp.props.maxZoomHeight"
+              min="100"
+              max="5000"
+            />
+          </div>
+        </div>
+      </div>
     </template>
   </div>
 </template>
 
 <script setup>
 import { computed } from 'vue'
+import { useRoute } from 'vue-router'
 import { state, getSelected, deleteComponent } from './stageEditor.js'
-import { createComponent } from './componentFactory.js'
+import { createComponent, createEmptyChildComponent, defaultCsvFor } from './componentFactory.js'
+import PracticeImagePicker from './PracticeImagePicker.vue'
+import VillageSearchField from './map3d/VillageSearchField.vue'
+
+const route = useRoute()
+const dossierId = computed(() => route.params.dossierId || '')
 
 const comp = computed(() => getSelected())
 
 function typeLabel(type) {
-  const labels = { text: '📝 文本', image: '🖼 图片', chart: '📊 图表', 'agri-sensor': '🌡 传感器', 'timeline': '⏳ 时间轴', 'datatable': '📋 数据表', 'layout-box': '📦 多组件框' }
+  const labels = { text: '📝 文本', image: '🖼 图片', chart: '📊 图表', 'agri-sensor': '🌡 传感器', 'timeline': '⏳ 时间轴', 'datatable': '📋 数据表', 'layout-box': '📦 多组件框', 'flow-box': '🎠 流动组件框', 'map-3d': '🏔️ 村庄 3D 地形图' }
   return labels[type] || type
+}
+
+function onImagePicked(material) {
+  // 如果当前 alt 为空，自动填入图片名称（去掉扩展名）
+  if (comp.value && !comp.value.props.alt) {
+    const nameWithoutExt = material.name.replace(/\.[^.]+$/, '')
+    comp.value.props.alt = nameWithoutExt
+  }
 }
 
 // -- Layout-box helpers --
@@ -418,7 +901,15 @@ function defaultLayoutForSlotCount(slotCount) {
 
 const editingChild = computed(() => {
   if (!comp.value || !comp.value.props || comp.value._selectedChildIndex == null) return null
-  return comp.value.props.children[comp.value._selectedChildIndex] || null
+  if (comp.value.type === 'timeline') {
+    const ev = comp.value.props.events[comp.value._selectedChildIndex]
+    return ev ? ev.child : null
+  }
+  // layout-box and flow-box: child is in props.children array
+  if (comp.value.props.children) {
+    return comp.value.props.children[comp.value._selectedChildIndex] || null
+  }
+  return null
 })
 
 const availableLayouts = computed(() => {
@@ -430,7 +921,7 @@ const availableLayouts = computed(() => {
 
 function childTypeLabel(child) {
   if (!child) return '空'
-  const labels = { text: '文本', chart: '图表', image: '图片', timeline: '时间轴', datatable: '数据表' }
+  const labels = { text: '文本', chart: '图表', image: '图片', 'agri-sensor': '传感器', timeline: '时间轴', datatable: '数据表' }
   if (child.type === 'chart' && child.props && child.props.chartType) {
     const ctLabels = { bar: '柱状图', pie: '饼图', line: '折线图', 'stacked-bar': '堆叠柱状图', dumbbell: '哑铃图', 'trend-badge': '涨跌徽标', radar: '雷达图', sankey: '桑基图' }
     return ctLabels[child.props.chartType] || '图表'
@@ -485,6 +976,53 @@ function onSlotTypeChange(comp, slotIndex, typeVal) {
   comp.props.children[slotIndex] = child
 }
 
+let _nextFlowChildId = Date.now() + 100000
+function addFlowBoxChild(fbComp) {
+  const child = createComponent('text', 0, 0)
+  child.id = _nextFlowChildId++
+  fbComp.props.children.push(child)
+  if (fbComp.props.children.length === 1) {
+    fbComp.props.activeIndex = 0
+  }
+}
+
+function removeFlowBoxChild(fbComp, index) {
+  const len = fbComp.props.children.length
+  fbComp.props.children.splice(index, 1)
+  // Adjust activeIndex
+  if (fbComp.props.activeIndex >= len - 1) {
+    fbComp.props.activeIndex = Math.max(0, len - 2)
+  } else if (fbComp.props.activeIndex > index) {
+    fbComp.props.activeIndex--
+  }
+  // Reset child editor if editing the removed child
+  if (fbComp._selectedChildIndex === index) {
+    fbComp._selectedChildIndex = null
+  } else if (fbComp._selectedChildIndex > index) {
+    fbComp._selectedChildIndex--
+  }
+}
+
+function moveFlowBoxChild(fbComp, index, direction) {
+  const newIndex = index + direction
+  if (newIndex < 0 || newIndex >= fbComp.props.children.length) return
+  const temp = fbComp.props.children[index]
+  fbComp.props.children[index] = fbComp.props.children[newIndex]
+  fbComp.props.children[newIndex] = temp
+  // Adjust activeIndex if we moved the active child
+  if (fbComp.props.activeIndex === index) {
+    fbComp.props.activeIndex = newIndex
+  } else if (fbComp.props.activeIndex === newIndex) {
+    fbComp.props.activeIndex = index
+  }
+  // Adjust selectedChildIndex similarly
+  if (fbComp._selectedChildIndex === index) {
+    fbComp._selectedChildIndex = newIndex
+  } else if (fbComp._selectedChildIndex === newIndex) {
+    fbComp._selectedChildIndex = index
+  }
+}
+
 function addSensor(comp) {
   comp.props.sensors.push({ name: '', value: 0, unit: '', status: 'normal' })
 }
@@ -495,10 +1033,36 @@ function removeSensor(comp, index) {
 
 // Timeline helpers
 function addTimelineEvent(comp) {
-  comp.props.events.push({ date: '', title: '', description: '' })
+  comp.props.events.push({ date: '', title: '', description: '', child: null, popupWidth: 280, popupHeight: 200 })
 }
 function removeTimelineEvent(comp, i) {
-  if (comp.props.events.length > 1) comp.props.events.splice(i, 1)
+  if (comp.props.events.length > 1) {
+    comp.props.events.splice(i, 1)
+    if (comp._selectedChildIndex === i) {
+      comp._selectedChildIndex = null
+    } else if (comp._selectedChildIndex > i) {
+      comp._selectedChildIndex--
+    }
+  }
+}
+
+function onTimelineChildTypeChange(comp, eventIndex, typeVal) {
+  if (!typeVal) {
+    comp.props.events[eventIndex].child = null
+    return
+  }
+  let type = typeVal
+  let chartType = 'bar'
+  if (typeVal.startsWith('chart:')) {
+    type = 'chart'
+    chartType = typeVal.slice(6)
+  }
+  const child = createEmptyChildComponent(type)
+  if (type === 'chart') {
+    child.props.chartType = chartType
+    child.props.csvText = defaultCsvFor(chartType)
+  }
+  comp.props.events[eventIndex].child = child
 }
 
 // Datatable helpers
@@ -652,6 +1216,26 @@ function removeDatatableRow(comp, ri) {
   border-radius: 6px; outline: none; resize: vertical;
   background: var(--color-bg); color: var(--color-text);
   font-family: inherit;
+}
+
+/* Timeline child config */
+.pp-tl-child-row {
+  display: flex; align-items: center; gap: 4px; margin-top: 4px;
+  padding-top: 4px; border-top: 1px dashed var(--color-border-light);
+}
+.pp-tl-child-select {
+  flex: 1; font-size: 0.72rem; padding: 2px 4px;
+  border: 1px solid var(--color-border-light); border-radius: 6px;
+  background: var(--color-bg); color: var(--color-text);
+}
+.pp-tl-size {
+  display: flex; align-items: center; gap: 2px;
+  font-size: 0.68rem; color: var(--color-text-light);
+}
+.pp-tl-size-input {
+  width: 48px; font-size: 0.68rem; padding: 2px 4px;
+  border: 1px solid var(--color-border-light); border-radius: 4px;
+  background: var(--color-bg); color: var(--color-text); text-align: center;
 }
 
 /* Datatable editor */

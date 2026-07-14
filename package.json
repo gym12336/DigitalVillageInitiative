@@ -8,12 +8,14 @@
     "server": "node server/index.js",
     "build": "vite build",
     "preview": "vite preview",
+    "postinstall": "node scripts/copy-cesium-assets.js",
     "test": "vitest run",
     "test:watch": "vitest"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
     "better-sqlite3": "^12.11.1",
+    "cesium": "^1.143.0",
     "echarts": "^5.5.1",
     "echarts-gl": "^2.0.9",
     "express": "^5.2.1",
