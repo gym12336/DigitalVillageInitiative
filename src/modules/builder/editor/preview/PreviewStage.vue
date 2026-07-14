@@ -2,8 +2,12 @@
   <div class="preview-stage-wrapper">
     <div v-if="errorMsg" class="preview-error">{{ errorMsg }}</div>
     <div v-else class="stage" :style="stageStyle">
-      <!-- Task 4 填充 v-for -->
-      <span style="color:#8ea3b2;">PreviewStage OK</span>
+      <PreviewComponent
+        v-for="comp in stageComponents"
+        :key="comp._index"
+        :component="comp"
+        :allowMap3d="comp._allowMap3d"
+      />
     </div>
   </div>
 </template>
@@ -11,6 +15,9 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
+import PreviewComponent from './PreviewComponent.vue'
+
+const MAX_MAP3D = 4
 
 const route = useRoute()
 const state = ref(null)
@@ -23,6 +30,17 @@ const stageStyle = computed(() => {
     height: state.value.pageHeight + 'px',
     background: state.value.pageBackground,
   }
+})
+
+const stageComponents = computed(() => {
+  if (!state.value) return []
+  let map3dCount = 0
+  return state.value.components.map((c, i) => {
+    const isMap3d = c.type === 'map-3d'
+    const allow = !isMap3d || map3dCount < MAX_MAP3D
+    if (isMap3d) map3dCount++
+    return { ...c, _index: i, _allowMap3d: allow }
+  })
 })
 
 onMounted(() => {
