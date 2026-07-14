@@ -5,6 +5,7 @@ import {
   createImageComponent,
   createChartComponent,
   createSensorComponent,
+  createMap3DComponent,
 } from '../modules/builder/editor/componentFactory.js'
 
 describe('componentFactory', () => {
@@ -65,12 +66,45 @@ describe('componentFactory', () => {
     })
   })
 
+  describe('createMap3DComponent', () => {
+    it('returns a map-3d component with all default props', () => {
+      const c = createMap3DComponent(100, 200)
+      expect(c.type).toBe('map-3d')
+      expect(c.x).toBe(100)
+      expect(c.y).toBe(200)
+      expect(c.width).toBe(640)
+      expect(c.height).toBe(420)
+
+      // 定位默认值
+      expect(c.props.villageName).toBe('')
+      expect(c.props.centerLng).toBeNull()
+      expect(c.props.centerLat).toBeNull()
+      expect(c.props.region).toBe('')
+
+      // 搜索筛选默认值
+      expect(c.props.filterProvince).toBe('')
+      expect(c.props.filterCity).toBe('')
+
+      // 视觉默认值
+      expect(c.props.terrainExaggeration).toBe(1.5)
+      expect(c.props.showRangeCircle).toBe(true)
+      expect(c.props.rangeRadius).toBe(500)
+
+      // 相机默认值
+      expect(c.props.defaultHeight).toBe(1200)
+      expect(c.props.defaultPitch).toBe(60)
+      expect(c.props.minZoomHeight).toBe(500)
+      expect(c.props.maxZoomHeight).toBe(5000)
+    })
+  })
+
   describe('createComponent', () => {
     it('dispatches to correct factory by type', () => {
       expect(createComponent('text', 10, 20).type).toBe('text')
       expect(createComponent('image', 10, 20).type).toBe('image')
       expect(createComponent('chart', 10, 20).type).toBe('chart')
       expect(createComponent('agri-sensor', 10, 20).type).toBe('agri-sensor')
+      expect(createComponent('map-3d', 10, 20).type).toBe('map-3d')
     })
   })
 })

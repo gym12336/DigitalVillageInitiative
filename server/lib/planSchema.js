@@ -8,7 +8,9 @@ const PHASE_TITLES = {
   result: '实践后总结',
 }
 
-function isStr(v) {
+//基础校验
+
+function isStr(v) {//字符串判断
   return typeof v === 'string'
 }
 function nonEmptyStr(v) {
@@ -27,6 +29,8 @@ function normStringArray(arr) {
   }
   return out
 }
+
+//业务对象规范化
 
 function normMetrics(arr) {
   if (!Array.isArray(arr)) return []

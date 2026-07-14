@@ -10,4 +10,5 @@ export default [
   // 带实践档案上下文的别名路由
   { path: '/builder/editor/:dossierId', name: 'builder-editor-dossier', component: BigComponentEditor },
   { path: '/builder/display/:dossierId', name: 'builder-display-dossier', component: DisplayWorkbench },
+  { path: '/builder/preview', name: 'builder-preview', component: () => import('./editor/preview/PreviewStage.vue') },
 ]

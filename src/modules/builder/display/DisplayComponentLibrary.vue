@@ -80,6 +80,7 @@ const NATIVE_CATEGORIES = [
     items: [
       { label: '饼图', icon: '🥧', type: 'chart', chartType: 'pie' },
       { label: '堆叠柱', icon: '📊', type: 'chart', chartType: 'stacked-bar' },
+      { label: '数据表', icon: '📋', type: 'datatable' },
     ],
   },
   {
@@ -96,9 +97,10 @@ const NATIVE_CATEGORIES = [
     ],
   },
   {
-    id: 'cover', icon: '🎬', name: '封面开场',
+    id: 'media', icon: '🖼️', name: '媒体图片',
     items: [
       { label: '封面大图', icon: '🖼️', type: 'image' },
+      { label: '图片', icon: '🖼️', type: 'image' },
     ],
   },
   {
@@ -110,7 +112,7 @@ const NATIVE_CATEGORIES = [
   {
     id: 'flow', icon: '🔀', name: '关系流向',
     items: [
-      { label: '桑基图', icon: '〰️', type: 'chart', chartType: 'bar' },
+      { label: '桑基图', icon: '〰️', type: 'chart', chartType: 'sankey' },
     ],
   },
   {
@@ -126,21 +128,10 @@ const NATIVE_CATEGORIES = [
     ],
   },
   {
-    id: 'honor', icon: '🏆', name: '荣誉佐证',
-    items: [
-      { label: '数据表', icon: '📋', type: 'datatable' },
-    ],
-  },
-  {
-    id: 'media', icon: '🎬', name: '媒体嵌入',
-    items: [
-      { label: '视频嵌入', icon: '▶️', type: 'image' },
-    ],
-  },
-  {
     id: 'group', icon: '📦', name: '组合',
     items: [
       { label: '多组件框', icon: '📦', type: 'layout-box' },
+      { label: '流动组件框', icon: '🎠', type: 'flow-box' },
     ],
   },
 ]
