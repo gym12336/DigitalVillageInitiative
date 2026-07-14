@@ -1,17 +1,33 @@
 <!-- src/modules/builder/display/DisplayWorkbench.vue -->
 <template>
   <div class="editor-root">
-    <!-- Left Panel: Extended Component Library -->
+    <!-- Left Panel: AI Assistant / Component Library tab-switchable -->
     <aside class="editor-left" :class="{ collapsed: leftCollapsed }">
-      <DisplayComponentLibrary ref="libRef" v-if="!leftCollapsed" :dossier-id="dossierId" />
-      <button class="toggle-btn" @click="leftCollapsed = !leftCollapsed" :title="leftCollapsed ? '展开组件库' : '收起组件库'">
+      <template v-if="!leftCollapsed">
+        <!-- tab switcher -->
+        <div class="left-tabs">
+          <button class="left-tab" :class="{ active: leftTab === 'ai' }" @click="leftTab = 'ai'">🤖 AI 助手</button>
+          <button class="left-tab" :class="{ active: leftTab === 'components' }" @click="leftTab = 'components'">🧩 组件库</button>
+        </div>
+
+        <AICommandPanel
+          v-if="leftTab === 'ai'"
+          mode="display"
+          :dossier-id="dossierId"
+          :dossier-data="dossierData"
+          @applied="onAIApplied"
+          @close="leftTab = 'components'"
+        />
+        <DisplayComponentLibrary v-else ref="libRef" :dossier-id="dossierId" />
+      </template>
+      <button class="toggle-btn" @click="leftCollapsed = !leftCollapsed" :title="leftCollapsed ? '展开面板' : '收起面板'">
         {{ leftCollapsed ? '▶' : '◀' }}
       </button>
     </aside>
 
     <!-- Center: Canvas -->
     <main class="editor-center">
-      <EditorCanvas document-type="display" :dossier-id="dossierId" />
+      <EditorCanvas ref="canvasRef" document-type="display" :dossier-id="dossierId" />
     </main>
 
     <!-- Right Panel: Properties -->
@@ -27,26 +43,46 @@ import { useRoute } from 'vue-router'
 import DisplayComponentLibrary from './DisplayComponentLibrary.vue'
 import EditorCanvas from '../editor/EditorCanvas.vue'
 import PropertyPanel from '../editor/PropertyPanel.vue'
+import AICommandPanel from '../editor/AICommandPanel.vue'
 import { state, resetState } from '../editor/stageEditor.js'
+import { apiGetDossier } from '../../practice/mine/api.js'
 
 const route = useRoute()
 const leftCollapsed = ref(false)
+const leftTab = ref('ai') // 默认展示AI助手
 const libRef = ref(null)
+const canvasRef = ref(null)
 
 const dossierId = computed(() => route.params.dossierId || '')
+const dossierData = ref(null)
+
+// 加载档案完整数据，供AI面板使用
+async function loadDossierData() {
+  if (!dossierId.value) { dossierData.value = null; return }
+  try {
+    dossierData.value = await apiGetDossier(dossierId.value)
+  } catch {
+    dossierData.value = null
+  }
+}
 
 onMounted(() => {
   resetState()
-  // EditorCanvas will load from DB (or localStorage fallback) via its onMounted
+  loadDossierData()
 })
 
-// When dossierId changes, reset and reload
 watch(dossierId, () => {
   resetState()
+  loadDossierData()
   if (libRef.value?.refreshBigComponents) {
     libRef.value.refreshBigComponents()
   }
 })
+
+function onAIApplied(componentCount) {
+  // AI组件已通过 loadComponentsFromAI 直接注入 stageEditor.state
+  // 这里可以做一些后续处理，比如切换到组件库tab方便用户手动调整
+}
 </script>
 
 <style scoped>
@@ -95,9 +131,10 @@ watch(dossierId, () => {
     linear-gradient(145deg, #f2f6f8, #edf2f7, #f8fbfd);
 }
 
+/* Left panel with tab switcher */
 .editor-left {
   position: relative;
-  width: 260px;
+  width: 280px;
   flex-shrink: 0;
   margin: 12px 0 12px 12px;
   background: var(--color-card);
@@ -108,12 +145,31 @@ watch(dossierId, () => {
   box-shadow: var(--shadow-card);
   display: flex;
   flex-direction: column;
-  overflow-y: auto;
+  overflow: hidden;
   transition: width var(--transition);
 }
 .editor-left.collapsed {
   width: 36px;
   margin-right: 0;
+}
+
+.left-tabs {
+  display: flex; gap: 0;
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+.left-tab {
+  flex: 1; padding: .6rem .4rem;
+  border: none; background: transparent;
+  font-size: .8rem; font-weight: 600;
+  color: var(--color-text-light);
+  cursor: pointer; transition: all .15s;
+  border-bottom: 2px solid transparent;
+}
+.left-tab:hover { color: var(--color-text); }
+.left-tab.active {
+  color: var(--color-primary-dark);
+  border-bottom-color: var(--color-primary);
 }
 
 .editor-center {

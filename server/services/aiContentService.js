@@ -14,6 +14,11 @@ import {
   INTRO_SYSTEM, buildIntroUserPrompt,
   FACTS_SYSTEM, buildFactsUserPrompt,
   TAGS_SYSTEM, buildTagsUserPrompt,
+  TIMELINE_SYSTEM, buildTimelineUserPrompt,
+  SPECIALTIES_SYSTEM, buildSpecialtiesUserPrompt,
+  FESTIVALS_SYSTEM, buildFestivalsUserPrompt,
+  SECTIONS_SYSTEM, buildSectionsUserPrompt,
+  GUIDE_SYSTEM, buildGuideUserPrompt,
 } from './prompts/index.js'
 
 // —— 配置 ——
@@ -21,6 +26,11 @@ const DEFAULT_TIMEOUT_MS = 30_000
 const INTRO_MAX_TOKENS = 800
 const FACTS_MAX_TOKENS = 600
 const TAGS_MAX_TOKENS = 1200
+const TIMELINE_MAX_TOKENS = 600
+const SPECIALTIES_MAX_TOKENS = 500
+const FESTIVALS_MAX_TOKENS = 500
+const SECTIONS_MAX_TOKENS = 1200
+const GUIDE_MAX_TOKENS = 500
 
 // —— 私有工具 ——
 
@@ -205,7 +215,127 @@ export async function generateTags(village, opts = {}) {
 }
 
 /**
- * enrichAll：一键丰富村庄全部内容（intro + facts + tags）。
+ * generateTimeline：生成 4-5 个关键历史节点的村庄时间线。
+ *
+ * @param {object} village - 村庄对象
+ * @param {object} [opts]
+ * @param {string} [opts.apiKey]
+ * @returns {Promise<{timeline: Array, confidence: number, _meta: object}>}
+ */
+export async function generateTimeline(village, opts = {}) {
+  const result = await callDeepSeekWithLimit(
+    TIMELINE_SYSTEM,
+    buildTimelineUserPrompt(village),
+    { ...opts, maxTokens: TIMELINE_MAX_TOKENS },
+  )
+
+  return wrapResult(
+    {
+      timeline: result.timeline || [],
+      confidence: result.confidence ?? 0.5,
+    },
+    'generateTimeline',
+  )
+}
+
+/**
+ * generateSpecialties：生成 3-4 个村庄特色物产/美食。
+ *
+ * @param {object} village - 村庄对象
+ * @param {object} [opts]
+ * @param {string} [opts.apiKey]
+ * @returns {Promise<{specialties: Array, confidence: number, _meta: object}>}
+ */
+export async function generateSpecialties(village, opts = {}) {
+  const result = await callDeepSeekWithLimit(
+    SPECIALTIES_SYSTEM,
+    buildSpecialtiesUserPrompt(village),
+    { ...opts, maxTokens: SPECIALTIES_MAX_TOKENS },
+  )
+
+  return wrapResult(
+    {
+      specialties: result.specialties || [],
+      confidence: result.confidence ?? 0.5,
+    },
+    'generateSpecialties',
+  )
+}
+
+/**
+ * generateFestivals：生成 2-4 个村庄民俗节庆活动。
+ *
+ * @param {object} village - 村庄对象
+ * @param {object} [opts]
+ * @param {string} [opts.apiKey]
+ * @returns {Promise<{festivals: Array, confidence: number, _meta: object}>}
+ */
+export async function generateFestivals(village, opts = {}) {
+  const result = await callDeepSeekWithLimit(
+    FESTIVALS_SYSTEM,
+    buildFestivalsUserPrompt(village),
+    { ...opts, maxTokens: FESTIVALS_MAX_TOKENS },
+  )
+
+  return wrapResult(
+    {
+      festivals: result.festivals || [],
+      confidence: result.confidence ?? 0.5,
+    },
+    'generateFestivals',
+  )
+}
+
+/**
+ * generateSections：生成四大板块深度介绍（地理风貌 / 历史人文 / 特色产业 / 保护活化）。
+ *
+ * @param {object} village - 村庄对象
+ * @param {object} [opts]
+ * @param {string} [opts.apiKey]
+ * @returns {Promise<{sections: object, confidence: number, _meta: object}>}
+ */
+export async function generateSections(village, opts = {}) {
+  const result = await callDeepSeekWithLimit(
+    SECTIONS_SYSTEM,
+    buildSectionsUserPrompt(village),
+    { ...opts, maxTokens: SECTIONS_MAX_TOKENS },
+  )
+
+  return wrapResult(
+    {
+      sections: result.sections || {},
+      confidence: result.confidence ?? 0.5,
+    },
+    'generateSections',
+  )
+}
+
+/**
+ * generateGuide：生成 5 个村庄导览点位。
+ *
+ * @param {object} village - 村庄对象
+ * @param {object} [opts]
+ * @param {string} [opts.apiKey]
+ * @returns {Promise<{guide: Array, confidence: number, _meta: object}>}
+ */
+export async function generateGuide(village, opts = {}) {
+  const result = await callDeepSeekWithLimit(
+    GUIDE_SYSTEM,
+    buildGuideUserPrompt(village),
+    { ...opts, maxTokens: GUIDE_MAX_TOKENS },
+  )
+
+  return wrapResult(
+    {
+      guide: result.guide || [],
+      confidence: result.confidence ?? 0.5,
+    },
+    'generateGuide',
+  )
+}
+
+/**
+ * enrichAll：一键丰富村庄全部内容（intro + facts + tags + timeline + specialties + festivals + sections + guide）。
  * 自动跳过已有 source:manual 的字段，只补充空缺或 auto 内容。
  *
  * @param {object} village - 完整村庄对象（含现有字段值）
@@ -251,6 +381,51 @@ export async function enrichAll(village, opts = {}) {
         } catch (e) {
           console.error(`[aiContent] generateTags 失败: ${e.message}`)
           result.tags = { error: e.message, _meta: { source: 'auto', generator: 'generateTags' } }
+        }
+        break
+      }
+      case 'timeline': {
+        try {
+          result.timeline = await generateTimeline(village, opts)
+        } catch (e) {
+          console.error(`[aiContent] generateTimeline 失败: ${e.message}`)
+          result.timeline = { error: e.message, _meta: { source: 'auto', generator: 'generateTimeline' } }
+        }
+        break
+      }
+      case 'specialties': {
+        try {
+          result.specialties = await generateSpecialties(village, opts)
+        } catch (e) {
+          console.error(`[aiContent] generateSpecialties 失败: ${e.message}`)
+          result.specialties = { error: e.message, _meta: { source: 'auto', generator: 'generateSpecialties' } }
+        }
+        break
+      }
+      case 'festivals': {
+        try {
+          result.festivals = await generateFestivals(village, opts)
+        } catch (e) {
+          console.error(`[aiContent] generateFestivals 失败: ${e.message}`)
+          result.festivals = { error: e.message, _meta: { source: 'auto', generator: 'generateFestivals' } }
+        }
+        break
+      }
+      case 'sections': {
+        try {
+          result.sections = await generateSections(village, opts)
+        } catch (e) {
+          console.error(`[aiContent] generateSections 失败: ${e.message}`)
+          result.sections = { error: e.message, _meta: { source: 'auto', generator: 'generateSections' } }
+        }
+        break
+      }
+      case 'guide': {
+        try {
+          result.guide = await generateGuide(village, opts)
+        } catch (e) {
+          console.error(`[aiContent] generateGuide 失败: ${e.message}`)
+          result.guide = { error: e.message, _meta: { source: 'auto', generator: 'generateGuide' } }
         }
         break
       }

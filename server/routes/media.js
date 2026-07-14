@@ -10,6 +10,7 @@ import { extractFromText } from '../services/practiceExtractService.js'
 import { summarize } from '../services/practiceSummaryService.js'
 import { describeImage } from '../services/imageDescribeService.js'
 import { importZip } from '../services/zipImportService.js'
+import { generateNarrative, compileLayout, polishText, generateBigComponent } from '../services/practicePostService.js'
 import { httpError } from '../lib/validate.js'
 
 const EXTRACT_TEXT_LIMIT = 20_000
@@ -178,6 +179,67 @@ export function makeMediaRouter({ db, secret, uploadDir }) {
 
       const result = await importZip(req.file.buffer, { dossierId, baseDir: uploadDir })
       res.status(201).json(result)
+    } catch (e) {
+      next(e)
+    }
+  })
+
+  // —— 实践后AI成果生成 ——
+
+  // 成果叙事生成：读采集数据，产出 headline/summary/highlights/sections。
+  // 恒 200：无数据/无 key/失败回落空，不抛。
+  router.post('/post-narrative', async (req, res, next) => {
+    try {
+      const b = req.body || {}
+      const result = await generateNarrative({
+        people: Array.isArray(b.people) ? b.people : [],
+        metricValues: Array.isArray(b.metricValues) ? b.metricValues : [],
+        materials: Array.isArray(b.materials) ? b.materials : [],
+        places: Array.isArray(b.places) ? b.places : [],
+        topic: b.topic,
+        village: b.village,
+      })
+      res.json(result)
+    } catch (e) {
+      next(e)
+    }
+  })
+
+  // 组件编排：读采集数据 + 可选意图，产出 Builder 兼容的组件数组。
+  // 恒 200：无数据/无 key/失败回落空，不抛。
+  router.post('/post-compile', async (req, res, next) => {
+    try {
+      const b = req.body || {}
+      const result = await compileLayout(b.collected || {}, {
+        topic: b.topic,
+        village: b.village,
+        intent: b.intent,
+      })
+      res.json(result)
+    } catch (e) {
+      next(e)
+    }
+  })
+
+  // 大组件生成：body { intent }，返回 { components, name, description, source }。
+  // 不需要dossier数据——用占位内容，供展示台后续绑定真实数据。
+  // 恒 200：空意图/失败回落空，不抛。
+  router.post('/post-big-component', async (req, res, next) => {
+    try {
+      const result = await generateBigComponent((req.body || {}).intent || '')
+      res.json(result)
+    } catch (e) {
+      next(e)
+    }
+  })
+
+  // 文案润色：body { text, context }，返回 { polished, changes, source }。
+  // 恒 200：空文本/失败回落原文本，不抛。
+  router.post('/post-polish', async (req, res, next) => {
+    try {
+      const b = req.body || {}
+      const result = await polishText(b.text || '', { context: b.context })
+      res.json(result)
     } catch (e) {
       next(e)
     }

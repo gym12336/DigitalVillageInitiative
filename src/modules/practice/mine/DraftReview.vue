@@ -14,12 +14,21 @@
         <input v-model="it.name" class="cell" placeholder="姓名" />
         <input v-model="it.role" class="cell" placeholder="身份" />
         <input v-model="it.quote" class="cell wide" placeholder="一句话" />
+        <select v-model="it.category" class="cell cat-sel"><option value="">分类</option><option>村干部</option><option>返乡青年</option><option>村民</option><option>外来帮扶</option><option>手艺人</option><option>其他</option></select>
       </template>
       <!-- 指标 -->
       <template v-else-if="kind === 'metrics'">
         <input v-model="it.name" class="cell" placeholder="指标名" />
         <input v-model="it.value" class="cell" placeholder="数值" />
         <input v-model="it.unit" class="cell" placeholder="单位" />
+        <select v-model="it.category" class="cell cat-sel"><option value="">分类</option><option>产业</option><option>教育</option><option>文化</option><option>基础设施</option><option>民生</option><option>生态</option><option>其他</option></select>
+      </template>
+      <!-- 足迹 -->
+      <template v-else-if="kind === 'places'">
+        <input v-model="it.name" class="cell" placeholder="地点名" />
+        <input v-model="it.date" class="cell" placeholder="日期" />
+        <input v-model="it.event" class="cell wide" placeholder="做了什么" />
+        <select v-model="it.category" class="cell cat-sel"><option value="">分类</option><option>自然景观</option><option>建筑遗存</option><option>公共机构</option><option>产业场所</option><option>其他</option></select>
       </template>
       <!-- 材料要点 -->
       <template v-else>
@@ -61,6 +70,7 @@ function pct(c) {
 }
 .cell.wide { flex: 1; min-width: 140px; }
 .cell:focus { border-color: var(--color-primary); }
+.cat-sel { min-width: 80px; font-size: .78rem; cursor: pointer; appearance: auto; }
 .src {
   font-size: .72rem; color: var(--color-primary-dark); background: var(--color-accent);
   padding: .12rem .5rem; border-radius: 50px; max-width: 130px; overflow: hidden;

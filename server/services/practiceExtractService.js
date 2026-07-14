@@ -5,7 +5,7 @@ import { chatJSON } from '../lib/deepseek.js'
 import { getDefaultBucket } from '../lib/rateLimiter.js'
 import { EXTRACT_SYSTEM, buildExtractUserPrompt } from './prompts/extractPrompt.js'
 
-const EXTRACT_MAX_TOKENS = 1500
+const EXTRACT_MAX_TOKENS = 4000
 const TEXT_MAX = 20_000 // 与 fileText.EXTRACT_TEXT_MAX 对齐，喂 LLM 前再兜一层
 
 let _bucket = null
@@ -30,6 +30,7 @@ function normPerson(p) {
     quote: str(p?.quote),
     story: str(p?.story),
     highlight: str(p?.highlight),
+    category: str(p?.category),
     confidence: num(p?.confidence),
     source: 'auto',
   }
@@ -41,6 +42,7 @@ function normMetric(m) {
     unit: str(m?.unit),
     insight: str(m?.insight),
     isHighlight: !!m?.isHighlight,
+    category: str(m?.category),
     confidence: num(m?.confidence),
     source: 'auto',
   }
@@ -55,9 +57,20 @@ function normHint(h) {
     source: 'auto',
   }
 }
+function normPlace(p) {
+  return {
+    name: str(p?.name),
+    date: str(p?.date),
+    event: str(p?.event),
+    note: str(p?.note),
+    category: str(p?.category),
+    confidence: num(p?.confidence),
+    source: 'auto',
+  }
+}
 
 function emptyResult(source) {
-  return { people: [], metrics: [], materialHints: [], source }
+  return { people: [], metrics: [], materialHints: [], places: [], source }
 }
 
 /**
@@ -94,6 +107,7 @@ export async function extractFromText(text, opts = {}) {
     people: Array.isArray(raw.people) ? raw.people.map(normPerson) : [],
     metrics: Array.isArray(raw.metrics) ? raw.metrics.map(normMetric) : [],
     materialHints: Array.isArray(raw.materialHints) ? raw.materialHints.map(normHint) : [],
+    places: Array.isArray(raw.places) ? raw.places.map(normPlace) : [],
     source: 'ai',
   }
 }

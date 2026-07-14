@@ -10,13 +10,19 @@ import { request } from './api.js'
  */
 export async function extractFromText(text) {
   const clean = String(text || '').trim()
-  if (!clean) return { people: [], metrics: [], materialHints: [], source: 'empty' }
+  if (!clean) return { people: [], metrics: [], materialHints: [], places: [], source: 'empty' }
   try {
     const data = await request('/api/practice/media/extract', {
       method: 'POST',
       body: { text: clean },
     })
-    if (data && Array.isArray(data.people)) return data
+    if (data && Array.isArray(data.people)) {
+      // API 成功但返回空结果（source:error）时走本地兜底
+      if (data.source === 'error' && !data.people.length && !data.metrics?.length && !data.materialHints?.length) {
+        return localExtract(clean)
+      }
+      return data
+    }
     return localExtract(clean)
   } catch {
     return localExtract(clean)
@@ -48,7 +54,7 @@ const METRIC_RE = /([一-龥]{2,10}?)\s*([0-9]+(?:\.[0-9]+)?)\s*([一-龥%]{1,4}
 /** 纯本地提取，不依赖网络。导出以便单测。 */
 export function localExtract(text) {
   const clean = String(text || '').trim()
-  if (!clean) return { people: [], metrics: [], materialHints: [], source: 'empty' }
+  if (!clean) return { people: [], metrics: [], materialHints: [], places: [], source: 'empty' }
 
   const people = []
   const seenPeople = new Set()
@@ -58,7 +64,7 @@ export function localExtract(text) {
     const name = m[1]
     if (seenPeople.has(name)) continue
     seenPeople.add(name)
-    people.push({ name, role: '', quote: m[2].trim(), story: '', highlight: '', confidence: 0.4, source: 'auto' })
+    people.push({ name, role: '', quote: m[2].trim(), story: '', highlight: '', category: '', confidence: 0.4, source: 'auto' })
   }
 
   const metrics = []
@@ -68,8 +74,19 @@ export function localExtract(text) {
     const name = m[1].trim()
     if (!name || seenMetrics.has(name)) continue
     seenMetrics.add(name)
-    metrics.push({ name, value: m[2], unit: m[3], insight: '', isHighlight: false, confidence: 0.4, source: 'auto' })
+    metrics.push({ name, value: m[2], unit: m[3], insight: '', isHighlight: false, category: '', confidence: 0.4, source: 'auto' })
   }
 
-  return { people, metrics, materialHints: [], source: 'template' }
+  // 地点：文中出现「XX村/XX园/XX基地/XX站」等实践场所
+  const places = []
+  const PLACE_RE = /((?:回头岭|王家|李家|张家|陈家|大|小|老|新|东|西|南|北)?[一-龥]{2,4}(?:村|镇|园|基地|站|厂|学校|小学|中学|院|寺|庙|祠|堂|馆|所|中心))/g
+  const seenPlaces = new Set()
+  while ((m = PLACE_RE.exec(clean)) && places.length < 8) {
+    const name = m[1]
+    if (seenPlaces.has(name)) continue
+    seenPlaces.add(name)
+    places.push({ name, date: '', event: '', note: '', category: '', confidence: 0.35, source: 'auto' })
+  }
+
+  return { people, metrics, materialHints: [], places, source: 'template' }
 }

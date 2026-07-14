@@ -1,10 +1,22 @@
 <!-- src/modules/builder/editor/BigComponentEditor.vue -->
 <template>
   <div class="editor-root">
-    <!-- Left Panel: Component Library -->
+    <!-- Left Panel: AI Assistant / Component Library -->
     <aside class="editor-left" :class="{ collapsed: leftCollapsed }">
-      <ComponentLibrary v-if="!leftCollapsed" />
-      <button class="toggle-btn" @click="leftCollapsed = !leftCollapsed" :title="leftCollapsed ? '展开组件库' : '收起组件库'">
+      <template v-if="!leftCollapsed">
+        <div class="left-tabs">
+          <button class="left-tab" :class="{ active: leftTab === 'ai' }" @click="leftTab = 'ai'">🤖 AI 助手</button>
+          <button class="left-tab" :class="{ active: leftTab === 'components' }" @click="leftTab = 'components'">🧩 组件库</button>
+        </div>
+        <AICommandPanel
+          v-if="leftTab === 'ai'"
+          mode="big-component"
+          @applied="onAIApplied"
+          @close="leftTab = 'components'"
+        />
+        <ComponentLibrary v-else />
+      </template>
+      <button class="toggle-btn" @click="leftCollapsed = !leftCollapsed" :title="leftCollapsed ? '展开面板' : '收起面板'">
         {{ leftCollapsed ? '▶' : '◀' }}
       </button>
     </aside>
@@ -25,14 +37,21 @@
 import { ref, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import ComponentLibrary from './ComponentLibrary.vue'
+import AICommandPanel from './AICommandPanel.vue'
 import EditorCanvas from './EditorCanvas.vue'
 import PropertyPanel from './PropertyPanel.vue'
 import { state } from './stageEditor.js'
 
 const route = useRoute()
 const leftCollapsed = ref(false)
+const leftTab = ref('ai') // 默认AI助手
 
 const dossierId = computed(() => route.params.dossierId || '')
+
+function onAIApplied(result) {
+  // AI大组件已通过 loadComponentsFromAI 注入画布
+  // result 包含 name/description，可用于提示用户保存
+}
 </script>
 
 <style scoped>
@@ -86,10 +105,10 @@ const dossierId = computed(() => route.params.dossierId || '')
     linear-gradient(145deg, #f2f6f8, #edf2f7, #f8fbfd);
 }
 
-/* ============ 左侧面板：组件库 ============ */
+/* ============ 左侧面板：组件库 / AI ============ */
 .editor-left {
   position: relative;
-  width: 260px;
+  width: 280px;
   flex-shrink: 0;
   margin: 12px 0 12px 12px;
   background: var(--color-card);
@@ -160,5 +179,25 @@ const dossierId = computed(() => route.params.dossierId || '')
   border-color: var(--color-primary);
   color: var(--color-primary);
   box-shadow: var(--shadow-sm);
+}
+
+/* Tab switcher */
+.left-tabs {
+  display: flex; gap: 0;
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+.left-tab {
+  flex: 1; padding: .6rem .4rem;
+  border: none; background: transparent;
+  font-size: .8rem; font-weight: 600;
+  color: var(--color-text-light);
+  cursor: pointer; transition: all .15s;
+  border-bottom: 2px solid transparent;
+}
+.left-tab:hover { color: var(--color-text); }
+.left-tab.active {
+  color: var(--color-primary-dark);
+  border-bottom-color: var(--color-primary);
 }
 </style>

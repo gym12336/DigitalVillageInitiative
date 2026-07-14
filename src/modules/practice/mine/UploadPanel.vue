@@ -71,8 +71,8 @@ async function onPick(t, e) {
     } else if (t.mode === 'parse') {
       const { media, text } = await extractAndStoreDoc(props.dossierId, file)
       const item = { type: KIND_TO_TYPE[media.kind] || '文档', name: media.name, note: '', url: media.url, kind: media.kind, ext: media.ext, text: text || '' }
-      emit('imported', { materials: [item], drafts: null, parseText: text || '', sourceFile: media.name })
-      msg.value = `「${media.name}」已上传并解析`
+      emit('imported', { materials: [item], drafts: null })
+      msg.value = `「${media.name}」已上传并解析，请在素材栏中点击「AI 提取」`
     } else {
       const media = await uploadMedia(props.dossierId, file)
       const item = { type: KIND_TO_TYPE[media.kind] || '其他', name: media.name, note: '', url: media.url, kind: media.kind, ext: media.ext }

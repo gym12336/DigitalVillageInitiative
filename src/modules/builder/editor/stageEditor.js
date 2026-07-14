@@ -231,3 +231,42 @@ export async function loadFromDB(dossierId, type) {
     return false
   }
 }
+
+// —— AI 组件注入 ——
+
+/**
+ * 从AI编排结果批量加载组件到画布。清空当前内容后注入。
+ * @param {Array} components - AI生成的组件数组
+ * @param {object} [pageConfig] - { pageWidth?, pageHeight?, pageBackground? }
+ * @returns {number} 加载的组件数量
+ */
+export function loadComponentsFromAI(components, pageConfig = {}) {
+  resetState()
+  if (!Array.isArray(components) || !components.length) return 0
+
+  state.components = components.map(c => ({
+    type: c.type || 'text',
+    id: state.nextId++,
+    x: Math.max(0, Math.round(Number(c.x) || 40)),
+    y: Math.max(0, Math.round(Number(c.y) || 40)),
+    width: Math.max(100, Math.round(Number(c.width) || 300)),
+    height: Math.max(60, Math.round(Number(c.height) || 200)),
+    props: {
+      ...(c.props && typeof c.props === 'object' ? c.props : { text: '' }),
+    },
+    _dataBind: c._dataBind || null,
+    _aiGenerated: true,
+  }))
+
+  if (pageConfig) {
+    state.pageWidth = pageConfig.pageWidth || 1920
+    state.pageHeight = pageConfig.pageHeight || 1080
+    if (pageConfig.pageBackground) state.pageBackground = pageConfig.pageBackground
+  }
+
+  state.history = [JSON.parse(JSON.stringify(state.components))]
+  state.historyIndex = 0
+  state.clipboard = []
+
+  return state.components.length
+}

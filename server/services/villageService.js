@@ -23,12 +23,12 @@ function rowToVillage(row) {
     favorites: row.favorites,
     practices: row.practices,
     honors: safeJson(row.honors, []),
-    tags: safeJson(row.tags, {}),
+    tags: normalizeTags(safeJson(row.tags, {})),
     gallery: safeJson(row.gallery, []),
     guide: safeJson(row.guide, []),
     socials: safeJson(row.socials, {}),
     manager: safeJson(row.manager, {}),
-    facts: safeJson(row.facts, {}),
+    facts: normalizeFacts(safeJson(row.facts, {})),
     timeline: safeJson(row.timeline, []),
     specialties: safeJson(row.specialties, []),
     festivals: safeJson(row.festivals, []),
@@ -39,6 +39,45 @@ function rowToVillage(row) {
 function safeJson(raw, fallback) {
   if (!raw) return fallback
   try { return JSON.parse(raw) } catch { return fallback }
+}
+
+/** 将 AI 生成的 tags 格式统一为前端需要的扁平数组格式 */
+function normalizeTags(tags) {
+  if (!tags || typeof tags !== 'object') return {}
+  const result = {}
+  for (const [cat, val] of Object.entries(tags)) {
+    // 跳过元数据字段
+    if (cat.startsWith('_') || cat === 'overallConfidence') continue
+    if (Array.isArray(val)) {
+      result[cat] = val
+    } else if (val && typeof val === 'object' && Array.isArray(val.tags)) {
+      result[cat] = val.tags.map(t => typeof t === 'string' ? t : t.name)
+    } else {
+      result[cat] = []
+    }
+  }
+  return result
+}
+
+/** 将 AI 生成的 facts 格式转为前端显示用的 K-V 格式 */
+function normalizeFacts(facts) {
+  if (!facts || typeof facts !== 'object') return {}
+  // 如果已经是简单 K-V 格式（如 elevation/founded），直接返回
+  if (facts.elevation || facts.founded) return facts
+  // AI 格式：{ altitude: {value,source,confidence}, foundedYear: {...}, ... }
+  const result = {}
+  if (facts.altitude?.value != null) result.elevation = '约 ' + facts.altitude.value + ' 米'
+  if (facts.foundedYear?.display) result.founded = facts.foundedYear.display
+  else if (facts.foundedYear?.value) result.founded = facts.foundedYear.value
+  else if (facts.foundedDynasty?.value) result.founded = facts.foundedDynasty.value
+  if (facts.households?.value || facts.population?.value) {
+    const parts = []
+    if (facts.households?.value) parts.push('约 ' + facts.households.value + ' 户')
+    if (facts.population?.value) parts.push(facts.population.value + ' 余人')
+    result.scale = parts.join('，')
+  }
+  if (facts.areaKm2?.value) result.area = '约 ' + facts.areaKm2.value + ' km²'
+  return Object.keys(result).length > 0 ? result : facts
 }
 
 /** 分页列表 + 搜索 + 筛选。无鉴权，任何人可查。 */
