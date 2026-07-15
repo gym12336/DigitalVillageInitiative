@@ -45,6 +45,20 @@ describe('zipImportService.importZip', () => {
     expect(r.drafts.people[0].sourceFile).toBe('note.txt')
   })
 
+  it('抽取结果含 places → 并入 drafts.places（回归：曾漏处理导致足迹为空）', async () => {
+    const jszip = fakeZip([{ path: 'note.txt', content: '一段访谈' }])
+    const r = await importZip(Buffer.from('zip'), baseArgs(jszip, {
+      extractImpl: async () => ({
+        people: [], metrics: [], materialHints: [],
+        places: [{ name: '上屋祠堂', date: '7/5', event: '测绘' }],
+        source: 'ai',
+      }),
+    }))
+    expect(r.drafts.places).toHaveLength(1)
+    expect(r.drafts.places[0].name).toBe('上屋祠堂')
+    expect(r.drafts.places[0].sourceFile).toBe('note.txt')
+  })
+
   it('跳过目录 / __MACOSX / 隐藏文件', async () => {
     const jszip = fakeZip([
       { path: 'sub/', dir: true },

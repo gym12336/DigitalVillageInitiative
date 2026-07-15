@@ -61,7 +61,7 @@ export async function importZip(buffer, { dossierId, baseDir, deps = {} } = {}) 
   }
 
   const materials = []
-  const drafts = { people: [], metrics: [], materialHints: [] }
+  const drafts = { people: [], metrics: [], materialHints: [], places: [] }
   const skipped = []
   let totalBytes = 0
 
@@ -128,4 +128,5 @@ function pushDrafts(drafts, r, sourceFile) {
   for (const p of r.people || []) drafts.people.push({ ...p, sourceFile })
   for (const m of r.metrics || []) drafts.metrics.push({ ...m, sourceFile })
   for (const h of r.materialHints || []) drafts.materialHints.push({ ...h, sourceFile })
+  for (const p of r.places || []) drafts.places.push({ ...p, sourceFile })
 }

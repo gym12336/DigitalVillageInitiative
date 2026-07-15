@@ -55,11 +55,20 @@ export function create(db, user, teamId, dossier, now = new Date().toISOString()
   return getForUser(db, user, id)
 }
 
-/** 全量更新（校验我是该档案所属队成员）。title/stage 从 payload 抽取（单一数据源）。 */
-export function update(db, user, id, dossier, now = new Date().toISOString()) {
+/**
+ * 全量更新（校验我是该档案所属队成员）。title/stage 从 payload 抽取（单一数据源）。
+ *
+ * 可选乐观锁：传 opts.expectedUpdatedAt（客户端读取档案时拿到的 updated_at）时，
+ * 若与库中当前值不一致，说明期间已被他人保存过 → 抛 409，避免"后写静默覆盖先写"。
+ * 不传则保持原有全量覆盖语义（向后兼容，现有调用不受影响）。
+ */
+export function update(db, user, id, dossier, now = new Date().toISOString(), opts = {}) {
   const row = rowById(db, id)
   if (!row) throw httpError(404, '档案不存在')
   assertMember(db, user.id, row.team_id)
+  if (opts.expectedUpdatedAt != null && row.updated_at !== opts.expectedUpdatedAt) {
+    throw httpError(409, '档案已被他人修改，请刷新后重试')
+  }
   const { title, stage, payload } = validateDossier({ ...dossier, id })
   db.prepare(
     'UPDATE dossiers SET title = ?, stage = ?, payload = ?, updated_at = ? WHERE id = ?',

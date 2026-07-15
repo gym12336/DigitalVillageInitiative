@@ -61,4 +61,28 @@ describe('mapDrill 下钻状态机', () => {
     expect(s0.stack.length).toBe(1)
     expect(s1.stack.length).toBe(2)
   })
+
+  it('层级可注入：createDrill([...LEVELS, "village"]) 支持下钻到村庄级', () => {
+    const levels = ['country', 'province', 'city', 'district', 'village']
+    let s = createDrill(levels)
+    s = drillDown(s, { adcode: '420000', name: '湖北省' })
+    s = drillDown(s, { adcode: '420100', name: '武汉市' })
+    s = drillDown(s, { adcode: '420115', name: '江夏区' })
+    // 默认 4 级到这里就到底了；注入 village 后区县级仍可继续下钻
+    expect(canDrill(s)).toBe(true)
+    s = drillDown(s, { adcode: '420115001', name: '五里界村' })
+    expect(s.stack.at(-1).level).toBe('village')
+    expect(canDrill(s)).toBe(false) // 村庄级才是新末级
+    expect(breadcrumb(s)).toEqual(['全国', '湖北省', '武汉市', '江夏区', '五里界村'])
+  })
+
+  it('注入层级经 drillUp/goToDepth 后仍保留（转换不丢 levels）', () => {
+    const levels = ['country', 'province', 'city', 'district', 'village']
+    let s = createDrill(levels)
+    s = drillDown(s, { adcode: '420000', name: '湖北省' })
+    s = drillUp(s)
+    expect(s.levels).toEqual(levels)
+    s = goToDepth(s, 0)
+    expect(s.levels).toEqual(levels)
+  })
 })

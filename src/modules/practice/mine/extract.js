@@ -44,6 +44,28 @@ export async function summarizeCollected(data = {}) {
   }
 }
 
+/**
+ * 自然语言编辑:把指令 + 四桶快照发给后端,拿回一组待确认的修改操作。
+ * 失败/断网返回空 ops,不抛。
+ * @param {string} instruction - 用户的修改指令
+ * @param {object} snapshot - { people, metrics, places, materials } 精简快照
+ * @returns {Promise<{ops, source}>}
+ */
+export async function editCollected(instruction, snapshot = {}) {
+  const clean = String(instruction || '').trim()
+  if (!clean) return { ops: [], source: 'empty' }
+  try {
+    const r = await request('/api/practice/media/edit', {
+      method: 'POST',
+      body: { instruction: clean, snapshot },
+    })
+    if (r && Array.isArray(r.ops)) return r
+    return { ops: [], source: 'error' }
+  } catch {
+    return { ops: [], source: 'error' }
+  }
+}
+
 // —— 本地兜底：极简规则，离线可用、可测。source:'template'。——
 
 // 「李伯说 / 王姐表示 / 张老师提到：xxx」→ 人物 + 引语。

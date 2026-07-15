@@ -8,6 +8,7 @@ import { storeFile, SIZE_LIMITS } from '../services/mediaService.js'
 import { extractText, isParsable, kindOf } from '../lib/fileText.js'
 import { extractFromText } from '../services/practiceExtractService.js'
 import { summarize } from '../services/practiceSummaryService.js'
+import { editCollected } from '../services/practiceEditService.js'
 import { describeImage } from '../services/imageDescribeService.js'
 import { importZip } from '../services/zipImportService.js'
 import { generateNarrative, compileLayout, polishText, generateBigComponent } from '../services/practicePostService.js'
@@ -143,6 +144,21 @@ export function makeMediaRouter({ db, secret, uploadDir }) {
         topic: b.topic,
         village: b.village,
       })
+      res.json(result)
+    } catch (e) {
+      next(e)
+    }
+  })
+
+  // AI 自然语言编辑：body { snapshot, instruction }，返回一组待确认的修改操作 ops。
+  // 恒 200：无 key/网络断/失败时 service 静默回落空 ops，source 标出来源。前端确认后才应用。
+  router.post('/edit', async (req, res, next) => {
+    try {
+      const b = req.body || {}
+      const instruction = String(b.instruction || '')
+      if (!instruction.trim()) throw httpError(400, '缺少修改指令')
+      if (instruction.length > EXTRACT_TEXT_LIMIT) throw httpError(413, '指令过长')
+      const result = await editCollected({ snapshot: b.snapshot || {}, instruction })
       res.json(result)
     } catch (e) {
       next(e)

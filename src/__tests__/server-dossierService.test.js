@@ -51,6 +51,36 @@ describe('server/services/dossierService', () => {
     expect(() => svc.getForUser(db, team1a, 'd1')).toThrow(/不存在/)
   })
 
+  it('乐观锁：expectedUpdatedAt 匹配则更新成功', () => {
+    const { team1a, t1 } = seed()
+    svc.create(db, team1a, t1, { id: 'd1', title: 'T', stage: 'plan' }, NOW)
+    // 用读取时的 updated_at（=NOW）做乐观锁，匹配 → 正常更新
+    const updated = svc.update(
+      db, team1a, 'd1', { title: 'T2', stage: 'track' },
+      '2026-07-08T05:00:00.000Z', { expectedUpdatedAt: NOW },
+    )
+    expect(updated.title).toBe('T2')
+  })
+
+  it('乐观锁：expectedUpdatedAt 不匹配（他人已改）则抛 409', () => {
+    const { team1a, t1 } = seed()
+    svc.create(db, team1a, t1, { id: 'd1', title: 'T', stage: 'plan' }, NOW)
+    // 模拟他人已保存：库中 updated_at 变成新时间
+    svc.update(db, team1a, 'd1', { title: 'byOther', stage: 'plan' }, '2026-07-08T03:00:00.000Z')
+    // 我方仍拿着旧的 NOW 做乐观锁 → 冲突 409
+    try {
+      svc.update(
+        db, team1a, 'd1', { title: 'mine', stage: 'plan' },
+        '2026-07-08T06:00:00.000Z', { expectedUpdatedAt: NOW },
+      )
+      throw new Error('should have thrown')
+    } catch (e) {
+      expect(e.status).toBe(409)
+    }
+    // 冲突方未覆盖：库中仍是 byOther
+    expect(svc.getForUser(db, team1a, 'd1').title).toBe('byOther')
+  })
+
   it('列表只返回本队档案，updated_at 倒序', () => {
     const { team1a, team2, t1, t2 } = seed()
     svc.create(db, team1a, t1, { id: 'a', title: 'A' }, '2026-07-08T01:00:00.000Z')

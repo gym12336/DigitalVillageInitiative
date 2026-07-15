@@ -1,9 +1,15 @@
 <template>
   <section class="block extract-block">
     <h2 class="block-title">💬 AI 助手</h2>
+
+    <div class="mode-switch">
+      <button class="ms-btn" :class="{ active: mode === 'extract' }" @click="mode = 'extract'">🔍 整理成资料</button>
+      <button class="ms-btn" :class="{ active: mode === 'edit' }" @click="mode = 'edit'">✏️ 修改资料</button>
+    </div>
+
     <p class="block-desc">
-      用自然语言告诉 AI 你想做什么：贴一段访谈让 AI 帮你理出人物/数据/要点，
-      或者描述你对右侧资料的需求，AI 会理解意图并自动处理。
+      <template v-if="mode === 'extract'">贴一段访谈/调研笔记，AI 帮你理出人物、数据、足迹、发现，进右栏各格待审校。</template>
+      <template v-else>用一句话告诉 AI 怎么改右栏已有资料，AI 会给出修改建议，你确认后才生效。</template>
     </p>
 
     <div class="ex-input-row">
@@ -11,12 +17,14 @@
         v-model="text"
         class="ex-input"
         rows="4"
-        placeholder="把访谈记录、调研笔记粘在这里让 AI 整理；或直接说「帮我把指标里的茶园面积改成150亩」…"
+        :placeholder="mode === 'extract'
+          ? '把访谈记录、调研笔记粘在这里让 AI 整理…'
+          : '例如「把王秀兰归类为返乡青年」「把村干部和村民合并成一类」「润色一下陈伯的引语」「删掉游客量这个指标」…'"
       />
     </div>
     <div class="ex-actions">
-      <button class="btn primary" :disabled="!text.trim() || extracting" @click="onExtract">
-        {{ extracting ? 'AI 处理中…' : '发送给 AI' }}
+      <button class="btn primary" :disabled="!text.trim() || busy" @click="onSend">
+        {{ busy ? 'AI 处理中…' : (mode === 'extract' ? '发送给 AI' : '让 AI 提出修改') }}
       </button>
       <span v-if="msg" class="ex-hint" :class="msgErr ? 'err' : ''">{{ msg }}</span>
       <span v-if="lastSource === 'template'" class="ex-hint tpl">离线兜底模式，可联网后重试</span>
@@ -26,22 +34,29 @@
 
 <script setup>
 import { ref } from 'vue'
-import { extractFromText } from './extract.js'
+import { extractFromText, editCollected } from './extract.js'
 
 const props = defineProps({
   dossierId: { type: String, required: true },
+  // 四桶快照,供「修改资料」模式发给 AI。形状 { people, metrics, places, materials }。
+  snapshot: { type: Object, default: () => ({}) },
 })
-const emit = defineEmits(['extracted'])
+const emit = defineEmits(['extracted', 'edit-ops'])
 
+const mode = ref('extract') // 'extract' | 'edit'
 const text = ref('')
-const extracting = ref(false)
+const busy = ref(false)
 const msg = ref('')
 const msgErr = ref(false)
 const lastSource = ref('')
 
+function onSend() {
+  return mode.value === 'edit' ? onEdit() : onExtract()
+}
+
 async function onExtract() {
-  if (extracting.value) return
-  extracting.value = true; msg.value = ''; msgErr.value = false
+  if (busy.value) return
+  busy.value = true; msg.value = ''; msgErr.value = false
   try {
     const r = await extractFromText(text.value)
     lastSource.value = r.source
@@ -51,7 +66,27 @@ async function onExtract() {
   } catch (e) {
     msgErr.value = true; msg.value = e.message || '提取失败'
   } finally {
-    extracting.value = false
+    busy.value = false
+  }
+}
+
+async function onEdit() {
+  if (busy.value) return
+  busy.value = true; msg.value = ''; msgErr.value = false
+  try {
+    const r = await editCollected(text.value, props.snapshot)
+    lastSource.value = r.source
+    if (r.ops.length) {
+      emit('edit-ops', r.ops)
+      msg.value = `AI 提出 ${r.ops.length} 条修改，请在右栏确认`
+    } else {
+      msgErr.value = true
+      msg.value = r.source === 'error' ? 'AI 暂时无法处理，请稍后重试' : '没理解这条修改指令，换句话说试试'
+    }
+  } catch (e) {
+    msgErr.value = true; msg.value = e.message || '处理失败'
+  } finally {
+    busy.value = false
   }
 }
 </script>

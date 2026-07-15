@@ -12,8 +12,34 @@
         <!-- AI 采集区：自然语言输入，提取人物/指标/发现进右栏各资料格待审校 -->
         <TrackExtract
           :dossier-id="dossier.id"
+          :snapshot="editSnapshot"
           @extracted="onExtracted"
+          @edit-ops="onEditOps"
         />
+
+        <!-- AI 修改建议：待确认清单 -->
+        <section v-if="editOps.length" class="block edit-ops">
+          <div class="eo-head">
+            <h3 class="eo-title">✏️ AI 修改建议 <span class="eo-n">{{ editOps.length }}</span></h3>
+            <div class="eo-batch">
+              <button class="btn tiny" @click="confirmAllEdits">全部确认</button>
+              <button class="btn tiny ghost" @click="discardEditOps">全部放弃</button>
+            </div>
+          </div>
+          <p class="eo-hint">AI 只提议，确认后才会改右栏资料。</p>
+          <div v-for="(e, i) in editOps" :key="'eo'+i" class="eo-card">
+            <div class="eo-row">
+              <span class="eo-tag" :class="'act-'+e.desc.action">{{ e.desc.label }}·{{ e.desc.action }}</span>
+              <span class="eo-text">{{ e.desc.text }}</span>
+            </div>
+            <p v-if="e.op.reason" class="eo-reason">{{ e.op.reason }}</p>
+            <p v-if="e.error" class="eo-error">⚠ {{ e.error }}</p>
+            <div class="eo-acts">
+              <button class="btn tiny" @click="confirmEditOp(i)">确认</button>
+              <button class="btn tiny ghost" @click="editOps.splice(i, 1)">忽略</button>
+            </div>
+          </div>
+        </section>
       </div>
 
       <!-- 右栏：5 格资料台（为成果搭建台准备的分门别类资料库） -->
@@ -85,11 +111,14 @@
           <template v-else>
           <div v-if="metricGroups.length" class="cat-groups">
             <div v-for="[cat, items] in metricGroups" :key="'mc'+cat" class="cat-group">
-              <button class="cat-toggle" @click="toggleCat('m-'+cat)">
-                <span class="cat-arrow">{{ catOpen('m-'+cat) ? '▾' : '▸' }}</span>
-                <span class="cat-label">{{ cat }}</span>
-                <span class="cat-n">{{ items.length }}</span>
-              </button>
+              <div class="cat-toggle-row">
+                <button class="cat-toggle" @click="toggleCat('m-'+cat)">
+                  <span class="cat-arrow">{{ catOpen('m-'+cat) ? '▾' : '▸' }}</span>
+                  <span class="cat-label">{{ cat }}</span>
+                  <span class="cat-n">{{ items.length }}</span>
+                </button>
+                <button class="cat-del" title="删除本分类全部" @click="removeByCategory('metricValues', cat)">🗑 删本类</button>
+              </div>
               <div v-show="catOpen('m-'+cat)" class="cat-body">
                 <div class="mt-head"><span>指标</span><span>帮扶前</span><span>帮扶后</span><span>单位</span><span>分类</span></div>
                 <div v-for="m in items" :key="'m'+m.name" class="mt-row">
@@ -104,7 +133,10 @@
             </div>
           </div>
           <p v-else class="hint">还没有指标。可在此添加，或回「实践前」生成方案。</p>
-          <button class="btn tiny ghost" @click="addMetric">+ 添加指标</button>
+          <div class="edit-foot">
+            <button class="btn tiny ghost" @click="addMetric">+ 添加指标</button>
+            <button v-if="state.metricValues.length" class="btn tiny danger" @click="removeAll('metricValues', '指标')">🗑 清空全部</button>
+          </div>
           <DraftReview
             kind="metrics" :items="draft.metrics"
             @adopt="adoptDraft('metrics', $event)" @discard="draft.metrics.splice($event, 1)"
@@ -136,11 +168,14 @@
           <template v-else>
           <div v-if="peopleGroups.length" class="cat-groups">
             <div v-for="[cat, items] in peopleGroups" :key="'pc'+cat" class="cat-group">
-              <button class="cat-toggle" @click="toggleCat('p-'+cat)">
-                <span class="cat-arrow">{{ catOpen('p-'+cat) ? '▾' : '▸' }}</span>
-                <span class="cat-label">{{ cat }}</span>
-                <span class="cat-n">{{ items.length }}</span>
-              </button>
+              <div class="cat-toggle-row">
+                <button class="cat-toggle" @click="toggleCat('p-'+cat)">
+                  <span class="cat-arrow">{{ catOpen('p-'+cat) ? '▾' : '▸' }}</span>
+                  <span class="cat-label">{{ cat }}</span>
+                  <span class="cat-n">{{ items.length }}</span>
+                </button>
+                <button class="cat-del" title="删除本分类全部" @click="removeByCategory('people', cat)">🗑 删本类</button>
+              </div>
               <div v-show="catOpen('p-'+cat)" class="cat-body">
                 <div v-for="p in items" :key="'p'+p.name" class="person-row">
                   <input v-model="p.name" class="cell name" placeholder="姓名" />
@@ -153,7 +188,10 @@
             </div>
           </div>
           <p v-else class="hint">还没有人物。AI 提取或手动添加。</p>
-          <button class="btn tiny ghost" @click="addPerson">+ 添加人物</button>
+          <div class="edit-foot">
+            <button class="btn tiny ghost" @click="addPerson">+ 添加人物</button>
+            <button v-if="state.people.length" class="btn tiny danger" @click="removeAll('people', '人物')">🗑 清空全部</button>
+          </div>
           <DraftReview
             kind="people" :items="draft.people"
             @adopt="adoptDraft('people', $event)" @discard="draft.people.splice($event, 1)"
@@ -185,11 +223,14 @@
           <template v-else>
           <div v-if="placeGroups.length" class="cat-groups">
             <div v-for="[cat, items] in placeGroups" :key="'lc'+cat" class="cat-group">
-              <button class="cat-toggle" @click="toggleCat('l-'+cat)">
-                <span class="cat-arrow">{{ catOpen('l-'+cat) ? '▾' : '▸' }}</span>
-                <span class="cat-label">{{ cat }}</span>
-                <span class="cat-n">{{ items.length }}</span>
-              </button>
+              <div class="cat-toggle-row">
+                <button class="cat-toggle" @click="toggleCat('l-'+cat)">
+                  <span class="cat-arrow">{{ catOpen('l-'+cat) ? '▾' : '▸' }}</span>
+                  <span class="cat-label">{{ cat }}</span>
+                  <span class="cat-n">{{ items.length }}</span>
+                </button>
+                <button class="cat-del" title="删除本分类全部" @click="removeByCategory('places', cat)">🗑 删本类</button>
+              </div>
               <div v-show="catOpen('l-'+cat)" class="cat-body">
                 <div class="places-list">
                   <div v-for="p in items" :key="'pl'+p.name" class="place-card">
@@ -211,7 +252,10 @@
             </div>
           </div>
           <p v-else class="hint">还没有实践足迹。AI 提取或手动添加。</p>
-          <button class="btn tiny ghost" @click="state.places.push({ name:'', date:'', event:'', note:'', category:'' })">+ 添加地点</button>
+          <div class="edit-foot">
+            <button class="btn tiny ghost" @click="state.places.push({ name:'', date:'', event:'', note:'', category:'' })">+ 添加地点</button>
+            <button v-if="state.places.length" class="btn tiny danger" @click="removeAll('places', '足迹')">🗑 清空全部</button>
+          </div>
           <DraftReview
             kind="places" :items="draft.places"
             @adopt="adoptDraft('places', $event)" @discard="draft.places.splice($event, 1)"
@@ -370,6 +414,7 @@ import DraftReview from './DraftReview.vue'
 import MaterialGroups from './MaterialGroups.vue'
 import MediaPreview from './MediaPreview.vue'
 import { summarizeCollected } from './extract.js'
+import { applyEditOp, describeOp } from './editApply.js'
 import CompareBars from './CompareBars.vue'
 import KpiGrid from './KpiGrid.vue'
 import TimelineView from './TimelineView.vue'
@@ -521,6 +566,33 @@ function mergeDraft(r) {
 
 // TrackExtract 抽取完成回调：并入待审校。
 function onExtracted(r) { mergeDraft(r) }
+
+// —— AI 自然语言编辑：待确认操作区 ——
+// 给 TrackExtract 的四桶精简快照(只带 AI 匹配/改动需要的字段)。
+const editSnapshot = computed(() => ({
+  people: state.people.map((p) => ({ name: p.name, role: p.role, quote: p.quote, category: p.category })),
+  metrics: state.metricValues.map((m) => ({ name: m.name, before: m.before, after: m.after, unit: m.unit, category: m.category })),
+  places: state.places.map((p) => ({ name: p.name, date: p.date, event: p.event, category: p.category })),
+  materials: findingItems.value.map((m) => ({ name: m.name, summary: m.summary, theme: m.theme })),
+}))
+
+// AI 提议的待确认操作:每条 { op, desc:{label,action,text}, applied:false }。
+const editOps = ref([])
+function onEditOps(ops) {
+  editOps.value = ops.map((op) => ({ op, desc: describeOp(state, op) }))
+}
+// 确认单条:应用到 state,成功则从清单移除并保存。
+function confirmEditOp(i) {
+  const entry = editOps.value[i]
+  if (!entry) return
+  const r = applyEditOp(state, entry.op)
+  if (r.ok) { editOps.value.splice(i, 1); save() }
+  else { entry.error = r.desc }
+}
+function confirmAllEdits() {
+  for (let i = editOps.value.length - 1; i >= 0; i--) confirmEditOp(i)
+}
+function discardEditOps() { editOps.value = [] }
 
 // UploadPanel 上传完成：材料入清单，抽取草稿并入待审校。
 function onImported({ materials, drafts } = {}) {
@@ -787,6 +859,28 @@ function removeMetric(i) { state.metricValues.splice(i, 1) }
 function addPerson() { state.people.push({ name: '', role: '', quote: '', category: '' }) }
 function removePerson(i) { state.people.splice(i, 1) }
 
+// —— 批量删除:按分类 / 全部。bucketKey 为 state 上的数组字段名。——
+// 分组用的 fallback 与 groupByCat 一致("未分类"),cat 传该 fallback 时删所有无分类项。
+function removeByCategory(bucketKey, cat) {
+  const arr = state[bucketKey]
+  if (!Array.isArray(arr)) return
+  const fallback = '未分类'
+  const n = arr.filter((it) => ((it.category || '').trim() || fallback) === cat).length
+  if (!n) return
+  if (!confirm(`确定删除「${cat}」分类下的 ${n} 条吗?`)) return
+  for (let i = arr.length - 1; i >= 0; i--) {
+    if (((arr[i].category || '').trim() || fallback) === cat) arr.splice(i, 1)
+  }
+  save()
+}
+function removeAll(bucketKey, label) {
+  const arr = state[bucketKey]
+  if (!Array.isArray(arr) || !arr.length) return
+  if (!confirm(`确定清空全部 ${arr.length} 条${label}吗?此操作不可撤销。`)) return
+  arr.splice(0, arr.length)
+  save()
+}
+
 function save() {
   emit('update', {
     collected: {
@@ -888,6 +982,20 @@ function dedupeState() {
   font-weight: 600; color: var(--color-text-secondary); transition: background var(--transition);
 }
 .cat-toggle:hover { background: var(--color-accent); }
+.cat-toggle-row { display: flex; align-items: center; gap: .4rem; }
+.cat-toggle-row .cat-toggle { flex: 1; }
+.cat-del {
+  border: none; background: transparent; cursor: pointer; flex-shrink: 0;
+  padding: .35rem .6rem; font-size: .74rem; font-weight: 600; color: var(--color-text-light);
+  border-radius: 8px; white-space: nowrap; transition: all var(--transition);
+}
+.cat-del:hover { background: #fdecea; color: #b0322a; }
+.edit-foot { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; margin-top: .4rem; }
+.btn.tiny.danger {
+  padding: .4rem 1rem; font-size: .82rem; background: transparent;
+  border: 1px dashed #e0a0a0; color: #b0322a;
+}
+.btn.tiny.danger:hover { background: #fdecea; }
 .cat-arrow { font-size: .7rem; width: 14px; text-align: center; flex-shrink: 0; }
 .cat-label { flex: 1; text-align: left; }
 .cat-n {
@@ -1080,6 +1188,34 @@ function dedupeState() {
 .mode-btn:last-child { border-radius: 0 8px 8px 0; }
 .mode-btn.active { background: var(--color-primary); color: #fff; border-color: var(--color-primary); }
 .mode-btn:hover:not(.active) { border-color: var(--color-primary); color: var(--color-primary); }
+
+/* —— AI 修改建议：待确认清单 —— */
+.edit-ops {
+  padding: 1.1rem 1.2rem; background: #fffdf7;
+  border: 1px solid #f0d9a8; border-radius: var(--radius); box-shadow: var(--shadow-card);
+}
+.eo-head { display: flex; align-items: center; justify-content: space-between; gap: .6rem; flex-wrap: wrap; }
+.eo-title { font-size: 1rem; color: var(--color-primary-dark); margin: 0; }
+.eo-n { font-size: .72rem; color: #f0a030; background: #fff3e0; padding: .05rem .5rem; border-radius: 50px; margin-left: .3rem; }
+.eo-batch { display: flex; gap: .4rem; }
+.eo-hint { margin: .4rem 0 .8rem; font-size: .78rem; color: var(--color-text-light); }
+.eo-card {
+  padding: .6rem .75rem; background: var(--color-card);
+  border: 1px solid var(--color-border); border-left: 3px solid #f0a030;
+  border-radius: 10px; margin-bottom: .5rem;
+}
+.eo-row { display: flex; align-items: baseline; gap: .5rem; flex-wrap: wrap; }
+.eo-tag { font-size: .7rem; font-weight: 600; color: var(--color-primary-dark); background: var(--color-accent); padding: .1rem .5rem; border-radius: 50px; white-space: nowrap; }
+.eo-tag.act-删除 { color: #b0322a; background: #fdecea; }
+.eo-tag.act-合并分类 { color: #1565c0; background: #e3f2fd; }
+.eo-text { font-size: .84rem; color: var(--color-text); line-height: 1.5; }
+.eo-reason { margin: .3rem 0 0; font-size: .78rem; color: var(--color-text-light); }
+.eo-error { margin: .3rem 0 0; font-size: .78rem; color: var(--color-highlight); }
+.eo-acts { display: flex; gap: .5rem; margin-top: .5rem; }
+.btn.tiny { padding: .3rem .9rem; background: var(--color-primary); color: #fff; font-size: .8rem; }
+.btn.tiny.ghost { background: transparent; border: 1px solid var(--color-border); color: var(--color-text-secondary); }
+
+/* —— AI 助手模式切换 —— */
 
 /* 预览模式分类分组 */
 .preview-group { margin-bottom: 1.2rem; }
