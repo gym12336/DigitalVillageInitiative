@@ -14,6 +14,7 @@ $Vite = Join-Path $Root "node_modules\vite\bin\vite.js"
 $EnvFile = Join-Path $Root ".env"
 $EnvExample = Join-Path $Root ".env.example"
 $RunDir = Join-Path $Root ".local-dev"
+$PidFile = Join-Path $RunDir "pids.json"
 
 function Test-ListeningPort {
   param([int]$Port)
@@ -88,6 +89,30 @@ function Stop-ProcessTree {
   }
 }
 
+function Write-PidFile {
+  param(
+    [System.Diagnostics.Process]$ServerProcess,
+    [System.Diagnostics.Process]$FrontendProcess
+  )
+
+  $Data = [pscustomobject]@{
+    root = $Root
+    createdAt = (Get-Date).ToString("o")
+    processes = @(
+      [pscustomobject]@{
+        name = "backend"
+        pid = $ServerProcess.Id
+      },
+      [pscustomobject]@{
+        name = "frontend"
+        pid = $FrontendProcess.Id
+      }
+    )
+  }
+
+  $Data | ConvertTo-Json -Depth 4 | Set-Content -Path $PidFile -Encoding UTF8
+}
+
 Set-Location $Root
 
 if (-not (Test-Path $Node)) {
@@ -107,11 +132,11 @@ if (-not (Test-Path $EnvFile)) {
 }
 
 if (Test-ListeningPort $BackendPort) {
-  throw "Port $BackendPort is already in use. Stop the existing backend or pass -BackendPort <port>."
+  throw "Port $BackendPort is already in use. Run .\stop-local.cmd, or pass -BackendPort <port>."
 }
 
 if (Test-ListeningPort $FrontendPort) {
-  throw "Port $FrontendPort is already in use. Stop the existing frontend or pass -FrontendPort <port>."
+  throw "Port $FrontendPort is already in use. Run .\stop-local.cmd, or pass -FrontendPort <port>."
 }
 
 New-Item -ItemType Directory -Path $RunDir -Force | Out-Null
@@ -147,6 +172,8 @@ try {
     -RedirectStandardOutput $ViteOut `
     -RedirectStandardError $ViteErr `
     -PassThru
+
+  Write-PidFile -ServerProcess $Server -FrontendProcess $Frontend
 
   Wait-ForPort -Port $BackendPort -Name "Backend" -Process $Server -ErrorLog $ServerErr
   Wait-ForPort -Port $FrontendPort -Name "Frontend" -Process $Frontend -ErrorLog $ViteErr
@@ -208,5 +235,6 @@ try {
 
   Stop-ProcessTree -Process $Frontend -Name "frontend"
   Stop-ProcessTree -Process $Server -Name "backend"
+  Remove-Item -LiteralPath $PidFile -Force -ErrorAction SilentlyContinue
   Write-Host "Stopped."
 }

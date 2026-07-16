@@ -1,23 +1,37 @@
 <template>
   <section class="guide">
     <section class="guide-hero">
-      <div class="container hero-grid">
+      <div class="container hero-layout">
         <div class="hero-copy">
           <p class="kicker">实践攻略</p>
-          <h1>数乡实践方法手册</h1>
-          <p class="hero-lead">
-            面向学生团队、高校老师、乡镇村庄与社会公众，公开一套负责任的乡村实践方法：
-            有准备地进入村庄，有边界地开展调研，有证据地形成成果，有回响地沉淀价值。
-          </p>
-          <div class="hero-actions" aria-label="实践攻略入口">
-            <router-link class="btn primary" to="/practice/mine">创建实践档案</router-link>
-            <a class="btn ghost" href="#toolbox">查找工具资源</a>
+          <h1>{{ data.intro.title }}</h1>
+          <p class="hero-subtitle">{{ data.intro.subtitle }}</p>
+          <p class="hero-lead">{{ data.intro.desc }}</p>
+
+          <form class="hero-search" role="search" @submit.prevent="scrollToResources">
+            <label class="sr-only" for="guide-search">搜索实践攻略资源</label>
+            <input
+              id="guide-search"
+              v-model.trim="filters.keyword"
+              type="search"
+              placeholder="搜索联系村庄、策划书、访谈、调研报告..."
+              aria-describedby="guide-search-hint"
+            />
+            <button type="submit">搜索</button>
+          </form>
+          <p id="guide-search-hint" class="sr-only">搜索范围包括资源标题、简介、关键词和正文摘要。</p>
+
+          <div class="hot-keywords" aria-label="热门关键词">
+            <span>热门：</span>
+            <button v-for="word in HOT_KEYWORDS" :key="word" type="button" @click="applyKeyword(word)">
+              {{ word }}
+            </button>
           </div>
         </div>
 
-        <aside class="hero-note" aria-label="方法手册摘要">
-          <p class="note-label">公共承诺</p>
-          <p class="note-main">让每一次下乡都有准备、有记录、有成果、有回响。</p>
+        <aside class="hero-note" aria-label="资源中心概览">
+          <p class="note-label">随用随取</p>
+          <p class="note-main">从组队立项到结项答辩，先找到能直接派上用场的内容。</p>
           <div class="note-stats">
             <div v-for="s in data.heroStats" :key="s.label" class="note-stat">
               <strong>{{ s.value }}</strong>
@@ -28,202 +42,245 @@
       </div>
     </section>
 
-    <div class="container">
-      <section class="audience-section" aria-labelledby="audience-title">
-        <div class="section-head">
-          <p class="section-kicker">谁会使用</p>
-          <h2 id="audience-title">这不是队员内部资料，而是社会可读的方法标准</h2>
-          <p>
-            一套好的实践攻略，应同时让学生知道怎么做，让老师知道怎么指导，
-            让村庄知道团队会留下什么，也让公众看见成果为何可信。
-          </p>
-        </div>
-        <div class="audience-grid">
-          <article v-for="item in data.audiences" :key="item.role" class="audience-card">
-            <span class="audience-role">{{ item.role }}</span>
-            <h3>{{ item.title }}</h3>
-            <p>{{ item.desc }}</p>
-          </article>
+    <main>
+      <section class="stage-entry section-block" aria-labelledby="stage-entry-title">
+        <div class="container">
+          <div class="section-head">
+            <p class="section-kicker">按实践阶段进入</p>
+            <h2 id="stage-entry-title">先选择你现在卡在哪一步</h2>
+            <p>阶段入口不是流程系统，只是帮助团队快速缩小资源范围。</p>
+          </div>
+
+          <div class="stage-grid">
+            <button
+              v-for="stage in GUIDE_STAGES"
+              :key="stage.id"
+              class="stage-entry-card"
+              type="button"
+              @click="applyStage(stage.id)"
+            >
+              <span class="stage-name">{{ stage.name }}</span>
+              <strong>{{ stage.cta }}</strong>
+              <span class="stage-desc">{{ stage.desc }}</span>
+              <span class="stage-count">{{ countByStage(stage.id) }} 项资源</span>
+              <span class="stage-topics">{{ representatives(stage.id).join(' · ') }}</span>
+            </button>
+          </div>
         </div>
       </section>
 
-      <section class="principles" aria-labelledby="principles-title">
-        <div class="section-head compact">
-          <p class="section-kicker">实践原则</p>
-          <h2 id="principles-title">先把边界讲清楚，再把事情做扎实</h2>
-        </div>
-        <div class="principle-row">
-          <article v-for="p in data.principles" :key="p.name" class="principle-item">
-            <h3>{{ p.name }}</h3>
-            <p>{{ p.desc }}</p>
-          </article>
+      <section class="featured section-block" aria-labelledby="featured-title">
+        <div class="container">
+          <div class="section-head compact">
+            <p class="section-kicker">高频工具</p>
+            <h2 id="featured-title">实践队最常用的八项资源</h2>
+            <p>优先展示可直接照着用的模板、清单和写作参考。</p>
+          </div>
+
+          <div class="featured-grid">
+            <article v-for="item in featuredResources" :key="item.id" class="featured-card">
+              <div class="resource-meta">
+                <span>{{ stageName(item.stage) }}</span>
+                <span>{{ item.type }}</span>
+              </div>
+              <h3>{{ item.featuredName || item.title }}</h3>
+              <p>{{ item.summary }}</p>
+              <div class="featured-actions">
+                <router-link class="text-link" :to="{ name: 'guide-detail', params: { slug: item.slug } }">
+                  查看详情
+                </router-link>
+                <a
+                  v-if="hasDownloadableAttachments(item)"
+                  class="download-link"
+                  :href="item.attachments[0].href"
+                  download
+                >
+                  下载
+                </a>
+              </div>
+            </article>
+          </div>
         </div>
       </section>
 
-      <section class="method-section" aria-labelledby="method-title">
-        <div class="section-head">
-          <p class="section-kicker">实践路线</p>
-          <h2 id="method-title">一次负责任的乡村实践应该怎么走</h2>
-          <p>
-            这里展示的是公共版路线图；真正执行时，团队可以进入「我的实践」把每一步落成档案、
-            材料清单和成果卡。
-          </p>
-        </div>
-
-        <div class="method-timeline">
-          <article v-for="stage in data.methodStages" :key="stage.id" class="stage-card">
-            <div class="stage-index">
-              <span>{{ stage.no }}</span>
-              <strong>{{ stage.name }}</strong>
+      <section id="resource-center" class="resource-center section-block" aria-labelledby="resource-title">
+        <div class="container">
+          <div class="resource-head">
+            <div>
+              <p class="section-kicker">资源中心</p>
+              <h2 id="resource-title">按关键词、阶段和类型查找</h2>
+              <p>{{ resultText }}</p>
             </div>
-            <div class="stage-body">
-              <h3>{{ stage.title }}</h3>
-              <p class="stage-summary">{{ stage.summary }}</p>
-              <ul class="action-list">
-                <li v-for="action in stage.actions" :key="action">{{ action }}</li>
-              </ul>
-              <div class="stage-foot">
-                <span class="deliverable">交付：{{ stage.deliverable }}</span>
-                <div class="tool-chips">
-                  <button
-                    v-for="tool in stage.tools"
-                    :key="tool"
-                    class="tool-chip"
-                    type="button"
-                    @click="searchTool(tool)"
-                  >
-                    {{ tool }}
-                  </button>
-                </div>
+            <button class="clear-btn" type="button" :disabled="!hasActiveFilters" @click="resetFilters">
+              清除全部条件
+            </button>
+          </div>
+
+          <div class="filter-panel" aria-label="资源筛选条件">
+            <label class="filter-search">
+              <span>关键词搜索</span>
+              <input v-model.trim="filters.keyword" type="search" placeholder="标题、简介、关键词、正文摘要" />
+            </label>
+
+            <div class="filter-group">
+              <span class="filter-label">实践阶段</span>
+              <div class="chip-row" role="group" aria-label="按实践阶段筛选">
+                <button
+                  v-for="option in stageOptions"
+                  :key="option.id"
+                  class="filter-chip"
+                  :class="{ active: filters.stage === option.id }"
+                  type="button"
+                  @click="filters.stage = option.id"
+                >
+                  {{ option.name }}
+                </button>
               </div>
             </div>
-          </article>
+
+            <div class="filter-group">
+              <span class="filter-label">资源类型</span>
+              <div class="chip-row" role="group" aria-label="按资源类型筛选">
+                <button
+                  v-for="option in typeOptions"
+                  :key="option.id"
+                  class="filter-chip"
+                  :class="{ active: filters.type === option.id }"
+                  type="button"
+                  @click="filters.type = option.id"
+                >
+                  {{ option.name }}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div v-if="filteredResources.length" class="resource-grid">
+            <article v-for="item in filteredResources" :key="item.id" class="resource-card">
+              <div class="resource-meta">
+                <span>{{ stageName(item.stage) }}</span>
+                <span>{{ item.type }}</span>
+              </div>
+              <h3>{{ item.title }}</h3>
+              <p>{{ item.summary }}</p>
+              <dl class="resource-facts">
+                <div>
+                  <dt>格式</dt>
+                  <dd>{{ hasDownloadableAttachments(item) ? item.format : '在线阅读' }}</dd>
+                </div>
+                <div>
+                  <dt>阅读</dt>
+                  <dd>{{ item.readingTime }}</dd>
+                </div>
+                <div>
+                  <dt>更新</dt>
+                  <dd>{{ item.updatedAt }}</dd>
+                </div>
+              </dl>
+              <div class="resource-actions">
+                <router-link class="detail-btn" :to="{ name: 'guide-detail', params: { slug: item.slug } }">
+                  查看详情
+                </router-link>
+                <a
+                  v-if="hasDownloadableAttachments(item)"
+                  class="download-link"
+                  :href="item.attachments[0].href"
+                  download
+                >
+                  下载
+                </a>
+              </div>
+            </article>
+          </div>
+
+          <div v-else class="empty" role="status">
+            <strong>没有找到匹配资源</strong>
+            <p>可以减少关键词，或清除阶段、类型筛选后重新查找。</p>
+          </div>
         </div>
       </section>
-    </div>
-
-    <section id="toolbox" class="toolbox">
-      <div class="container">
-        <div class="toolbox-head">
-          <div>
-            <p class="section-kicker">工具资源</p>
-            <h2>把方法落到清单、模板和指南</h2>
-            <p>搜索或按阶段筛选，找到团队当前最需要的工具。</p>
-          </div>
-          <div class="search-bar">
-            <span class="search-ic" aria-hidden="true">🔍</span>
-            <input
-              v-model.trim="keyword"
-              class="search-input"
-              type="search"
-              placeholder="搜索模板、清单、访谈、成果..."
-              aria-label="搜索实践工具资源"
-            />
-          </div>
-        </div>
-
-        <div class="stage-filter" role="tablist" aria-label="按阶段筛选资源">
-          <button
-            v-for="option in stageOptions"
-            :key="option"
-            class="filter-chip"
-            :class="{ active: activeStage === option }"
-            type="button"
-            @click="activeStage = option"
-          >
-            {{ option }}
-          </button>
-        </div>
-
-        <div v-if="filteredResources.length" class="resource-grid">
-          <article v-for="item in filteredResources" :key="item.id" class="resource-card">
-            <div class="resource-meta">
-              <span class="resource-stage">{{ item.stage }}</span>
-              <span class="resource-type">{{ item.type }}</span>
-            </div>
-            <h3>{{ item.name }}</h3>
-            <p>{{ item.desc }}</p>
-            <button class="resource-btn" type="button" @click="onResource(item)">
-              查看资源
-            </button>
-          </article>
-        </div>
-
-        <p v-else class="empty">
-          没有找到与「{{ keyword }}」相关的资源，换个关键词或切换阶段试试。
-        </p>
-      </div>
-    </section>
-
-    <section class="guide-cta">
-      <div class="container cta-inner">
-        <div>
-          <p class="section-kicker">开始行动</p>
-          <h2>从公共方法进入团队实践档案</h2>
-          <p>
-            当团队准备真正执行时，把路线图转化为可保存、可协作、可复盘的实践档案。
-          </p>
-        </div>
-        <router-link class="btn primary" to="/practice/mine">进入我的实践</router-link>
-      </div>
-    </section>
-
-    <GuideToast ref="toastRef" />
+    </main>
   </section>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-import rawData from './guide-data.json'
-import GuideToast from './GuideToast.vue'
+import { computed, reactive } from 'vue'
+import data from './guide-data.json'
+import {
+  GUIDE_STAGES,
+  GUIDE_TYPES,
+  GUIDE_STAGE_ALL,
+  GUIDE_TYPE_ALL,
+  HOT_KEYWORDS,
+  stageName,
+} from './guide-schema.js'
+import {
+  clearGuideFilters,
+  defaultGuideFilters,
+  filterGuideResources,
+  hasDownloadableAttachments,
+} from './guide-utils.js'
 
-const data = rawData
-const keyword = ref('')
-const activeStage = ref('全部')
-const toastRef = ref(null)
-
-const resources = computed(() =>
-  data.categories.flatMap((cat) =>
-    (cat.items || []).map((item, index) => ({
-      ...item,
-      id: `${cat.id}-${index}`,
-      category: cat.name,
-    })),
-  ),
-)
+const resources = data.resources
+const filters = reactive({ ...defaultGuideFilters })
 
 const stageOptions = computed(() => [
-  '全部',
-  ...new Set(resources.value.map((item) => item.stage).filter(Boolean)),
+  { id: GUIDE_STAGE_ALL, name: '全部阶段' },
+  ...GUIDE_STAGES.map((stage) => ({ id: stage.id, name: stage.name })),
 ])
 
-const filteredResources = computed(() => {
-  const kw = keyword.value.toLowerCase()
-  return resources.value.filter((item) => {
-    const stageMatched = activeStage.value === '全部' || item.stage === activeStage.value
-    const text = [item.name, item.desc, item.stage, item.type, item.category].join(' ').toLowerCase()
-    return stageMatched && (!kw || text.includes(kw))
-  })
-})
+const typeOptions = computed(() => [
+  { id: GUIDE_TYPE_ALL, name: '全部类型' },
+  ...GUIDE_TYPES.map((type) => ({ id: type, name: type })),
+])
 
-function searchTool(tool) {
-  keyword.value = tool
-  activeStage.value = '全部'
+const filteredResources = computed(() => filterGuideResources(resources, filters))
+const featuredResources = computed(() => resources.filter((item) => item.featured).slice(0, 8))
+const hasActiveFilters = computed(() =>
+  filters.keyword !== '' || filters.stage !== GUIDE_STAGE_ALL || filters.type !== GUIDE_TYPE_ALL,
+)
+const resultText = computed(() => `当前显示 ${filteredResources.value.length} / ${resources.length} 项资源`)
+
+function countByStage(stageId) {
+  return resources.filter((item) => item.stage === stageId).length
+}
+
+function representatives(stageId) {
+  return resources
+    .filter((item) => item.stage === stageId)
+    .slice(0, 3)
+    .map((item) => item.title.replace(/^如何/, ''))
+}
+
+function scrollToResources() {
   requestAnimationFrame(() => {
-    document.querySelector('#toolbox')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    document.querySelector('#resource-center')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   })
 }
 
-function onResource(item) {
-  toastRef.value?.show(`「${item.name}」资源内容即将上线`)
+function applyKeyword(word) {
+  filters.keyword = word
+  filters.stage = GUIDE_STAGE_ALL
+  filters.type = GUIDE_TYPE_ALL
+  scrollToResources()
+}
+
+function applyStage(stageId) {
+  filters.stage = stageId
+  filters.keyword = ''
+  filters.type = GUIDE_TYPE_ALL
+  scrollToResources()
+}
+
+function resetFilters() {
+  Object.assign(filters, clearGuideFilters())
 }
 </script>
 
 <style scoped>
 .guide {
-  background:
-    linear-gradient(180deg, rgba(250, 248, 245, 0.96), rgba(250, 248, 245, 1)),
-    var(--color-bg);
+  min-height: 100%;
+  background: var(--color-bg);
 }
 
 .container {
@@ -232,400 +289,449 @@ function onResource(item) {
   padding: 0 clamp(1rem, 4vw, 2rem);
 }
 
-.guide-hero {
-  padding: 4.2rem 0 3.8rem;
-  background:
-    linear-gradient(135deg, rgba(77, 107, 62, 0.96), rgba(107, 140, 92, 0.9)),
-    var(--color-primary-dark);
-  color: #fff;
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
-.hero-grid {
+.guide-hero {
+  padding: 4.5rem 0 4rem;
+  color: #fff;
+  background:
+    linear-gradient(135deg, rgba(77, 107, 62, 0.98), rgba(107, 140, 92, 0.92)),
+    var(--color-primary-dark);
+}
+
+.hero-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
-  gap: clamp(2rem, 6vw, 5rem);
+  grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.75fr);
+  gap: clamp(2rem, 6vw, 4.5rem);
   align-items: center;
 }
 
 .kicker,
 .section-kicker {
-  margin: 0 0 0.7rem;
+  margin: 0 0 0.65rem;
+  color: var(--color-highlight);
   font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.08em;
-  color: var(--color-highlight);
 }
 
-.guide-hero .kicker { color: var(--color-accent); }
+.guide-hero .kicker {
+  color: var(--color-accent);
+}
 
 .hero-copy h1 {
-  max-width: 720px;
   margin: 0;
-  font-size: clamp(34px, 5vw, 58px);
-  line-height: 1.12;
   color: #fff;
+  font-size: clamp(38px, 5vw, 62px);
+  line-height: 1.1;
+}
+
+.hero-subtitle {
+  margin: 0.8rem 0 0;
+  color: rgba(255, 255, 255, 0.94);
+  font-family: var(--sx-serif);
+  font-size: clamp(20px, 2.7vw, 30px);
+  font-weight: 700;
 }
 
 .hero-lead {
-  max-width: 780px;
-  margin: 1.3rem 0 0;
-  font-size: clamp(16px, 2vw, 20px);
+  max-width: 760px;
+  margin: 1rem 0 0;
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 1.02rem;
   line-height: 1.85;
-  color: rgba(255, 255, 255, 0.9);
 }
 
-.hero-actions {
+.hero-search {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.6rem;
+  max-width: 720px;
+  margin-top: 1.8rem;
+  padding: 0.35rem;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 999px;
+}
+
+.hero-search input,
+.filter-search input {
+  width: 100%;
+  min-width: 0;
+  border: none;
+  outline: none;
+  font-family: inherit;
+}
+
+.hero-search input {
+  padding: 0.8rem 1rem;
+  color: #fff;
+  background: transparent;
+  font-size: 0.96rem;
+}
+
+.hero-search input::placeholder {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.hero-search button,
+.clear-btn,
+.filter-chip,
+.stage-entry-card {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.hero-search button {
+  min-width: 86px;
+  border: none;
+  border-radius: 999px;
+  color: var(--color-primary-dark);
+  background: var(--color-accent);
+  font-weight: 800;
+}
+
+.hot-keywords {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.8rem;
-  margin-top: 2rem;
-}
-
-.btn {
-  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  min-height: 42px;
-  padding: 0.7rem 1.5rem;
-  border-radius: 50px;
-  font-weight: 700;
-  font-size: 0.92rem;
-  transition: transform var(--transition-fast), background var(--transition-fast), border-color var(--transition-fast);
+  gap: 0.45rem;
+  margin-top: 1rem;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.88rem;
 }
 
-.btn:hover { transform: translateY(-1px); }
-
-.btn.primary {
+.hot-keywords button {
+  padding: 0.25rem 0.7rem;
+  border: 1px solid rgba(255, 255, 255, 0.26);
+  border-radius: 999px;
   color: #fff;
-  background: var(--color-highlight);
-  box-shadow: 0 10px 28px rgba(224, 122, 95, 0.24);
-}
-
-.btn.ghost {
-  color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.38);
   background: rgba(255, 255, 255, 0.08);
+  font: inherit;
+  cursor: pointer;
+}
+
+.hot-keywords button:hover,
+.hot-keywords button:focus-visible {
+  background: rgba(255, 255, 255, 0.18);
 }
 
 .hero-note {
-  padding: 1.6rem;
-  border: 1px solid rgba(255, 255, 255, 0.28);
+  padding: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.26);
   border-radius: var(--radius);
   background: rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(12px);
 }
 
 .note-label {
-  margin: 0 0 0.8rem;
+  margin: 0 0 0.75rem;
   color: var(--color-accent);
   font-weight: 700;
-  font-size: 0.85rem;
 }
 
 .note-main {
   margin: 0;
   font-family: var(--sx-serif);
-  font-size: clamp(22px, 3vw, 32px);
-  line-height: 1.45;
+  font-size: clamp(22px, 3vw, 30px);
   font-weight: 700;
+  line-height: 1.45;
 }
 
 .note-stats {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.8rem;
-  margin-top: 1.5rem;
+  margin-top: 1.4rem;
 }
 
 .note-stat {
-  padding-top: 0.9rem;
+  padding-top: 0.85rem;
   border-top: 1px solid rgba(255, 255, 255, 0.22);
 }
 
 .note-stat strong {
   display: block;
-  font-size: 2rem;
+  font-size: 1.8rem;
   line-height: 1;
 }
 
 .note-stat span {
   display: block;
-  margin-top: 0.35rem;
+  margin-top: 0.3rem;
+  color: rgba(255, 255, 255, 0.76);
   font-size: 0.78rem;
-  color: rgba(255, 255, 255, 0.78);
 }
 
-.audience-section,
-.principles,
-.method-section {
-  padding: 3.4rem 0 0;
+.section-block {
+  padding: 3.4rem 0;
 }
 
 .section-head {
-  max-width: 780px;
-  margin-bottom: 1.6rem;
+  max-width: 760px;
+  margin-bottom: 1.4rem;
 }
 
-.section-head.compact { margin-bottom: 1rem; }
+.section-head.compact {
+  margin-bottom: 1.2rem;
+}
 
 .section-head h2,
-.toolbox-head h2,
-.guide-cta h2 {
+.resource-head h2 {
   margin: 0;
   color: var(--color-primary-dark);
-  font-size: clamp(24px, 3.4vw, 36px);
+  font-size: clamp(24px, 3.2vw, 36px);
 }
 
 .section-head p,
-.toolbox-head p,
-.guide-cta p {
-  margin: 0.8rem 0 0;
+.resource-head p {
+  margin: 0.7rem 0 0;
   color: var(--color-text-secondary);
   line-height: 1.8;
 }
 
-.audience-grid {
+.stage-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 1rem;
 }
 
-.audience-card,
-.principle-item,
-.stage-card,
-.resource-card {
+.stage-entry-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-height: 260px;
+  padding: 1.35rem;
+  text-align: left;
+  color: var(--color-text);
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast), border-color var(--transition-fast);
+}
+
+.stage-entry-card:hover,
+.stage-entry-card:focus-visible {
+  border-color: rgba(107, 140, 92, 0.45);
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-2px);
+}
+
+.stage-name {
+  color: var(--color-highlight);
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.stage-entry-card strong {
+  margin-top: 0.45rem;
+  color: var(--color-primary-dark);
+  font-family: var(--sx-serif);
+  font-size: 1.35rem;
+}
+
+.stage-desc {
+  margin-top: 0.75rem;
+  color: var(--color-text-secondary);
+  line-height: 1.75;
+}
+
+.stage-count {
+  margin-top: auto;
+  padding-top: 1rem;
+  color: var(--color-primary-dark);
+  font-weight: 800;
+}
+
+.stage-topics {
+  margin-top: 0.35rem;
+  color: var(--color-text-light);
+  font-size: 0.84rem;
+  line-height: 1.6;
+}
+
+.featured {
+  background: var(--gradient-section-odd);
+  border-top: 1px solid var(--color-border-light);
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.featured-grid,
+.resource-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1rem;
+}
+
+.featured-card,
+.resource-card,
+.filter-panel {
   background: var(--color-card);
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   box-shadow: var(--shadow-card);
 }
 
-.audience-card {
-  padding: 1.2rem 1.25rem;
-}
-
-.audience-role {
-  display: inline-flex;
-  padding: 0.16rem 0.7rem;
-  border-radius: 50px;
-  color: var(--color-primary-dark);
-  background: var(--color-accent);
-  font-size: 0.76rem;
-  font-weight: 700;
-}
-
-.audience-card h3,
-.principle-item h3,
-.stage-body h3,
-.resource-card h3 {
-  margin: 0.8rem 0 0;
-  color: var(--color-text);
-  font-size: 1.08rem;
-}
-
-.audience-card p,
-.principle-item p,
-.resource-card p {
-  margin: 0.55rem 0 0;
-  color: var(--color-text-secondary);
-  font-size: 0.9rem;
-  line-height: 1.7;
-}
-
-.principle-row {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1rem;
-}
-
-.principle-item {
-  padding: 1.3rem 1.4rem;
-  border-left: 4px solid var(--color-primary);
-}
-
-.method-timeline {
+.featured-card {
   display: flex;
   flex-direction: column;
-  gap: 1.1rem;
+  min-height: 230px;
+  padding: 1.15rem;
+  border-top: 4px solid var(--color-accent);
 }
 
-.stage-card {
-  display: grid;
-  grid-template-columns: 156px minmax(0, 1fr);
-  overflow: hidden;
-}
-
-.stage-index {
-  padding: 1.4rem;
-  color: #fff;
-  background: var(--gradient-cta);
-}
-
-.stage-index span {
-  display: block;
-  font-family: var(--sx-serif);
-  font-size: 2.7rem;
-  font-weight: 800;
-  line-height: 1;
-}
-
-.stage-index strong {
-  display: block;
-  margin-top: 0.8rem;
-  font-size: 1rem;
-}
-
-.stage-body {
-  padding: 1.35rem 1.5rem;
-}
-
-.stage-body h3 {
-  margin-top: 0;
-  color: var(--color-primary-dark);
-  font-size: 1.28rem;
-}
-
-.stage-summary {
-  margin: 0.55rem 0 0;
-  color: var(--color-text-secondary);
-  line-height: 1.75;
-}
-
-.action-list {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.45rem 1.4rem;
-  margin: 1rem 0 0;
-  padding: 0;
-  list-style: none;
-}
-
-.action-list li {
-  position: relative;
-  padding-left: 1rem;
-  color: var(--color-text);
-  font-size: 0.9rem;
-  line-height: 1.65;
-}
-
-.action-list li::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0.72em;
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--color-highlight);
-}
-
-.stage-foot {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  flex-wrap: wrap;
-  margin-top: 1rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--color-border-light);
-}
-
-.deliverable {
-  color: var(--color-primary-dark);
-  font-weight: 700;
-  font-size: 0.86rem;
-}
-
-.tool-chips {
+.resource-meta {
   display: flex;
   flex-wrap: wrap;
   gap: 0.45rem;
 }
 
-.tool-chip,
-.filter-chip,
-.resource-btn {
-  border: none;
-  border-radius: 50px;
-  cursor: pointer;
-  font-family: inherit;
-  transition: all var(--transition-fast);
-}
-
-.tool-chip {
-  padding: 0.26rem 0.75rem;
+.resource-meta span {
+  padding: 0.12rem 0.62rem;
+  border-radius: 999px;
   color: var(--color-primary-dark);
   background: var(--color-accent-soft);
-  font-size: 0.78rem;
+  font-size: 0.74rem;
+  font-weight: 800;
 }
 
-.tool-chip:hover {
+.featured-card h3,
+.resource-card h3 {
+  margin: 0.75rem 0 0;
+  color: var(--color-text);
+  font-size: 1.08rem;
+}
+
+.featured-card p,
+.resource-card p {
+  margin: 0.55rem 0 0;
+  color: var(--color-text-secondary);
+  line-height: 1.7;
+}
+
+.featured-card p {
+  flex: 1;
+}
+
+.featured-actions,
+.resource-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 1rem;
+}
+
+.text-link,
+.detail-btn,
+.download-link,
+.clear-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 0.42rem 0.9rem;
+  border-radius: 999px;
+  font-weight: 800;
+  font-size: 0.84rem;
+}
+
+.text-link,
+.detail-btn {
+  color: #fff;
+  background: var(--color-primary);
+}
+
+.download-link {
+  color: var(--color-primary-dark);
   background: var(--color-accent);
 }
 
-.toolbox {
-  margin-top: 3.6rem;
-  padding: 3.2rem 0;
-  background: var(--gradient-section-odd);
-  border-top: 1px solid var(--color-border-light);
-  border-bottom: 1px solid var(--color-border-light);
-}
-
-.toolbox-head {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(280px, 440px);
-  gap: 1.5rem;
+.resource-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
   align-items: end;
+  margin-bottom: 1.1rem;
 }
 
-.search-bar {
-  position: relative;
-}
-
-.search-ic {
-  position: absolute;
-  left: 18px;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 15px;
-  opacity: 0.65;
-}
-
-.search-input {
-  width: 100%;
-  padding: 14px 18px 14px 46px;
-  font-size: 15px;
-  color: var(--color-text);
-  background: var(--color-card);
+.clear-btn {
+  flex-shrink: 0;
   border: 1px solid var(--color-border);
-  border-radius: 50px;
-  outline: none;
-  box-shadow: var(--shadow-sm);
-  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  color: var(--color-primary-dark);
+  background: var(--color-card);
 }
 
-.search-input:focus {
+.clear-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.filter-panel {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(0, 1.1fr) minmax(0, 0.9fr);
+  gap: 1rem;
+  margin-bottom: 1.2rem;
+  padding: 1rem;
+}
+
+.filter-search {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  color: var(--color-text);
+  font-weight: 800;
+  font-size: 0.85rem;
+}
+
+.filter-search input {
+  padding: 0.7rem 0.85rem;
+  color: var(--color-text);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  font-size: 0.92rem;
+}
+
+.filter-search input:focus {
   border-color: var(--color-primary);
   box-shadow: 0 0 0 3px rgba(107, 140, 92, 0.12);
 }
 
-.stage-filter {
+.filter-group {
+  min-width: 0;
+}
+
+.filter-label {
+  display: block;
+  margin-bottom: 0.35rem;
+  color: var(--color-text);
+  font-size: 0.85rem;
+  font-weight: 800;
+}
+
+.chip-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.55rem;
-  margin: 1.4rem 0 1.2rem;
+  gap: 0.45rem;
 }
 
 .filter-chip {
-  padding: 0.45rem 1rem;
+  padding: 0.38rem 0.82rem;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
   color: var(--color-text-secondary);
   background: var(--color-card);
-  border: 1px solid var(--color-border);
-}
-
-.filter-chip:hover {
-  border-color: var(--color-primary);
-  color: var(--color-primary);
 }
 
 .filter-chip.active {
@@ -634,131 +740,91 @@ function onResource(item) {
   border-color: var(--color-primary);
 }
 
-.resource-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 1rem;
-}
-
 .resource-card {
   display: flex;
   flex-direction: column;
-  min-height: 220px;
-  padding: 1.2rem 1.25rem;
-}
-
-.resource-meta {
-  display: flex;
-  gap: 0.45rem;
-  flex-wrap: wrap;
-}
-
-.resource-stage,
-.resource-type {
-  padding: 0.14rem 0.65rem;
-  border-radius: 50px;
-  font-size: 0.74rem;
-  font-weight: 700;
-}
-
-.resource-stage {
-  color: var(--color-primary-dark);
-  background: var(--color-accent);
-}
-
-.resource-type {
-  color: var(--color-text-secondary);
-  background: var(--color-bg);
+  padding: 1.15rem;
 }
 
 .resource-card p {
   flex: 1;
 }
 
-.resource-btn {
-  align-self: flex-start;
-  margin-top: 1rem;
-  padding: 0.5rem 1.05rem;
-  color: #fff;
-  background: var(--color-primary);
+.resource-facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.55rem;
+  margin: 1rem 0 0;
+}
+
+.resource-facts div {
+  min-width: 0;
+  padding-top: 0.65rem;
+  border-top: 1px solid var(--color-border-light);
+}
+
+.resource-facts dt {
+  color: var(--color-text-light);
+  font-size: 0.74rem;
+}
+
+.resource-facts dd {
+  margin: 0.18rem 0 0;
+  color: var(--color-text);
+  font-size: 0.82rem;
   font-weight: 700;
 }
 
-.resource-btn:hover {
-  background: var(--color-primary-dark);
-  transform: translateY(-1px);
-}
-
 .empty {
-  margin: 1.2rem 0 0;
-  padding: 2rem;
+  padding: 2.4rem;
   text-align: center;
-  color: var(--color-text-light);
+  color: var(--color-text-secondary);
   background: var(--color-card);
   border: 1px dashed var(--color-border);
   border-radius: var(--radius);
 }
 
-.guide-cta {
-  padding: 3.2rem 0 3.6rem;
+.empty strong {
+  display: block;
+  color: var(--color-primary-dark);
+  font-size: 1.1rem;
 }
 
-.cta-inner {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1.5rem;
-  padding-top: 1.6rem;
-  border-top: 1px solid var(--color-border);
+.empty p {
+  margin: 0.5rem 0 0;
 }
 
-.guide-cta .btn.primary {
-  flex-shrink: 0;
-}
-
-@media (max-width: 920px) {
-  .hero-grid,
-  .toolbox-head {
+@media (max-width: 980px) {
+  .hero-layout,
+  .filter-panel {
     grid-template-columns: 1fr;
   }
 
-  .audience-grid,
-  .principle-row {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .action-list {
+  .stage-grid {
     grid-template-columns: 1fr;
   }
 }
 
-@media (max-width: 680px) {
+@media (max-width: 640px) {
   .guide-hero {
     padding: 3rem 0;
   }
 
+  .hero-search {
+    grid-template-columns: 1fr;
+    border-radius: var(--radius);
+  }
+
+  .hero-search button {
+    min-height: 42px;
+  }
+
   .note-stats,
-  .audience-grid,
-  .principle-row {
+  .resource-facts {
     grid-template-columns: 1fr;
   }
 
-  .stage-card {
-    grid-template-columns: 1fr;
-  }
-
-  .stage-index {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 1rem;
-  }
-
-  .stage-index strong {
-    margin-top: 0;
-  }
-
-  .cta-inner {
+  .resource-head {
     align-items: flex-start;
     flex-direction: column;
   }

@@ -149,12 +149,24 @@ export function retrieve(idea, sources = {}, { perSource = 4, topic = '', villag
     }
   }
 
-  // —— 实践攻略 guide —— path → /guide。展开 categories.items 逐条打分。
+  // —— 实践攻略 guide —— path → /guide 或 /guide/:slug。兼容旧 categories 与新 resources 数据。
   const guideItems = []
+  if (Array.isArray(guide.resources)) {
+    for (const it of guide.resources) {
+      guideItems.push({
+        ...it,
+        name: it.title,
+        desc: it.summary,
+        catName: it.type || '实践攻略',
+        catId: it.stage || 'guide',
+        path: it.slug ? `/guide/${it.slug}` : '/guide',
+      })
+    }
+  }
   if (Array.isArray(guide.categories)) {
     for (const cat of guide.categories) {
       for (const it of cat.items || []) {
-        guideItems.push({ ...it, catName: cat.name, catId: cat.id })
+        guideItems.push({ ...it, catName: cat.name, catId: cat.id, path: '/guide' })
       }
     }
   }
@@ -168,7 +180,7 @@ export function retrieve(idea, sources = {}, { perSource = 4, topic = '', villag
         id: `${it.catId}:${it.name}`,
         title: it.name,
         sub: `${it.catName || '攻略'}｜${it.desc || ''}`,
-        path: '/guide',
+        path: it.path || '/guide',
         score,
       })
     }
